@@ -25,7 +25,7 @@ export function timingSafeString(left, right) {
 }
 
 export async function hashPassword(password) {
-  if (typeof password !== "string" || password.length < 12 || password.length > 256) {
+  if (typeof password !== "string" || password.length < 8 || password.length > 256) {
     throw new Error("PASSWORD_POLICY");
   }
   const salt = randomBytes(16);

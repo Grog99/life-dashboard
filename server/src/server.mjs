@@ -211,8 +211,8 @@ function publicUser(row) {
 }
 
 async function validatedPasswordHash(password) {
-  if (typeof password !== "string" || password.length < 12 || password.length > 256) {
-    throw httpError(400, "Hasło musi mieć od 12 do 256 znaków", "PASSWORD_POLICY");
+  if (typeof password !== "string" || password.length < 8 || password.length > 256) {
+    throw httpError(400, "Hasło musi mieć od 8 do 256 znaków", "PASSWORD_POLICY");
   }
   return passwordOperation(() => hashPassword(password));
 }
