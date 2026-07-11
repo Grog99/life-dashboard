@@ -1,0 +1,41 @@
+{
+  "name": "Puls — osobiste centrum życia",
+  "short_name": "Puls",
+  "description": "Wspólny plan dnia, finanse, podróże, posiłki, subskrypcje, samochód i podstawy zdrowia.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f5f1",
+  "theme_color": "#215a49",
+  "lang": "pl-PL",
+  "categories": ["productivity", "finance", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dodaj nową rzecz",
+      "short_name": "Dodaj",
+      "url": "/?quickAdd=1",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

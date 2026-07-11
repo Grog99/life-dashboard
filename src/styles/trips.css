@@ -1,0 +1,1351 @@
+.trips-page {
+  --trip-ocean: #4c7791;
+  --trip-terracotta: #b86f4d;
+  --trip-forest: #477761;
+  --trip-violet: #76659a;
+}
+
+.trips-page__header {
+  padding-bottom: 22px;
+}
+
+.trips-workspace {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.trips-list {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100dvh - 115px);
+  padding: 16px;
+  overflow: auto;
+}
+
+.trips-list > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 1px 2px 14px;
+}
+
+.trips-list > header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trips-list > header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.trips-list > header strong {
+  font-size: 13px;
+}
+
+.trips-list__add,
+.trips-day > header > button {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-light);
+  border-radius: 9px;
+}
+
+.trips-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trip-card {
+  --trip-accent: var(--trip-ocean);
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  width: 100%;
+  padding: 12px 11px;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.trip-card:hover {
+  background: var(--surface-subtle);
+  transform: translateY(-1px);
+}
+
+.trip-card--active {
+  background: color-mix(in srgb, var(--trip-accent) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--trip-accent) 26%, var(--border));
+}
+
+.trip-card--active:hover {
+  background: color-mix(in srgb, var(--trip-accent) 10%, var(--surface));
+}
+
+.trip-card--terracotta { --trip-accent: var(--trip-terracotta); }
+.trip-card--ocean { --trip-accent: var(--trip-ocean); }
+.trip-card--forest { --trip-accent: var(--trip-forest); }
+.trip-card--violet { --trip-accent: var(--trip-violet); }
+
+.trip-card__route {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  color: var(--trip-accent);
+  background: color-mix(in srgb, var(--trip-accent) 12%, var(--surface));
+  border-radius: 9px;
+}
+
+.trip-card__content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.trip-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.trip-card__topline small {
+  color: var(--trip-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.trip-card__content > strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-card__content > span:not(.trip-card__topline, .trip-card__progress) {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-card__date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 7px !important;
+}
+
+.trip-card__progress {
+  height: 3px;
+  margin-top: 9px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  border-radius: 10px;
+}
+
+.trip-card__progress i {
+  display: block;
+  height: 100%;
+  background: var(--trip-accent);
+  border-radius: inherit;
+}
+
+.trips-detail {
+  min-width: 0;
+}
+
+.trips-hero {
+  --trip-accent: var(--trip-ocean);
+  position: relative;
+  display: grid;
+  min-height: 224px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 30px;
+  padding: 28px 31px;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(circle at 80% 15%, color-mix(in srgb, var(--trip-accent) 78%, #fff) 0, transparent 15rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--trip-accent) 72%, #10251f), color-mix(in srgb, var(--trip-accent) 88%, #22382e));
+  border-radius: 21px;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--trip-accent) 22%, transparent);
+}
+
+.trips-hero--terracotta { --trip-accent: var(--trip-terracotta); }
+.trips-hero--ocean { --trip-accent: var(--trip-ocean); }
+.trips-hero--forest { --trip-accent: var(--trip-forest); }
+.trips-hero--violet { --trip-accent: var(--trip-violet); }
+
+.trips-hero__wash {
+  position: absolute;
+  right: -55px;
+  bottom: -80px;
+  width: 330px;
+  height: 210px;
+  opacity: 0.16;
+  background:
+    linear-gradient(135deg, transparent 48%, #fff 49% 51%, transparent 52%) 0 0 / 38px 38px;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.trips-hero__main,
+.trips-hero__countdown {
+  position: relative;
+  z-index: 1;
+}
+
+.trips-hero__badges {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 17px;
+}
+
+.trips-hero__badges select,
+.trips-hero__badges span,
+.trips-hero__badges button {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 750;
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+}
+
+.trips-hero__badges button:hover { background: rgba(255, 255, 255, 0.2); }
+
+.trips-hero__badges select {
+  outline: none;
+}
+
+.trips-hero__badges select option {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.trips-hero__destination {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trips-hero h2 {
+  max-width: 720px;
+  margin: 5px 0 8px;
+  color: #fff;
+  font-size: clamp(27px, 3vw, 38px);
+  line-height: 1.05;
+}
+
+.trips-hero__main > p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+}
+
+.trips-hero__people {
+  display: flex;
+  align-items: center;
+  padding-top: 18px;
+}
+
+.trips-hero__people > span {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  margin-left: -5px;
+  color: #244236;
+  font-size: 12px;
+  font-weight: 800;
+  background: #f5faf7;
+  border: 2px solid color-mix(in srgb, var(--trip-accent) 78%, #10251f);
+  border-radius: 50%;
+}
+
+.trips-hero__people > span:first-child {
+  margin-left: 0;
+}
+
+.trips-hero__people small {
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+}
+
+.trips-hero__countdown {
+  display: flex;
+  width: 126px;
+  min-height: 126px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 50%;
+  backdrop-filter: blur(10px);
+}
+
+.trips-hero__countdown span {
+  color: rgba(255, 255, 255, 0.67);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.trips-hero__countdown strong {
+  margin: 2px 0 -1px;
+  font-size: 35px;
+  letter-spacing: -0.06em;
+}
+
+.trips-hero__countdown small {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+}
+
+.trips-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 9px;
+  margin: 12px 0 14px;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  scrollbar-width: none;
+}
+
+.trips-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.trips-tabs button {
+  display: inline-flex;
+  min-height: 36px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  background: transparent;
+  border-radius: 9px;
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.trips-tabs button:hover {
+  color: var(--brand);
+  background: var(--surface-subtle);
+}
+
+.trips-tabs button.active {
+  color: var(--brand-strong);
+  background: var(--brand-light);
+}
+
+:root[data-theme="dark"] .trips-tabs button.active {
+  color: #a5d9c3;
+}
+
+.trips-tabs button > span {
+  padding: 2px 5px;
+  color: inherit;
+  font-size: 10px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  border-radius: 8px;
+}
+
+.trips-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.trips-metrics article {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.trips-metric__icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 10px;
+}
+
+.trips-metric__icon--green { color: var(--brand); background: var(--brand-light); }
+.trips-metric__icon--blue { color: var(--blue); background: var(--blue-light); }
+.trips-metric__icon--amber { color: var(--amber); background: var(--amber-light); }
+.trips-metric__icon--violet { color: var(--purple); background: var(--purple-light); }
+
+.trips-metrics article > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trips-metrics small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trips-metrics strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trips-mini-progress {
+  grid-column: 1 / -1;
+  height: 3px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  border-radius: 5px;
+}
+
+.trips-mini-progress i {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+
+.trips-overview__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.trips-next,
+.trips-upcoming,
+.trips-notes {
+  padding: 19px;
+}
+
+.trips-next__list,
+.trips-upcoming__items {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.trips-next__list button {
+  display: grid;
+  min-height: 47px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  background: var(--surface-subtle);
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+
+.trips-next__list button:hover {
+  border-color: var(--border-strong);
+}
+
+.trips-next__list button > span:first-child {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--brand-light);
+  border-radius: 8px;
+}
+
+.trips-next__list button strong {
+  font-size: 13px;
+}
+
+.trips-next__list button > span:last-child {
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.trips-all-ready {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 93px;
+  padding: 15px;
+  margin-top: 14px;
+  color: var(--brand);
+  background: var(--brand-pale);
+  border-radius: 12px;
+}
+
+.trips-all-ready div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trips-all-ready strong { color: var(--text); font-size: 14px; }
+.trips-all-ready span { color: var(--muted); font-size: 12px; }
+
+.trips-upcoming__items article {
+  display: grid;
+  grid-template-columns: 42px 32px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.trips-upcoming__items article:last-child {
+  border-bottom: 0;
+}
+
+.trips-upcoming__items time,
+.trips-upcoming__items article > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trips-upcoming__items time strong { font-size: 13px; }
+.trips-upcoming__items time span,
+.trips-upcoming__items article > div span { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.trips-upcoming__items article > div strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+
+.trips-item-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+}
+
+.trips-item-icon--transport { color: var(--blue); background: var(--blue-light); }
+.trips-item-icon--stay { color: var(--purple); background: var(--purple-light); }
+.trips-item-icon--activity { color: var(--brand); background: var(--brand-light); }
+.trips-item-icon--food { color: var(--amber); background: var(--amber-light); }
+.trips-item-icon--other { color: var(--muted); background: var(--surface-soft); }
+
+.trips-inline-empty {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 66px;
+  padding: 11px;
+  color: var(--brand);
+  text-align: left;
+  background: var(--brand-pale);
+  border: 1px dashed color-mix(in srgb, var(--brand) 36%, var(--border));
+  border-radius: 11px;
+}
+
+.trips-inline-empty > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trips-inline-empty strong { color: var(--text); font-size: 13px; }
+.trips-inline-empty small { color: var(--muted); font-size: 11px; }
+
+.trips-notes {
+  grid-column: 1 / -1;
+}
+
+.trips-notes > header > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.trips-notes textarea {
+  width: 100%;
+  min-height: 82px;
+  padding: 13px;
+  margin-top: 13px;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  outline: none;
+  resize: vertical;
+}
+
+.trips-notes textarea:focus {
+  background: var(--surface);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 13%, transparent);
+}
+
+.trips-section {
+  padding: 21px;
+}
+
+.trips-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trips-section__header h2 {
+  margin: 4px 0 4px;
+  font-size: 21px;
+}
+
+.trips-section__header p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.trips-days {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding-top: 17px;
+}
+
+.trips-day {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+}
+
+.trips-day > header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  background: var(--surface-subtle);
+  border-right: 1px solid var(--border);
+  border-radius: 12px 0 0 12px;
+}
+
+.trips-day > header > span {
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trips-day > header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trips-day > header strong { font-size: 12px; }
+.trips-day > header small { color: var(--muted); font-size: 12px; }
+.trips-day > header > button { width: 27px; height: 27px; margin-top: auto; }
+
+.trips-day__items {
+  min-width: 0;
+  padding: 5px 13px;
+}
+
+.trips-schedule-item {
+  display: grid;
+  grid-template-columns: 44px 35px minmax(0, 1fr) auto 30px;
+  gap: 9px;
+  align-items: center;
+  min-height: 64px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.trips-schedule-item:last-child {
+  border-bottom: 0;
+}
+
+.trips-schedule-item > time {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.trips-schedule-item > div:nth-child(3) {
+  min-width: 0;
+}
+
+.trips-schedule-item > div:nth-child(3) > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.trips-schedule-item > div:nth-child(3) strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trips-schedule-item > div:nth-child(3) small {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 750;
+  background: var(--brand-light);
+  border-radius: 5px;
+}
+
+.trips-schedule-item p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.trips-schedule-item p > span,
+.trips-schedule-item p > :not(span) {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.trips-schedule-item__cost {
+  display: flex;
+  min-width: 78px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.trips-schedule-item__cost small { color: var(--muted); font-size: 10px; }
+.trips-schedule-item__cost strong { font-size: 12px; }
+
+.trips-day__empty {
+  display: flex;
+  width: 100%;
+  min-height: 62px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+}
+
+.trips-day__empty:hover {
+  color: var(--brand);
+}
+
+.trips-bookings__summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.trips-bookings__summary strong { font-size: 18px; }
+.trips-bookings__summary span { color: var(--muted); font-size: 11px; }
+
+.trips-booking-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trips-booking-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 17px;
+}
+
+.trips-booking {
+  min-width: 0;
+  padding: 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+}
+
+.trips-booking > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.trips-booking__icon {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-light);
+  border-radius: 11px;
+}
+
+.trips-booking__icon--flight,
+.trips-booking__icon--train { color: var(--blue); background: var(--blue-light); }
+.trips-booking__icon--stay { color: var(--purple); background: var(--purple-light); }
+.trips-booking__icon--car { color: var(--amber); background: var(--amber-light); }
+
+.trips-paid,
+.trips-unpaid {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 10px;
+}
+
+.trips-paid { color: var(--brand); background: var(--brand-light); }
+.trips-unpaid { color: var(--amber); background: var(--amber-light); }
+
+.trips-booking > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.trips-booking h3 {
+  margin: 4px 0 7px;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trips-booking > p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.trips-booking > footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 13px;
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.trips-booking > footer > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trips-booking footer small { color: var(--muted); font-size: 10px; }
+.trips-booking footer code { overflow: hidden; color: var(--text-soft); font-size: 12px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.trips-booking footer > strong { flex: 0 0 auto; font-size: 14px; }
+
+.trips-section-empty {
+  display: flex;
+  min-height: 250px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  color: var(--brand);
+  text-align: center;
+}
+
+.trips-section-empty h3 { margin-top: 10px; color: var(--text); font-size: 15px; }
+.trips-section-empty p { max-width: 330px; margin: 5px 0 13px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+.trips-budget-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 12px;
+}
+
+.trips-budget-card,
+.trips-budget-breakdown {
+  padding: 20px;
+}
+
+.trips-budget-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.trips-budget-card h2,
+.trips-budget-breakdown h2 {
+  margin-top: 4px;
+  font-size: 19px;
+}
+
+.trips-budget-card__total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 0 20px;
+}
+
+.trips-budget-card__total span,
+.trips-budget-card__total small { color: var(--muted); font-size: 12px; }
+.trips-budget-card__total strong { margin: 4px 0 2px; font-size: clamp(25px, 4vw, 36px); letter-spacing: -0.055em; }
+
+.trips-budget-meter {
+  position: relative;
+  height: 8px;
+  background: var(--surface-soft);
+  border-radius: 10px;
+}
+
+.trips-budget-meter > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), color-mix(in srgb, var(--brand) 65%, var(--amber)));
+  border-radius: inherit;
+}
+
+.trips-budget-meter > i {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  background: var(--text);
+  border-radius: 2px;
+  transform: translateX(-1px);
+}
+
+.trips-budget-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.trips-budget-card__stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px;
+  background: var(--surface-subtle);
+  border-radius: 10px;
+}
+
+.trips-budget-card__stats span { color: var(--muted); font-size: 11px; }
+.trips-budget-card__stats strong { font-size: 14px; }
+.trips-budget-card__stats .is-over { color: var(--danger); background: var(--danger-light); }
+.trips-budget-card__stats .is-over span { color: currentColor; }
+
+.trips-budget-breakdown > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 15px;
+}
+
+.trips-budget-breakdown article {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 43px;
+  padding: 6px 2px;
+}
+
+.trips-budget-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--brand);
+  border-radius: 50%;
+}
+
+.trips-budget-dot--1 { background: var(--blue); }
+.trips-budget-dot--2 { background: var(--amber); }
+.trips-budget-dot--3 { background: var(--purple); }
+.trips-budget-dot--4 { background: var(--danger); }
+
+.trips-budget-breakdown article > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trips-budget-breakdown article > div > strong { font-size: 12px; }
+.trips-budget-breakdown article > strong { font-size: 12px; }
+.trips-budget-breakdown article > div > span { height: 3px; overflow: hidden; background: var(--surface-soft); border-radius: 3px; }
+.trips-budget-breakdown article > div > span i { display: block; height: 100%; background: var(--brand); border-radius: inherit; }
+.trips-budget-breakdown article:nth-child(2) > div > span i { background: var(--blue); }
+.trips-budget-breakdown article:nth-child(3) > div > span i { background: var(--amber); }
+.trips-budget-breakdown article:nth-child(4) > div > span i { background: var(--purple); }
+.trips-budget-breakdown article:nth-child(5) > div > span i { background: var(--danger); }
+.trips-budget-empty { padding: 33px 10px; color: var(--muted); font-size: 13px; text-align: center; }
+
+.trips-packing__progress {
+  display: flex;
+  min-width: 140px;
+  align-items: center;
+  gap: 9px;
+}
+
+.trips-packing__progress > span {
+  height: 6px;
+  flex: 1;
+  overflow: hidden;
+  background: var(--surface-soft);
+  border-radius: 5px;
+}
+
+.trips-packing__progress i { display: block; height: 100%; background: var(--brand); border-radius: inherit; }
+.trips-packing__progress strong { font-size: 14px; }
+
+.trips-packing-add {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 150px 145px auto;
+  gap: 7px;
+  padding: 14px;
+  margin-top: 15px;
+  background: var(--surface-subtle);
+  border-radius: 11px;
+}
+
+.trips-packing-add input,
+.trips-packing-add select {
+  width: 100%;
+  min-height: 35px;
+  padding: 7px 9px;
+  font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+
+.trips-packing-add input:focus,
+.trips-packing-add select:focus {
+  border-color: var(--brand);
+}
+
+.trips-packing-add button:disabled {
+  opacity: 0.45;
+}
+
+.trips-packing-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 22px;
+  padding-top: 20px;
+}
+
+.trips-packing-groups > section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trips-packing-groups > section > header strong { font-size: 13px; }
+.trips-packing-groups > section > header span { color: var(--muted); font-size: 11px; }
+.trips-packing-groups > section > div { display: flex; flex-direction: column; }
+
+.trips-pack-item {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  min-height: 43px;
+  padding: 7px 3px;
+  text-align: left;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+}
+
+.trips-pack-item > span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border-radius: 7px;
+}
+
+.trips-pack-item strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trips-pack-item small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.trips-pack-item small span {
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--brand-light);
+  border-radius: 50%;
+}
+
+.trips-pack-item--done > span {
+  color: #fff;
+  background: var(--brand);
+}
+
+.trips-pack-item--done strong {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.trips-packing-groups > .trips-section-empty {
+  grid-column: 1 / -1;
+}
+
+.trips-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.trips-modal-form .field > span small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.trips-form-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px;
+  color: var(--brand);
+  font-size: 12px;
+  line-height: 1.45;
+  background: var(--brand-pale);
+  border-radius: 9px;
+}
+
+.trips-check-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.trips-check-field input {
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: var(--brand);
+}
+
+.trips-check-field > span {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 2px 5px;
+  align-items: center;
+}
+
+.trips-check-field svg { color: var(--brand); grid-row: 1 / 3; }
+.trips-check-field strong { font-size: 13px; }
+.trips-check-field small { color: var(--muted); font-size: 11px; }
+
+.trips-empty {
+  display: flex;
+  min-height: 430px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 35px;
+  text-align: center;
+}
+
+.trips-empty > span {
+  display: grid;
+  width: 57px;
+  height: 57px;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-light);
+  border-radius: 17px;
+}
+
+.trips-empty h2 { margin-top: 14px; font-size: 20px; }
+.trips-empty p { max-width: 360px; margin: 6px 0 15px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+@media (max-width: 1200px) {
+  .trips-workspace { grid-template-columns: 235px minmax(0, 1fr); }
+  .trips-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trips-packing-add { grid-template-columns: minmax(160px, 1fr) 135px; }
+  .trips-packing-add .button { grid-column: 2; }
+}
+
+@media (max-width: 980px) {
+  .trips-workspace { grid-template-columns: 1fr; }
+  .trips-list { position: static; max-height: none; padding: 12px; overflow: hidden; }
+  .trips-list > header { padding-inline: 4px; }
+  .trips-list__items { flex-direction: row; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .trips-list__items::-webkit-scrollbar { display: none; }
+  .trip-card { min-width: 230px; max-width: 260px; scroll-snap-align: start; }
+  .trips-overview__grid { grid-template-columns: 1fr; }
+  .trips-notes { grid-column: auto; }
+}
+
+@media (max-width: 760px) {
+  .trips-page__header { padding-bottom: 17px; }
+  .trips-page__header > .button { font-size: 0; }
+  .trips-workspace { gap: 12px; }
+  .trips-list { margin-inline: -14px; border-right: 0; border-left: 0; border-radius: 0; }
+  .trips-list > header { padding-inline: 10px; }
+  .trips-list__items { padding-inline: 3px; }
+  .trips-hero { min-height: 252px; grid-template-columns: minmax(0, 1fr) 82px; gap: 10px; padding: 23px 19px; border-radius: 18px; }
+  .trips-hero h2 { font-size: 27px; }
+  .trips-hero__main > p { flex-wrap: wrap; }
+  .trips-hero__countdown { width: 79px; min-height: 79px; }
+  .trips-hero__countdown span { font-size: 11px; }
+  .trips-hero__countdown strong { font-size: 25px; }
+  .trips-hero__countdown small { font-size: 10px; }
+  .trips-tabs { margin-inline: -14px; padding-inline: 14px; border-right: 0; border-left: 0; border-radius: 0; }
+  .trips-tabs button { min-height: 38px; }
+  .trips-metrics { display: flex; gap: 8px; padding-bottom: 2px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .trips-metrics::-webkit-scrollbar { display: none; }
+  .trips-metrics article { min-width: 165px; scroll-snap-align: start; }
+  .trips-next,
+  .trips-upcoming,
+  .trips-notes,
+  .trips-section,
+  .trips-budget-card,
+  .trips-budget-breakdown { padding: 17px 15px; }
+  .trips-section__header { align-items: flex-start; }
+  .trips-section__header .button { width: 38px; padding: 0; font-size: 0; }
+  .trips-day { grid-template-columns: 84px minmax(0, 1fr); }
+  .trips-day > header { padding: 12px 9px; }
+  .trips-schedule-item { grid-template-columns: 36px 32px minmax(0, 1fr) 30px; }
+  .trips-schedule-item__cost { grid-column: 3; min-width: 0; align-items: flex-start; padding-left: 0; }
+  .trips-schedule-item > .module-danger-icon { grid-column: 4; grid-row: 1 / 3; }
+  .trips-schedule-item > div:nth-child(3) > span { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .trips-booking-grid { grid-template-columns: 1fr; }
+  .trips-budget-grid { grid-template-columns: 1fr; }
+  .trips-packing-add { grid-template-columns: 1fr 1fr; }
+  .trips-packing-add > label:first-child { grid-column: 1 / -1; }
+  .trips-packing-add .button { grid-column: 2; }
+  .trips-packing-groups { grid-template-columns: 1fr; gap: 16px; }
+  .trips-modal-form .form-grid--2,
+  .trips-modal-form .form-grid--3 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .trips-hero { display: block; min-height: 270px; }
+  .trips-hero__badges { margin-bottom: 14px; }
+  .trips-hero__countdown { position: absolute; right: 17px; bottom: 18px; }
+  .trips-hero__people { max-width: calc(100% - 90px); padding-top: 21px; }
+  .trips-hero__people small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trips-tabs button { padding-inline: 10px; }
+  .trips-day { display: block; }
+  .trips-day > header { flex-direction: row; align-items: center; border-right: 0; border-bottom: 1px solid var(--border); border-radius: 12px 12px 0 0; }
+  .trips-day > header > span { min-width: 42px; }
+  .trips-day > header > button { margin-top: 0; margin-left: auto; }
+  .trips-day__items { padding-inline: 10px; }
+  .trips-schedule-item { grid-template-columns: 34px 31px minmax(0, 1fr) 30px; gap: 7px; }
+  .trips-schedule-item p { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .trips-booking { padding: 14px; }
+  .trips-packing-add { grid-template-columns: 1fr; }
+  .trips-packing-add > label:first-child,
+  .trips-packing-add .button { grid-column: auto; }
+  .trips-packing__progress { min-width: 94px; }
+  .trips-pack-item { grid-template-columns: 26px minmax(0, 1fr); }
+  .trips-pack-item small { grid-column: 2; }
+}

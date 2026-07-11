@@ -1,0 +1,107 @@
+name: puls
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-puls}
+      POSTGRES_USER: ${POSTGRES_USER:-puls}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Ustaw POSTGRES_PASSWORD w pliku .env}
+    volumes:
+      - puls-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-puls} -d ${POSTGRES_DB:-puls}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
+  app:
+    build:
+      context: .
+      args:
+        VITE_SERVER_MODE: "true"
+    image: puls-dashboard:2.0
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      HOST: 0.0.0.0
+      TRUST_PROXY: "1"
+      APP_ORIGIN: ${APP_ORIGIN:?Ustaw publiczny adres HTTPS Puls}
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-puls}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-puls}
+      BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN:?Ustaw jednorazowy token pierwszej konfiguracji}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?Ustaw 32-bajtowy klucz base64}
+      COOKIE_SECURE: "true"
+      SESSION_DAYS: ${SESSION_DAYS:-30}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${PULS_BIND:-127.0.0.1}:8080:8080"
+    networks:
+      - backend
+      - edge
+
+  worker:
+    image: puls-dashboard:2.0
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    command: ["node", "server/src/worker.mjs"]
+    environment:
+      NODE_ENV: production
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-puls}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-puls}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      WORKER_INTERVAL_MS: ${WORKER_INTERVAL_MS:-30000}
+    networks:
+      - backend
+      - egress
+
+volumes:
+  puls-db:
+
+networks:
+  backend:
+    internal: true
+  edge:
+    name: ${PULS_EDGE_NETWORK:-puls-edge}
+  egress:

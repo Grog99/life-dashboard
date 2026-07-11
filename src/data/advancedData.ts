@@ -1,0 +1,106 @@
+import { addDays, format } from "date-fns";
+import type { AdvancedDataWithHealth } from "../advancedTypes";
+
+const day = (offset = 0) => format(addDays(new Date(), offset), "yyyy-MM-dd");
+const now = new Date().toISOString();
+
+export function createAdvancedData(): AdvancedDataWithHealth {
+  return {
+    householdName: "Nasz dom",
+    hideAmounts: false,
+    householdMembers: [
+      { id: "me", name: "Ty", email: "ty@example.com", role: "owner", color: "#2f7862" },
+      { id: "anna", name: "Anna", email: "anna@example.com", role: "member", color: "#b16e45" },
+    ],
+    financeAccounts: [
+      { id: "account-main", name: "Konto główne", type: "checking", balanceMinor: 632850, currency: "PLN", color: "#397763", ownerId: "me", visibility: "private", archived: false, updatedAt: now },
+      { id: "account-shared", name: "Wspólne wydatki", type: "checking", balanceMinor: 218430, currency: "PLN", color: "#5677a8", ownerId: "me", visibility: "household", archived: false, updatedAt: now },
+      { id: "account-savings", name: "Oszczędności", type: "savings", balanceMinor: 1240000, currency: "PLN", color: "#b17a42", ownerId: "me", visibility: "private", archived: false, updatedAt: now },
+    ],
+    financeTransactions: [
+      { id: "tx-salary", accountId: "account-main", bookedOn: day(-9), amountMinor: 920000, currency: "PLN", merchant: "Pracodawca", title: "Wynagrodzenie", category: "Przychody", source: "manual", ownerId: "me", visibility: "private", updatedAt: now },
+      { id: "tx-grocery", accountId: "account-shared", bookedOn: day(-1), amountMinor: -18432, currency: "PLN", merchant: "Carrefour", title: "Zakupy spożywcze", category: "Jedzenie", source: "csv", fingerprint: "demo-grocery", ownerId: "me", visibility: "household", updatedAt: now },
+      { id: "tx-fuel", accountId: "account-main", bookedOn: day(-2), amountMinor: -28640, currency: "PLN", merchant: "Orlen", title: "Tankowanie", category: "Samochód", source: "car", ownerId: "me", visibility: "private", updatedAt: now },
+      { id: "tx-restaurant", accountId: "account-shared", bookedOn: day(-4), amountMinor: -14200, currency: "PLN", merchant: "Mąka i Woda", title: "Kolacja", category: "Restauracje", source: "manual", ownerId: "anna", visibility: "household", updatedAt: now },
+      { id: "tx-rent", accountId: "account-main", bookedOn: day(-7), amountMinor: -280000, currency: "PLN", merchant: "Wynajmujący", title: "Mieszkanie", category: "Dom", source: "manual", ownerId: "me", visibility: "private", updatedAt: now },
+      { id: "tx-spotify", accountId: "account-shared", bookedOn: day(-6), amountMinor: -3799, currency: "PLN", merchant: "Spotify", title: "Spotify Family", category: "Subskrypcje", source: "subscription", ownerId: "me", visibility: "household", updatedAt: now },
+    ],
+    financeBudgets: [
+      { id: "budget-food", category: "Jedzenie", limitMinor: 150000, currency: "PLN", color: "#4f8a6f", updatedAt: now },
+      { id: "budget-home", category: "Dom", limitMinor: 320000, currency: "PLN", color: "#647ba0", updatedAt: now },
+      { id: "budget-car", category: "Samochód", limitMinor: 70000, currency: "PLN", color: "#bd784e", updatedAt: now },
+      { id: "budget-fun", category: "Rozrywka", limitMinor: 80000, currency: "PLN", color: "#8a6ea1", updatedAt: now },
+    ],
+    savingsGoals: [
+      { id: "goal-buffer", name: "Poduszka bezpieczeństwa", targetMinor: 3000000, savedMinor: 1240000, currency: "PLN", deadline: day(280), ownerId: "me", visibility: "private", updatedAt: now },
+      { id: "goal-trip", name: "Wakacje we Włoszech", targetMinor: 900000, savedMinor: 540000, currency: "PLN", deadline: day(20), ownerId: "me", visibility: "household", updatedAt: now },
+    ],
+    trips: [
+      { id: "trip-tuscany", name: "Toskania 2026", destination: "Florencja · Siena · Lucca", startDate: day(23), endDate: day(31), status: "planning", budgetMinor: 900000, currency: "PLN", travelers: ["Ty", "Anna"], progress: 68, accent: "terracotta", notes: "Wolniejsze tempo, małe miasta i dobra kuchnia.", ownerId: "me", visibility: "household", updatedAt: now },
+      { id: "trip-gdansk", name: "Weekend w Gdańsku", destination: "Gdańsk", startDate: day(65), endDate: day(67), status: "idea", budgetMinor: 180000, currency: "PLN", travelers: ["Ty", "Anna"], progress: 15, accent: "ocean", notes: "Sprawdzić koncerty i nocleg blisko centrum.", ownerId: "anna", visibility: "household", updatedAt: now },
+    ],
+    tripItinerary: [
+      { id: "itin-flight", tripId: "trip-tuscany", date: day(23), time: "06:45", title: "Lot do Bolonii", type: "transport", location: "Warszawa Chopina", costMinor: 128000, booked: true, updatedAt: now },
+      { id: "itin-car", tripId: "trip-tuscany", date: day(23), time: "10:30", title: "Odbiór samochodu", type: "transport", location: "Lotnisko BLQ", costMinor: 92000, booked: true, updatedAt: now },
+      { id: "itin-florence", tripId: "trip-tuscany", date: day(24), time: "09:30", title: "Spacer po Florencji", type: "activity", location: "Piazza della Signoria", booked: false, updatedAt: now },
+      { id: "itin-wine", tripId: "trip-tuscany", date: day(26), time: "15:00", title: "Degustacja w Chianti", type: "activity", location: "Greve in Chianti", costMinor: 36000, booked: false, updatedAt: now },
+    ],
+    tripBookings: [
+      { id: "booking-flight", tripId: "trip-tuscany", itineraryItemId: "itin-flight", type: "flight", provider: "LOT", reference: "PULS26", title: "Warszawa → Bolonia", startAt: `${day(23)}T06:45`, amountMinor: 128000, paid: true, updatedAt: now },
+      { id: "booking-stay", tripId: "trip-tuscany", type: "stay", provider: "Agriturismo Verde", reference: "AV-2048", title: "Nocleg w Chianti", startAt: `${day(23)}T15:00`, amountMinor: 248000, paid: true, updatedAt: now },
+    ],
+    packingItems: [
+      { id: "pack-passport", tripId: "trip-tuscany", name: "Dowody osobiste", category: "documents", packed: true, assignedTo: "Ty", updatedAt: now },
+      { id: "pack-insurance", tripId: "trip-tuscany", name: "Polisa podróżna", category: "documents", packed: false, assignedTo: "Anna", updatedAt: now },
+      { id: "pack-adapter", tripId: "trip-tuscany", name: "Ładowarki i powerbank", category: "electronics", packed: false, assignedTo: "Ty", updatedAt: now },
+      { id: "pack-shoes", tripId: "trip-tuscany", name: "Wygodne buty", category: "clothes", packed: false, updatedAt: now },
+      { id: "pack-meds", tripId: "trip-tuscany", name: "Apteczka", category: "health", packed: false, updatedAt: now },
+    ],
+    subscriptions: [
+      { id: "sub-spotify", name: "Spotify Family", category: "Muzyka", amountMinor: 3799, currency: "PLN", cycle: "monthly", nextPayment: day(1), payer: "Ty", status: "active", reminderDays: 1, color: "#2f8f5b", ownerId: "me", visibility: "household" },
+      { id: "sub-netflix", name: "Netflix", category: "Wideo", amountMinor: 6000, currency: "PLN", cycle: "monthly", nextPayment: day(6), payer: "Anna", status: "active", reminderDays: 2, color: "#b55252", ownerId: "anna", visibility: "household" },
+      { id: "sub-icloud", name: "iCloud+", category: "Chmura", amountMinor: 4999, currency: "PLN", cycle: "monthly", nextPayment: day(12), payer: "Ty", status: "active", reminderDays: 2, color: "#6684a6", ownerId: "me", visibility: "private" },
+      { id: "sub-adobe", name: "Adobe Creative Cloud", category: "Praca", amountMinor: 14760, currency: "PLN", cycle: "monthly", nextPayment: day(17), payer: "Ty", status: "active", reminderDays: 3, color: "#a85f5f", ownerId: "me", visibility: "private", cancelUrl: "https://account.adobe.com/" },
+      { id: "sub-gym", name: "Siłownia", category: "Zdrowie", amountMinor: 12900, currency: "PLN", cycle: "monthly", nextPayment: day(22), payer: "Ty", status: "active", reminderDays: 2, color: "#8b6ca5", ownerId: "me", visibility: "private" },
+    ],
+    recipes: [
+      { id: "recipe-curry", name: "Curry z ciecierzycą", minutes: 35, servings: 4, tags: ["wegetariańskie", "szybkie"], ingredients: ["ciecierzyca 2 puszki", "mleko kokosowe 1 puszka", "ryż 300 g", "pomidory 400 g", "szpinak 200 g"], favorite: true, ownerId: "anna", visibility: "household" },
+      { id: "recipe-pasta", name: "Makaron z pesto", minutes: 20, servings: 2, tags: ["szybkie"], ingredients: ["makaron 250 g", "pesto 1 słoik", "pomidorki 250 g", "parmezan 80 g"], favorite: true, ownerId: "me", visibility: "household" },
+      { id: "recipe-salmon", name: "Łosoś z warzywami", minutes: 40, servings: 2, tags: ["lekki obiad"], ingredients: ["łosoś 400 g", "brokuł 1 szt.", "ziemniaki 500 g", "cytryna 1 szt."], favorite: false, ownerId: "me", visibility: "household" },
+    ],
+    mealSlots: [
+      { id: "meal-today", date: day(), type: "dinner", recipeId: "recipe-curry", title: "Curry z ciecierzycą", servings: 4 },
+      { id: "meal-tomorrow", date: day(1), type: "dinner", recipeId: "recipe-pasta", title: "Makaron z pesto", servings: 2 },
+      { id: "meal-two", date: day(2), type: "lunch", recipeId: "recipe-salmon", title: "Łosoś z warzywami", servings: 2 },
+    ],
+    shoppingItems: [
+      { id: "shop-coconut", name: "Mleko kokosowe", quantity: "1 puszka", category: "Spiżarnia", checked: false, sourceRecipeId: "recipe-curry" },
+      { id: "shop-spinach", name: "Szpinak", quantity: "200 g", category: "Warzywa", checked: false, sourceRecipeId: "recipe-curry" },
+      { id: "shop-coffee", name: "Kawa", quantity: "1 opakowanie", category: "Spiżarnia", checked: true, assignedTo: "Anna" },
+    ],
+    vehicles: [
+      { id: "vehicle-corolla", name: "Toyota Corolla", make: "Toyota", model: "Corolla", year: 2020, plate: "WA 1234K", mileage: 68420, fuelType: "hybrid", inspectionDate: day(18), insuranceDate: day(74), color: "#496f67", ownerId: "me", visibility: "household" },
+    ],
+    carExpenses: [
+      { id: "car-fuel-1", vehicleId: "vehicle-corolla", date: day(-2), type: "fuel", amountMinor: 28640, mileage: 68420, liters: 42.1, title: "Tankowanie Orlen", ownerId: "me", visibility: "household" },
+      { id: "car-service-1", vehicleId: "vehicle-corolla", date: day(-65), type: "service", amountMinor: 78000, mileage: 65320, title: "Olej i filtry", ownerId: "me", visibility: "household" },
+    ],
+    vehicleDeadlines: [
+      { id: "deadline-inspection", vehicleId: "vehicle-corolla", title: "Badanie techniczne", dueDate: day(18), completed: false },
+      { id: "deadline-oil", vehicleId: "vehicle-corolla", title: "Wymiana oleju", dueMileage: 75000, completed: false },
+      { id: "deadline-insurance", vehicleId: "vehicle-corolla", title: "Odnowienie OC/AC", dueDate: day(74), completed: false },
+    ],
+    healthAppointments: [
+      { id: "health-appointment-dentist", title: "Kontrola stomatologiczna", clinician: "dr Anna Kowalska", specialty: "Stomatologia", date: day(9), time: "16:30", location: "Dentica, ul. Dobra 12", status: "scheduled", notes: "Zabrać ostatnie zdjęcie RTG.", ownerId: "me", visibility: "private" },
+      { id: "health-appointment-checkup", title: "Badania profilaktyczne", clinician: "Laboratorium", specialty: "Morfologia i lipidogram", date: day(-28), time: "08:00", location: "Punkt pobrań", status: "completed", ownerId: "me", visibility: "private" },
+    ],
+    medications: [
+      { id: "medication-vitamin-d", name: "Witamina D3", dosage: "2000 IU", schedule: "Codziennie po śniadaniu", reminderTime: "08:30", active: true, lastTakenOn: day(), ownerId: "me", visibility: "private" },
+      { id: "medication-magnesium", name: "Magnez", dosage: "1 tabletka", schedule: "Wieczorem", reminderTime: "20:30", active: true, lastTakenOn: day(-1), ownerId: "me", visibility: "private" },
+    ],
+    healthMeasurements: [
+      { id: "health-measurement-weight", type: "weight", value: "78,4", unit: "kg", measuredAt: `${day(-2)}T07:30`, notes: "Pomiar poranny", ownerId: "me", visibility: "private" },
+      { id: "health-measurement-pressure", type: "blood_pressure", value: "122/78", unit: "mmHg", measuredAt: `${day(-5)}T08:10`, ownerId: "me", visibility: "private" },
+    ],
+  };
+}

@@ -1,0 +1,1480 @@
+.life-module-page {
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.life-module-header {
+  padding-bottom: 22px;
+}
+
+.module-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.module-stat-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.module-stat-card {
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  align-items: center;
+  gap: 13px;
+  padding: 17px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  box-shadow: var(--shadow-card);
+}
+
+.module-stat-card--accent {
+  background: linear-gradient(145deg, var(--brand-pale), var(--surface));
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--border));
+}
+
+.module-stat-card--warning {
+  background: linear-gradient(145deg, var(--amber-light), var(--surface));
+  border-color: color-mix(in srgb, var(--amber) 35%, var(--border));
+}
+
+.module-stat-card__icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-light);
+  border-radius: 12px;
+}
+
+.module-stat-card__icon--amber {
+  color: var(--amber);
+  background: var(--amber-light);
+}
+
+.module-stat-card__icon--blue {
+  color: var(--blue);
+  background: var(--blue-light);
+}
+
+.module-stat-card__icon--violet {
+  color: var(--purple);
+  background: var(--purple-light);
+}
+
+.module-stat-card > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.module-stat-card > div > span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.module-stat-card strong {
+  overflow: hidden;
+  font-size: clamp(15px, 1.45vw, 20px);
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-stat-card small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-panel {
+  padding: 21px 22px;
+}
+
+.module-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 19px;
+}
+
+.module-panel__header h2,
+.shopping-add-card h2 {
+  margin-top: 5px;
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.module-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.module-segmented {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  overflow-x: auto;
+  background: var(--surface-soft);
+  border-radius: 10px;
+}
+
+.module-segmented button {
+  min-height: 30px;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+  background: transparent;
+  border-radius: 7px;
+}
+
+.module-segmented button:hover {
+  color: var(--text);
+}
+
+.module-segmented button.active {
+  color: var(--brand-strong);
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(28, 49, 39, 0.08);
+}
+
+.module-empty {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 25px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.module-empty > svg {
+  margin-bottom: 3px;
+  color: var(--brand);
+}
+
+.module-empty strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.module-empty span {
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.module-empty .button {
+  margin-top: 8px;
+}
+
+.module-empty--large {
+  min-height: 360px;
+}
+
+.module-mini-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 75px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.module-inline-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 12px;
+  margin-top: 15px;
+  color: var(--brand);
+  font-size: 12px;
+  line-height: 1.45;
+  background: var(--brand-pale);
+  border-radius: 10px;
+}
+
+.module-inline-tip svg {
+  flex: 0 0 auto;
+}
+
+.module-danger-icon {
+  color: var(--muted);
+}
+
+.module-danger-icon:hover {
+  color: var(--danger);
+  background: var(--danger-light);
+}
+
+.module-color-input {
+  min-height: 40px !important;
+  padding: 5px !important;
+  cursor: pointer;
+}
+
+.module-choice-divider {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.module-choice-divider::before,
+.module-choice-divider::after {
+  height: 1px;
+  flex: 1;
+  content: "";
+  background: var(--border);
+}
+
+/* Subscriptions */
+.subscription-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.subscription-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(210px, 1.3fr) minmax(155px, 0.85fr) minmax(100px, 0.55fr) 34px;
+  align-items: center;
+  gap: 13px;
+  min-height: 83px;
+  padding: 13px 4px;
+  border-top: 1px solid var(--border);
+}
+
+.subscription-row:first-child {
+  border-top: 0;
+}
+
+.subscription-row--paused,
+.subscription-row--cancelled {
+  opacity: 0.68;
+}
+
+.subscription-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 850;
+  background: var(--item-color);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.subscription-row__identity,
+.subscription-row__renewal,
+.subscription-row__price {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.subscription-row__identity > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.subscription-row__identity strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subscription-row__identity small,
+.subscription-row__renewal small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subscription-row__renewal > span,
+.subscription-row__price > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.subscription-row__renewal strong {
+  font-size: 14px;
+}
+
+.subscription-row__price {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.subscription-row__price strong {
+  font-size: 13px;
+}
+
+.module-status {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--brand-light);
+  border-radius: 5px;
+}
+
+.module-status--trial {
+  color: var(--purple);
+  background: var(--purple-light);
+}
+
+.module-status--paused {
+  color: var(--amber);
+  background: var(--amber-light);
+}
+
+.module-status--cancelled {
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.module-more {
+  position: relative;
+}
+
+.module-more__menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 25;
+  display: flex;
+  width: 205px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  box-shadow: var(--shadow-float);
+}
+
+.module-more__menu button,
+.module-more__menu a {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+  background: transparent;
+  border-radius: 7px;
+}
+
+.module-more__menu button:hover,
+.module-more__menu a:hover {
+  color: var(--text);
+  background: var(--surface-soft);
+}
+
+.module-more__menu .danger {
+  color: var(--danger);
+}
+
+/* Shared module tabs */
+.module-tabs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  margin-bottom: 13px;
+  overflow-x: auto;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.module-tabs button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+  background: transparent;
+  border-radius: 9px;
+}
+
+.module-tabs button.active {
+  color: var(--brand-strong);
+  background: var(--surface);
+  box-shadow: 0 2px 9px rgba(29, 48, 39, 0.08);
+}
+
+.module-tabs button > span {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 4px;
+  color: #fff;
+  font-size: 10px;
+  background: var(--brand);
+  border-radius: 9px;
+}
+
+/* Meal planner */
+.meal-plan-panel {
+  overflow: hidden;
+}
+
+.meal-week-scroll {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.meal-week-grid {
+  display: grid;
+  grid-template-columns: 120px repeat(7, minmax(128px, 1fr));
+  min-width: 1016px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+}
+
+.meal-week-corner,
+.meal-day-head {
+  display: flex;
+  min-height: 57px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--surface-subtle);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.meal-week-corner {
+  align-items: flex-start;
+  padding: 0 13px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meal-day-head span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.meal-day-head strong {
+  font-size: 14px;
+}
+
+.meal-day-head--today {
+  color: #fff;
+  background: var(--brand);
+}
+
+.meal-day-head--today span {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.meal-type-cell {
+  display: flex;
+  min-height: 85px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface-subtle);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.meal-type-cell > span {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-light);
+  border-radius: 8px;
+}
+
+.meal-type-cell strong {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.meal-slot-cell {
+  display: flex;
+  min-height: 85px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px;
+  color: var(--muted-light);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.meal-slot-cell:hover {
+  color: var(--brand);
+  background: var(--brand-pale);
+}
+
+.meal-slot-cell span {
+  font-size: 11px;
+}
+
+.meal-slot-cell--filled {
+  position: relative;
+  align-items: flex-start;
+  justify-content: space-between;
+  color: var(--text);
+  text-align: left;
+  background: color-mix(in srgb, var(--brand-pale) 62%, var(--surface));
+}
+
+.meal-slot-cell--filled::before {
+  width: 20px;
+  height: 3px;
+  content: "";
+  background: var(--brand);
+  border-radius: 2px;
+}
+
+.meal-slot-cell--filled strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.meal-week-grid > *:nth-last-child(-n + 8) {
+  border-bottom: 0;
+}
+
+/* Recipes */
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.recipe-card {
+  display: flex;
+  min-height: 300px;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.recipe-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.recipe-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.recipe-card__icon {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  color: var(--amber);
+  background: var(--amber-light);
+  border-radius: 11px;
+}
+
+.recipe-favorite {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--muted-light);
+  background: transparent;
+  border-radius: 9px;
+}
+
+.recipe-favorite:hover,
+.recipe-favorite.active {
+  color: #c46363;
+  background: var(--danger-light);
+}
+
+.recipe-card h3 {
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.recipe-meta {
+  display: flex;
+  gap: 11px;
+  margin-bottom: 10px;
+  color: var(--muted);
+}
+
+.recipe-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.recipe-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 22px;
+  margin-bottom: 10px;
+}
+
+.recipe-tags span {
+  padding: 3px 6px;
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 750;
+  background: var(--brand-light);
+  border-radius: 5px;
+}
+
+.recipe-card ul {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 16px;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.recipe-more {
+  margin: 6px 0 0 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.recipe-card footer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-top: 13px;
+  margin-top: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.recipe-card footer .module-danger-icon {
+  margin-left: auto;
+}
+
+/* Shopping */
+.shopping-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+  gap: 13px;
+  align-items: start;
+}
+
+.shopping-progress {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 15px;
+  background: var(--surface-subtle);
+  border-radius: 10px;
+}
+
+.shopping-progress > div {
+  height: 6px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  border-radius: 4px;
+}
+
+.shopping-progress > div span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  border-radius: inherit;
+  transition: width 180ms ease;
+}
+
+.shopping-progress strong {
+  color: var(--brand);
+  font-size: 13px;
+}
+
+.shopping-progress small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.shopping-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.shopping-group {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.shopping-group > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 39px;
+  padding: 8px 11px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.shopping-group > header strong {
+  font-size: 13px;
+}
+
+.shopping-group > header span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.shopping-row {
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr) 27px;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.shopping-row:first-of-type {
+  border-top: 0;
+}
+
+.shopping-row > button:first-child,
+.deadline-row > button:first-child {
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  color: transparent;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+.shopping-row > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shopping-row strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shopping-row span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.shopping-row--checked {
+  opacity: 0.56;
+}
+
+.shopping-row--checked > button:first-child {
+  color: #fff;
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.shopping-row--checked strong {
+  text-decoration: line-through;
+}
+
+.shopping-add-card {
+  position: sticky;
+  top: 82px;
+}
+
+.shopping-add-card h2 {
+  margin-bottom: 17px;
+}
+
+/* Garage */
+.garage-strip {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 5px;
+  margin-bottom: 13px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.garage-card,
+.garage-add {
+  display: flex;
+  min-width: 255px;
+  min-height: 92px;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  scroll-snap-align: start;
+}
+
+.garage-card:hover,
+.garage-card--active {
+  border-color: var(--vehicle-color);
+}
+
+.garage-card--active {
+  background: color-mix(in srgb, var(--vehicle-color) 7%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vehicle-color) 25%, transparent), var(--shadow-card);
+}
+
+.garage-card__icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #fff;
+  background: var(--vehicle-color);
+  border-radius: 12px;
+}
+
+.garage-card > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.garage-card strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.garage-card span,
+.garage-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.garage-card__mileage {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  color: var(--text-soft) !important;
+  font-weight: 750;
+}
+
+.garage-add {
+  min-width: 145px;
+  justify-content: center;
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 750;
+  background: var(--brand-pale);
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.garage-add:hover {
+  border-color: var(--brand);
+}
+
+.car-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(285px, 0.55fr);
+  gap: 13px;
+  align-items: start;
+}
+
+.car-dashboard-main,
+.car-dashboard-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.car-expense-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.car-expense-row {
+  display: grid;
+  grid-template-columns: 38px minmax(150px, 1fr) minmax(105px, 0.7fr) auto 29px;
+  align-items: center;
+  gap: 11px;
+  min-height: 64px;
+  padding: 9px 2px;
+  border-top: 1px solid var(--border);
+}
+
+.car-expense-row:first-child {
+  border-top: 0;
+}
+
+.car-expense-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border-radius: 10px;
+}
+
+.car-expense-icon--fuel {
+  color: var(--brand);
+  background: var(--brand-light);
+}
+
+.car-expense-icon--service {
+  color: var(--amber);
+  background: var(--amber-light);
+}
+
+.car-expense-icon--insurance {
+  color: var(--blue);
+  background: var(--blue-light);
+}
+
+.car-expense-row__main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.car-expense-row__main strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-expense-row__main span,
+.car-expense-row__details span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.car-expense-row__details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.car-expense-row__details span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.car-expense-row__amount {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.vehicle-overview-card > header {
+  display: grid;
+  grid-template-columns: 45px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.vehicle-overview-icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  color: #fff;
+  border-radius: 12px;
+}
+
+.vehicle-overview-card header > div {
+  min-width: 0;
+}
+
+.vehicle-overview-card header span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.vehicle-overview-card header h2 {
+  overflow: hidden;
+  margin: 2px 0;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-overview-card header p {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.vehicle-date-grid > div {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 5px;
+  padding: 9px;
+  background: var(--surface-subtle);
+  border-radius: 9px;
+}
+
+.vehicle-date-grid svg {
+  grid-row: 1 / 3;
+  color: var(--brand);
+}
+
+.vehicle-date-grid span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.vehicle-date-grid strong {
+  font-size: 12px;
+}
+
+.mileage-update {
+  padding-top: 13px;
+  margin-top: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.mileage-update .field > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 34px;
+  align-items: center;
+  overflow: hidden;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.mileage-update input {
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  font-weight: 750;
+  background: transparent;
+  border: 0;
+  outline: 0;
+}
+
+.mileage-update .field > div > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mileage-update button {
+  display: grid;
+  width: 34px;
+  height: 38px;
+  place-items: center;
+  color: #fff;
+  background: var(--brand);
+}
+
+.deadlines-panel .module-panel__header {
+  margin-bottom: 10px;
+}
+
+.deadline-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.deadline-row {
+  display: grid;
+  grid-template-columns: 23px minmax(0, 1fr) auto 27px;
+  align-items: center;
+  gap: 7px;
+  min-height: 52px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+}
+
+.deadline-row:first-child {
+  border-top: 0;
+}
+
+.deadline-row > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.deadline-row strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deadline-row span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.deadline-row--done {
+  opacity: 0.5;
+}
+
+.deadline-row--done > button:first-child {
+  color: #fff;
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.deadline-row--done strong {
+  text-decoration: line-through;
+}
+
+.deadline-row--due > button:first-child {
+  border-color: var(--amber);
+}
+
+.deadline-badge {
+  padding: 3px 5px;
+  color: var(--amber) !important;
+  font-weight: 800;
+  background: var(--amber-light);
+  border-radius: 5px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1200px) {
+  .module-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .module-stat-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .subscription-row {
+    grid-template-columns: 46px minmax(185px, 1.2fr) minmax(145px, 0.8fr) minmax(95px, 0.55fr) 34px;
+  }
+
+  .recipe-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shopping-groups {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .module-stat-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .subscription-row {
+    grid-template-columns: 44px minmax(180px, 1fr) minmax(100px, 0.65fr) 34px;
+  }
+
+  .subscription-row__renewal {
+    display: none;
+  }
+
+  .shopping-layout,
+  .car-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .shopping-add-card {
+    position: static;
+  }
+
+  .shopping-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .car-dashboard-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .life-module-header {
+    align-items: flex-start;
+  }
+
+  .module-stat-grid,
+  .module-stat-grid--three {
+    display: flex;
+    gap: 9px;
+    padding-bottom: 4px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .module-stat-card {
+    min-width: min(270px, 82vw);
+    min-height: 104px;
+    scroll-snap-align: start;
+  }
+
+  .module-stat-card strong {
+    font-size: 17px;
+  }
+
+  .module-panel {
+    padding: 17px 15px;
+  }
+
+  .module-panel__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .module-panel__header > div,
+  .module-toolbar-actions,
+  .module-segmented {
+    max-width: 100%;
+  }
+
+  .module-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .module-toolbar-actions .search-field {
+    min-width: 190px;
+    flex: 1;
+  }
+
+  .subscription-row {
+    grid-template-columns: 42px minmax(0, 1fr) 31px;
+    gap: 10px;
+    min-height: 96px;
+    padding: 12px 2px;
+  }
+
+  .subscription-row__price {
+    grid-column: 2;
+    align-items: flex-start;
+    margin-top: -5px;
+    text-align: left;
+  }
+
+  .subscription-row__price strong {
+    font-size: 12px;
+  }
+
+  .module-more {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+
+  .module-tabs {
+    margin-right: -14px;
+    margin-left: -14px;
+    padding-right: 14px;
+    padding-left: 14px;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .meal-plan-panel {
+    margin-right: -14px;
+    margin-left: -14px;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .meal-week-grid {
+    grid-template-columns: 105px repeat(7, 125px);
+    min-width: 980px;
+  }
+
+  .recipe-grid,
+  .shopping-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .recipe-card {
+    min-height: 280px;
+  }
+
+  .car-dashboard-side {
+    display: flex;
+  }
+
+  .garage-card {
+    min-width: 230px;
+  }
+
+  .car-expense-row {
+    grid-template-columns: 36px minmax(0, 1fr) auto 27px;
+  }
+
+  .car-expense-row__details {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    flex-direction: row;
+    margin-top: -4px;
+  }
+
+  .car-expense-row__amount {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .car-expense-row > .module-danger-icon {
+    grid-column: 4;
+    grid-row: 1 / 3;
+  }
+}
+
+@media (max-width: 470px) {
+  .module-stat-card {
+    min-width: 248px;
+  }
+
+  .module-segmented button {
+    padding-inline: 8px;
+  }
+
+  .subscription-row__identity small {
+    max-width: 210px;
+  }
+
+  .module-more__menu {
+    position: fixed;
+    right: 14px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    top: auto;
+    left: 14px;
+    width: auto;
+  }
+
+  .recipe-card footer {
+    flex-wrap: wrap;
+  }
+
+  .shopping-progress {
+    grid-template-columns: minmax(80px, 1fr) auto;
+  }
+
+  .shopping-progress small {
+    grid-column: 1 / -1;
+  }
+
+  .vehicle-date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .deadline-row {
+    grid-template-columns: 23px minmax(0, 1fr) 27px;
+  }
+
+  .deadline-badge {
+    display: none;
+  }
+}
