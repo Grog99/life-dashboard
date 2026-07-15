@@ -6,6 +6,7 @@ import {
   Lightbulb,
   NotebookPen,
   Sparkles,
+  Star,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { addHours, format } from "date-fns";
@@ -64,6 +65,7 @@ export function QuickAddModal({
   const [noteColor, setNoteColor] = useState<NoteColor>("cream");
   const [visibility, setVisibility] = useState<Visibility>("private");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isFocus, setIsFocus] = useState(false);
   const [dateEditedManually, setDateEditedManually] = useState(false);
   const [timeEditedManually, setTimeEditedManually] = useState(false);
 
@@ -84,6 +86,7 @@ export function QuickAddModal({
     setNoteColor("cream");
     setVisibility("private");
     setDetailsOpen(false);
+    setIsFocus(false);
     setDateEditedManually(false);
     setTimeEditedManually(false);
   }, [initialType, open]);
@@ -120,7 +123,7 @@ export function QuickAddModal({
         time: hasTime && time ? time : undefined,
         estimatedMinutes: detailsOpen ? Number(duration) || undefined : undefined,
         category,
-        isFocus: false,
+        isFocus,
         energy,
         visibility,
         ownerId: currentOwnerId,
@@ -247,6 +250,18 @@ export function QuickAddModal({
 
         {type === "task" && (
           <>
+            <label className="check-field">
+              <input
+                type="checkbox"
+                checked={isFocus}
+                onChange={(event) => setIsFocus(event.target.checked)}
+              />
+              <span>
+                <Star size={16} />
+                <strong>Zadanie priorytetowe</strong>
+                <small>Trafi do sekcji „Najważniejsze dzisiaj".</small>
+              </span>
+            </label>
             <button
               className="details-toggle"
               type="button"

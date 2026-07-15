@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "./App";
 import { createSampleData } from "./data/sampleData";
 import { useLifeStore } from "./store/useLifeStore";
@@ -15,11 +15,22 @@ describe("App", () => {
     useAdvancedStore.setState(createAdvancedData());
   });
 
+  afterEach(() => cleanup());
+
   it("pokazuje najważniejsze elementy widoku dnia", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: /Najważniejsze dzisiaj/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Plan na dziś/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Szybka notatka/i })).toBeInTheDocument();
+  });
+
+  it("ukrywa sekcję „Najważniejsze dzisiaj”, gdy nie ma priorytetów na dziś", () => {
+    useLifeStore.setState({
+      tasks: useLifeStore.getState().tasks.map((task) => ({ ...task, isFocus: false })),
+    });
+    render(<App />);
+    expect(screen.queryByRole("heading", { name: /Najważniejsze dzisiaj/i })).toBeNull();
+    expect(screen.getByRole("heading", { name: /Plan na dziś/i })).toBeInTheDocument();
   });
 
   it("otwiera wszystkie moduły zaawansowane z głównej nawigacji", async () => {

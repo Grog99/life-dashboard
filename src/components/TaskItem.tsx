@@ -148,7 +148,7 @@ export function TaskItem({
           {menuOpen && (
             <div className="context-menu">
               <button type="button" onClick={handleFocus}>
-                <Star size={15} /> {task.isFocus ? "Usuń z priorytetów" : "Dodaj do 3 priorytetów"}
+                <Star size={15} /> {task.isFocus ? "Usuń z priorytetów" : "Dodaj do priorytetów"}
               </button>
               <button
                 type="button"

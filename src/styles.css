@@ -754,6 +754,34 @@ kbd {
   font-weight: 600;
 }
 
+.check-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.check-field input {
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: var(--brand);
+}
+
+.check-field > span {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 2px 5px;
+  align-items: center;
+}
+
+.check-field svg { color: var(--brand); grid-row: 1 / 3; }
+.check-field strong { font-size: 13px; }
+.check-field small { color: var(--muted); font-size: 11px; }
+
 .form-grid {
   display: grid;
   gap: 12px;
