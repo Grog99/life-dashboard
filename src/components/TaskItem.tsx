@@ -2,6 +2,7 @@ import {
   CalendarClock,
   Check,
   Clock3,
+  Lock,
   MoreHorizontal,
   Sparkles,
   Star,
@@ -112,6 +113,9 @@ export function TaskItem({
         </div>
         {!compact && task.description && <p>{task.description}</p>}
         <div className="task-meta">
+          {task.visibility === "private" && (
+            <span className="private-badge"><Lock size={12} /> Prywatne</span>
+          )}
           <span className={`category-tag category-tag--${task.category.toLowerCase().replaceAll(" ", "-")}`}>
             {task.category}
           </span>

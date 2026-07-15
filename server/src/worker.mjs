@@ -91,6 +91,19 @@ async function deliverReminder(workspace, reminder, targetUserId = null) {
   });
 }
 
+function dueReminders(reminders, nowKey) {
+  if (!Array.isArray(reminders)) return [];
+  return reminders.filter(
+    (reminder) =>
+      typeof reminder?.id === "string" && reminder.id.length > 0 && reminder.id.length <= 200 &&
+      !reminder.done &&
+      !reminder.notifiedAt &&
+      /^\d{4}-\d{2}-\d{2}$/.test(reminder.date ?? "") &&
+      /^\d{2}:\d{2}$/.test(reminder.time ?? "") &&
+      `${reminder.date} ${reminder.time}` <= nowKey,
+  );
+}
+
 function shiftLocalDateTime(date, time, minutes) {
   const parsed = new Date(`${date}T${time}:00Z`);
   if (Number.isNaN(parsed.getTime())) return null;
@@ -179,18 +192,8 @@ async function tick() {
   for (const workspace of workspaces.rows) {
     try {
       await deliverDerived(workspace, workspace.data);
-      const reminders = workspace.data?.life?.reminders;
-      if (!Array.isArray(reminders)) continue;
       const nowKey = localNowKey(workspace.timezone);
-      const due = reminders.filter(
-        (reminder) =>
-          typeof reminder?.id === "string" && reminder.id.length > 0 && reminder.id.length <= 200 &&
-          !reminder.done &&
-          !reminder.notifiedAt &&
-          /^\d{4}-\d{2}-\d{2}$/.test(reminder.date ?? "") &&
-          /^\d{2}:\d{2}$/.test(reminder.time ?? "") &&
-          `${reminder.date} ${reminder.time}` <= nowKey,
-      );
+      const due = dueReminders(workspace.data?.life?.reminders, nowKey);
       if (!due.length) continue;
       const completedIds = [];
       for (const reminder of due) {
@@ -222,7 +225,28 @@ async function tick() {
        FROM user_workspace_states uws JOIN households h ON h.id = uws.household_id`,
   );
   for (const workspace of privateWorkspaces.rows) {
-    await deliverDerived(workspace, workspace.data, workspace.user_id);
+    try {
+      await deliverDerived(workspace, workspace.data, workspace.user_id);
+      const nowKey = localNowKey(workspace.timezone);
+      const due = dueReminders(workspace.data?.life?.reminders, nowKey);
+      for (const reminder of due) {
+        try {
+          await deliverReminder(workspace, reminder, workspace.user_id);
+        } catch (error) {
+          console.error("Private reminder delivery failed", {
+            householdId: workspace.household_id,
+            userId: workspace.user_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
+      // Intentionally not persisting notifiedAt to user_workspace_states here: that table has
+      // no revision column, so writing back risks clobbering a concurrent user edit. Delivery
+      // dedup is already guaranteed by the notification_deliveries unique constraint.
+    } catch (error) {
+      console.error("Private workspace failed", { householdId: workspace.household_id, userId: workspace.user_id, error });
+    }
   }
 }
 

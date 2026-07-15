@@ -1,3 +1,5 @@
+import type { Visibility } from "./advancedTypes";
+
 export type ViewId =
   | "today"
   | "tasks"
@@ -32,6 +34,8 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  ownerId?: string;
+  visibility?: Visibility;
 }
 
 export type EventKind = "meeting" | "focus" | "personal";
@@ -49,6 +53,8 @@ export interface CalendarEvent {
   externalId?: string;
   externalUpdatedAt?: string;
   updatedAt: string;
+  ownerId?: string;
+  visibility?: Visibility;
 }
 
 export interface Reminder {
@@ -59,6 +65,8 @@ export interface Reminder {
   done: boolean;
   notifiedAt?: string;
   updatedAt: string;
+  ownerId?: string;
+  visibility?: Visibility;
 }
 
 export type NoteColor = "cream" | "mint" | "sky" | "lilac";
@@ -71,6 +79,8 @@ export interface Note {
   pinned: boolean;
   createdAt: string;
   updatedAt: string;
+  ownerId?: string;
+  visibility?: Visibility;
 }
 
 export interface Habit {
@@ -80,6 +90,8 @@ export interface Habit {
   targetLabel: string;
   completedDates: string[];
   updatedAt: string;
+  ownerId?: string;
+  visibility?: Visibility;
 }
 
 export interface Preferences {

@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Lock,
   MapPin,
   Plus,
   Trash2,
@@ -17,6 +18,8 @@ import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { dateKey, formatDayName, formatShortDate, relativeDay, weekDays } from "../lib/date";
 import { useLifeStore } from "../store/useLifeStore";
+import { useServerAuth } from "../server/AuthGate";
+import type { Visibility } from "../advancedTypes";
 import type { CalendarEvent, Energy, EventKind, Priority, Task } from "../types";
 import { apiRequest, serverMode } from "../server/api";
 
@@ -34,6 +37,8 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
   const addEvent = useLifeStore((state) => state.addEvent);
   const updateTask = useLifeStore((state) => state.updateTask);
   const deleteTask = useLifeStore((state) => state.deleteTask);
+  const { snapshot } = useServerAuth();
+  const currentOwnerId = snapshot?.user.id ?? "me";
   const [googleSyncing, setGoogleSyncing] = useState(false);
   const [anchor, setAnchor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(dateKey());
@@ -80,7 +85,7 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
         const endTime = item.end?.includes("T") ? item.end.slice(11, 16) : "10:00";
         const changes = { title: item.title, date, startTime, endTime, kind: "meeting" as const, location: item.location, source: "google" as const, externalId: item.externalId, externalUpdatedAt: item.updatedAt };
         if (existing) { updateEvent(existing.id, changes); updated += 1; }
-        else { addEvent(changes); added += 1; }
+        else { addEvent({ ...changes, visibility: "private", ownerId: currentOwnerId }); added += 1; }
       });
       onToast(`Google Calendar: ${added} nowych · ${updated} zaktualizowanych${removed ? ` · ${removed} usuniętych` : ""}`);
     } catch (error) {
@@ -160,6 +165,9 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                       >
                         <time>{item.startTime}</time>
                         <strong>{item.title}</strong>
+                        {"visibility" in item && item.visibility === "private" && (
+                          <span className="private-badge"><Lock size={10} /> Prywatne</span>
+                        )}
                       </button>
                     ))}
                   {!dayEvents.length && !dayTasks.length && <span className="week-day__empty">—</span>}
@@ -181,7 +189,11 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
               <button className={`agenda-event agenda-event--${event.kind}`} type="button" key={event.id} onClick={() => setEditingEvent(event)}>
                 <span className="agenda-event__time">{event.startTime}<small>{event.endTime}</small></span>
                 <span className="agenda-event__line" />
-                <span className="agenda-event__content"><strong>{event.title}</strong>{event.location && <small><MapPin size={13} /> {event.location}</small>}</span>
+                <span className="agenda-event__content">
+                  <strong>{event.title}</strong>
+                  {event.visibility === "private" && <small className="private-badge"><Lock size={11} /> Prywatne</small>}
+                  {event.location && <small><MapPin size={13} /> {event.location}</small>}
+                </span>
                 <ChevronRight size={17} />
               </button>
             ))}
@@ -261,6 +273,7 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
   const [location, setLocation] = useState("");
   const [kind, setKind] = useState<EventKind>("personal");
   const [notes, setNotes] = useState("");
+  const [visibility, setVisibility] = useState<Visibility>("household");
 
   useEffect(() => {
     if (!event) return;
@@ -271,6 +284,7 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
     setLocation(event.location ?? "");
     setKind(event.kind);
     setNotes(event.notes ?? "");
+    setVisibility(event.visibility ?? "household");
   }, [event]);
 
   const submit = (submitEvent: FormEvent) => {
@@ -287,6 +301,7 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
       kind,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
+      visibility,
     });
   };
 
@@ -303,6 +318,7 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
           <label className="field"><span>Rodzaj</span><select value={kind} onChange={(input) => setKind(input.target.value as EventKind)}><option value="personal">Prywatne</option><option value="meeting">Spotkanie</option><option value="focus">Skupienie</option></select></label>
           <label className="field"><span>Miejsce</span><input value={location} onChange={(input) => setLocation(input.target.value)} placeholder="Opcjonalnie" /></label>
         </div>
+        <label className="field"><span>Widoczność</span><select value={visibility} onChange={(input) => setVisibility(input.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
         <label className="field"><span>Notatka</span><textarea value={notes} onChange={(input) => setNotes(input.target.value)} placeholder="Szczegóły, link, przygotowanie…" /></label>
         <footer className="modal-actions modal-actions--spread"><button className="button button--danger-ghost" type="button" onClick={onDelete}><Trash2 size={15} /> Usuń</button><div><button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button><button className="button button--primary" type="submit">Zapisz</button></div></footer>
       </form>

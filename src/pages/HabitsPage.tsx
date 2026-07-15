@@ -5,6 +5,7 @@ import {
   Flame,
   Footprints,
   Leaf,
+  Lock,
   Plus,
   Sparkles,
   StretchHorizontal,
@@ -16,6 +17,8 @@ import { pl } from "date-fns/locale";
 import { Modal } from "../components/Modal";
 import { dateKey, formatDayName } from "../lib/date";
 import { useLifeStore } from "../store/useLifeStore";
+import { useServerAuth } from "../server/AuthGate";
+import type { Visibility } from "../advancedTypes";
 import type { Habit } from "../types";
 
 const icons = {
@@ -31,6 +34,8 @@ export function HabitsPage({ onToast }: { onToast: (message: string) => void }) 
   const toggleHabit = useLifeStore((state) => state.toggleHabit);
   const addHabit = useLifeStore((state) => state.addHabit);
   const deleteHabit = useLifeStore((state) => state.deleteHabit);
+  const { snapshot } = useServerAuth();
+  const currentOwnerId = snapshot?.user.id ?? "me";
   const [addOpen, setAddOpen] = useState(false);
   const days = Array.from({ length: 7 }, (_, index) => addDays(new Date(), index - 6));
   const today = dateKey();
@@ -60,7 +65,7 @@ export function HabitsPage({ onToast }: { onToast: (message: string) => void }) 
               const Icon = icons[habit.icon];
               const recentStreak = calculateStreak(habit);
               return [
-                <div className="habit-name-cell" key={`${habit.id}-name`}><span><Icon size={18} /></span><div><strong>{habit.name}</strong><small>{habit.targetLabel} · seria {recentStreak}</small></div><button className="habit-delete" type="button" onClick={() => { if (window.confirm(`Usunąć rytuał „${habit.name}” wraz z całą historią serii?`)) { deleteHabit(habit.id); onToast("Rytuał usunięty"); } }} aria-label={`Usuń rytuał ${habit.name}`}><Trash2 size={14} /></button></div>,
+                <div className="habit-name-cell" key={`${habit.id}-name`}><span><Icon size={18} /></span><div><strong>{habit.name}{habit.visibility === "private" && <span className="private-badge"><Lock size={10} /> Prywatne</span>}</strong><small>{habit.targetLabel} · seria {recentStreak}</small></div><button className="habit-delete" type="button" onClick={() => { if (window.confirm(`Usunąć rytuał „${habit.name}” wraz z całą historią serii?`)) { deleteHabit(habit.id); onToast("Rytuał usunięty"); } }} aria-label={`Usuń rytuał ${habit.name}`}><Trash2 size={14} /></button></div>,
                 ...days.map((day) => {
                   const key = dateKey(day);
                   const done = habit.completedDates.includes(key);
@@ -78,7 +83,7 @@ export function HabitsPage({ onToast }: { onToast: (message: string) => void }) 
         <article><span className="insight-icon insight-icon--leaf"><Leaf size={21} /></span><div><strong>Bez kar za przerwę</strong><p>Jutro to zawsze nowy początek.</p></div></article>
       </div>
 
-      <AddHabitModal open={addOpen} onClose={() => setAddOpen(false)} onAdd={(habit) => { addHabit(habit); setAddOpen(false); onToast("Nowy rytuał dodany"); }} />
+      <AddHabitModal open={addOpen} onClose={() => setAddOpen(false)} ownerId={currentOwnerId} onAdd={(habit) => { addHabit(habit); setAddOpen(false); onToast("Nowy rytuał dodany"); }} />
     </div>
   );
 }
@@ -93,10 +98,17 @@ function calculateStreak(habit: Habit): number {
   return streak;
 }
 
-function AddHabitModal({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (habit: Omit<Habit, "id" | "completedDates" | "updatedAt">) => void }) {
+function AddHabitModal({ open, onClose, ownerId, onAdd }: { open: boolean; onClose: () => void; ownerId: string; onAdd: (habit: Omit<Habit, "id" | "completedDates" | "updatedAt">) => void }) {
   const [name, setName] = useState("");
   const [targetLabel, setTargetLabel] = useState("");
   const [icon, setIcon] = useState<Habit["icon"]>("walk");
-  const submit = (event: FormEvent) => { event.preventDefault(); onAdd({ name: name.trim(), targetLabel: targetLabel.trim() || "raz dziennie", icon }); setName(""); setTargetLabel(""); };
-  return <Modal open={open} onClose={onClose} title="Dodaj mały rytuał" eyebrow="Codzienny rytm" size="small"><form className="edit-form" onSubmit={submit}><label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={name} onChange={(event) => setName(event.target.value)} placeholder="Np. Poranny spacer" /></label><label className="field"><span>Cel</span><input value={targetLabel} onChange={(event) => setTargetLabel(event.target.value)} placeholder="Np. 20 minut" /></label><fieldset className="habit-icon-picker"><legend>Ikona</legend>{(Object.keys(icons) as Habit["icon"][]).map((value) => { const Icon = icons[value]; return <button className={icon === value ? "active" : ""} type="button" key={value} onClick={() => setIcon(value)} aria-label={`Ikona: ${value}`} aria-pressed={icon === value}><Icon size={19} /></button>; })}</fieldset><footer className="modal-actions"><div /><div><button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button><button className="button button--primary" type="submit">Dodaj rytuał</button></div></footer></form></Modal>;
+  const [visibility, setVisibility] = useState<Visibility>("private");
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    onAdd({ name: name.trim(), targetLabel: targetLabel.trim() || "raz dziennie", icon, visibility, ownerId });
+    setName("");
+    setTargetLabel("");
+    setVisibility("private");
+  };
+  return <Modal open={open} onClose={onClose} title="Dodaj mały rytuał" eyebrow="Codzienny rytm" size="small"><form className="edit-form" onSubmit={submit}><label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={name} onChange={(event) => setName(event.target.value)} placeholder="Np. Poranny spacer" /></label><label className="field"><span>Cel</span><input value={targetLabel} onChange={(event) => setTargetLabel(event.target.value)} placeholder="Np. 20 minut" /></label><label className="field"><span>Widoczność</span><select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="private">Tylko ja</option><option value="household">Cały dom</option></select></label><fieldset className="habit-icon-picker"><legend>Ikona</legend>{(Object.keys(icons) as Habit["icon"][]).map((value) => { const Icon = icons[value]; return <button className={icon === value ? "active" : ""} type="button" key={value} onClick={() => setIcon(value)} aria-label={`Ikona: ${value}`} aria-pressed={icon === value}><Icon size={19} /></button>; })}</fieldset><footer className="modal-actions"><div /><div><button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button><button className="button button--primary" type="submit">Dodaj rytuał</button></div></footer></form></Modal>;
 }

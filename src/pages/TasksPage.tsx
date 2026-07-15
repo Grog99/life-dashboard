@@ -21,6 +21,7 @@ import { Modal } from "../components/Modal";
 import { TaskItem } from "../components/TaskItem";
 import { dateKey, formatShortDate, isOverdue } from "../lib/date";
 import { useLifeStore } from "../store/useLifeStore";
+import type { Visibility } from "../advancedTypes";
 import type { Energy, Priority, Task } from "../types";
 
 type TaskFilter = "today" | "inbox" | "upcoming" | "all" | "done";
@@ -221,6 +222,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
   const [priority, setPriority] = useState<Priority>("medium");
   const [energy, setEnergy] = useState<Energy>("medium");
   const [estimatedMinutes, setEstimatedMinutes] = useState("30");
+  const [visibility, setVisibility] = useState<Visibility>("household");
 
   useEffect(() => {
     if (!task) return;
@@ -232,6 +234,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
     setPriority(task.priority);
     setEnergy(task.energy);
     setEstimatedMinutes(String(task.estimatedMinutes ?? 30));
+    setVisibility(task.visibility ?? "household");
   }, [task]);
 
   const submit = (event: FormEvent) => {
@@ -245,6 +248,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
       priority,
       energy,
       estimatedMinutes: Number(estimatedMinutes) || undefined,
+      visibility,
     });
   };
 
@@ -257,7 +261,8 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
       category !== task!.category ||
       priority !== task!.priority ||
       energy !== task!.energy ||
-      estimatedMinutes !== String(task!.estimatedMinutes ?? 30)
+      estimatedMinutes !== String(task!.estimatedMinutes ?? 30) ||
+      visibility !== (task!.visibility ?? "household")
     );
   const confirmDiscardChanges = () =>
     !hasUnsavedChanges() || window.confirm("Masz niezapisane zmiany w zadaniu. Czy na pewno chcesz je odrzucić?");
@@ -274,6 +279,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
           <label className="field"><span>Ważność</span><select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}><option value="high">Ważne</option><option value="medium">Normalne</option><option value="low">Może poczekać</option></select></label>
           <label className="field"><span>Czas</span><select value={estimatedMinutes} onChange={(event) => setEstimatedMinutes(event.target.value)}><option value="10">10 minut</option><option value="15">15 minut</option><option value="30">30 minut</option><option value="60">1 godzina</option><option value="90">1,5 godziny</option></select></label>
           <label className="field"><span>Energia</span><select value={energy} onChange={(event) => setEnergy(event.target.value as Energy)}><option value="low">Mała</option><option value="medium">Średnia</option><option value="high">Duża</option></select></label>
+          <label className="field"><span>Widoczność</span><select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
         </div>
         <footer className="modal-actions modal-actions--spread">
           <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm(`Usunąć zadanie „${task?.title ?? ""}”?`)) onDelete(); }}><Trash2 size={15} /> Usuń</button>

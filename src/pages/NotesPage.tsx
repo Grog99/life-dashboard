@@ -1,6 +1,7 @@
 import {
   CheckSquare2,
   FileText,
+  Lock,
   MoreHorizontal,
   Palette,
   Pin,
@@ -8,6 +9,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Users,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
@@ -154,7 +156,10 @@ function NoteCard({ note, onUpdate, onDelete, onConvert }: NoteCardProps) {
   return (
     <article className={`note-card note-card--${note.color}`}>
       <header>
-        <span className="note-date">Edytowano {formatShortDate(note.updatedAt.slice(0, 10))}</span>
+        <span className="note-date">
+          Edytowano {formatShortDate(note.updatedAt.slice(0, 10))}
+          {note.visibility === "private" && <span className="private-badge"><Lock size={11} /> Prywatne</span>}
+        </span>
         <div>
           {note.pinned && <Pin className="note-pin" size={15} fill="currentColor" />}
           <button className="icon-button" type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="Opcje notatki"><MoreHorizontal size={18} /></button>
@@ -162,6 +167,16 @@ function NoteCard({ note, onUpdate, onDelete, onConvert }: NoteCardProps) {
             <div className="context-menu note-menu">
               <button type="button" onClick={() => { onUpdate({ pinned: !note.pinned }); setMenuOpen(false); }}>{note.pinned ? <PinOff size={15} /> : <Pin size={15} />}{note.pinned ? "Odepnij" : "Przypnij"}</button>
               <button type="button" onClick={() => { cycleColor(); setMenuOpen(false); }}><Palette size={15} /> Zmień kolor</button>
+              <button
+                type="button"
+                onClick={() => {
+                  onUpdate({ visibility: note.visibility === "private" ? "household" : "private" });
+                  setMenuOpen(false);
+                }}
+              >
+                {note.visibility === "private" ? <Users size={15} /> : <Lock size={15} />}
+                {note.visibility === "private" ? "Udostępnij domownikom" : "Ustaw jako prywatne"}
+              </button>
               <button type="button" onClick={() => { onConvert(); setMenuOpen(false); }}><CheckSquare2 size={15} /> Wiersz → zadanie</button>
               <button className="danger" type="button" onClick={() => { if (window.confirm(`Usunąć notatkę „${note.title || "Bez tytułu"}”?`)) onDelete(); }}><Trash2 size={15} /> Usuń</button>
             </div>
