@@ -255,34 +255,28 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
 
       <div className="dashboard-grid">
         <div className="dashboard-column dashboard-column--main">
-          <section className="panel priorities-panel">
-            <header className="panel__header">
-              <div>
-                <span className="section-kicker"><Star size={14} fill="currentColor" /> Kierunek dnia</span>
-                <h2>Najważniejsze dzisiaj</h2>
-              </div>
-              <button className="text-button" type="button" onClick={() => onNavigate("tasks")}>Wszystkie zadania <ChevronRight size={16} /></button>
-            </header>
-            <div className="priority-list">
-              {focusTasks.length ? (
-                focusTasks.map((task, index) => (
+          {focusTasks.length > 0 && (
+            <section className="panel priorities-panel">
+              <header className="panel__header">
+                <div>
+                  <span className="section-kicker"><Star size={14} fill="currentColor" /> Kierunek dnia</span>
+                  <h2>Najważniejsze dzisiaj</h2>
+                </div>
+                <button className="text-button" type="button" onClick={() => onNavigate("tasks")}>Wszystkie zadania <ChevronRight size={16} /></button>
+              </header>
+              <div className="priority-list">
+                {focusTasks.map((task, index) => (
                   <div className="priority-row" key={task.id}>
                     <span className="priority-number">0{index + 1}</span>
                     <TaskItem task={task} compact />
                   </div>
-                ))
-              ) : (
-                <div className="soft-empty">
-                  <Sparkles size={20} />
-                  <div><strong>Wybierz kierunek</strong><span>Oznacz maksymalnie trzy zadania jako priorytet.</span></div>
-                  <button className="button button--soft" type="button" onClick={() => onNavigate("tasks")}>Wybierz zadania</button>
-                </div>
+                ))}
+              </div>
+              {focusTasks.length < 3 && (
+                <button className="add-inline" type="button" onClick={() => onNavigate("tasks")}><Plus size={15} /> Dodaj priorytet ({focusTasks.length}/3)</button>
               )}
-            </div>
-            {focusTasks.length < 3 && focusTasks.length > 0 && (
-              <button className="add-inline" type="button" onClick={() => onNavigate("tasks")}><Plus size={15} /> Dodaj priorytet ({focusTasks.length}/3)</button>
-            )}
-          </section>
+            </section>
+          )}
 
           <section className="panel agenda-panel">
             <header className="panel__header">
