@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { lockBodyScroll } from "../lib/scrollLock";
 
@@ -73,7 +74,7 @@ export function Modal({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onMouseDown={requestClose}>
       <div
         ref={modalRef}
@@ -95,6 +96,7 @@ export function Modal({
         </header>
         <div className="modal__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
