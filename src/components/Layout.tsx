@@ -282,7 +282,7 @@ export function Layout({
       </div>
 
       <nav className="mobile-nav" aria-label="Nawigacja mobilna">
-        {navigation.filter((item) => ["today", "calendar", "finance", "trips"].includes(item.id)).map((item) => {
+        {navigation.filter((item) => ["today", "tasks", "calendar", "notes"].includes(item.id)).map((item) => {
           const Icon = item.icon;
           return (
             <button
