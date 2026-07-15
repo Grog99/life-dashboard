@@ -3,6 +3,7 @@ import {
   Bell,
   CalendarSync,
   Check,
+  Copy,
   Database,
   Download,
   Info,
@@ -10,15 +11,15 @@ import {
   LogOut,
   Laptop,
   Moon,
+  ShieldAlert,
   ShieldCheck,
   Sun,
   Trash2,
   Upload,
   UserRound,
   UsersRound,
-  Copy,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { format } from "date-fns";
 import {
   backupEnvelopeSchema,
@@ -30,7 +31,11 @@ import { exportAdvancedData, useAdvancedStore } from "../store/useAdvancedStore"
 import { apiRequest, serverMode } from "../server/api";
 import { useServerAuth } from "../server/AuthGate";
 import { removeCurrentPushSubscription } from "../server/push";
+import { Tabs, type TabItem } from "../components/Tabs";
+import { Modal } from "../components/Modal";
 import type { Theme } from "../types";
+
+const SETTINGS_TABS_ID_BASE = "settings";
 
 export function SettingsPage({ onToast }: { onToast: (message: string) => void }) {
   const preferences = useLifeStore((state) => state.preferences);
@@ -45,7 +50,28 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   const { snapshot, logout } = useServerAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const activeHousehold = snapshot?.households.find((item) => item.id === snapshot.activeHouseholdId);
+  const isOwner = serverMode && !!snapshot && activeHousehold?.role === "owner";
   const canManageHousehold = !serverMode || activeHousehold?.role === "owner" || activeHousehold?.role === "admin";
+
+  const tabs = useMemo<TabItem[]>(() => {
+    const base: TabItem[] = [
+      { id: "general", label: "Ogólne", icon: UserRound },
+      { id: "appearance", label: "Wygląd", icon: Sun },
+      { id: "notifications", label: "Powiadomienia", icon: Bell },
+      { id: "data", label: "Dane", icon: Database },
+    ];
+    if (isOwner) {
+      base.push({ id: "users", label: "Użytkownicy", icon: UsersRound });
+      base.push({ id: "danger", label: "Strefa niebezpieczna", icon: ShieldAlert });
+    }
+    return base;
+  }, [isOwner]);
+
+  const [activeTab, setActiveTab] = useState<string>("general");
+
+  useEffect(() => {
+    if (!tabs.some((tab) => tab.id === activeTab)) setActiveTab("general");
+  }, [tabs, activeTab]);
 
   const requestNotifications = async () => {
     if (!("Notification" in window)) {
@@ -172,58 +198,120 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
         <div><span className="page-eyebrow">Puls dopasowany do Ciebie</span><h1>Ustawienia</h1><p>Konto, wspólny dom, integracje, wygląd i bezpieczna kopia danych.</p></div>
       </header>
 
-      <div className="settings-grid">
-        {serverMode && snapshot && <HouseholdSettings onToast={onToast} />}
+      <Tabs
+        tabs={tabs}
+        activeId={activeTab}
+        onChange={setActiveTab}
+        idBase={SETTINGS_TABS_ID_BASE}
+        ariaLabel="Sekcje ustawień"
+      />
 
-        <section className="panel settings-card">
-          <header><span className="settings-icon"><UserRound size={19} /></span><div><h2>O Tobie</h2><p>Drobna personalizacja porannego widoku.</p></div></header>
-          <label className="field"><span>Jak mam się do Ciebie zwracać?</span><input value={preferences.name} onChange={(event) => updatePreferences({ name: event.target.value })} placeholder="Twoje imię" /></label>
-          <div className="settings-row">
-            <div><strong>Tydzień zaczyna się w poniedziałek</strong><span>{preferences.weekStartsOnMonday ? "Poniedziałek" : "Niedziela"}</span></div>
-            <button className={preferences.weekStartsOnMonday ? "toggle-switch active" : "toggle-switch"} type="button" onClick={() => updatePreferences({ weekStartsOnMonday: !preferences.weekStartsOnMonday })} aria-label="Tydzień zaczyna się w poniedziałek" aria-pressed={preferences.weekStartsOnMonday}><span /></button>
-          </div>
+      {activeTab === "general" && (
+        <section
+          role="tabpanel"
+          id={`${SETTINGS_TABS_ID_BASE}-panel-general`}
+          aria-labelledby={`${SETTINGS_TABS_ID_BASE}-tab-general`}
+          tabIndex={0}
+          className="settings-grid"
+        >
+          <section className="panel settings-card">
+            <header><span className="settings-icon"><UserRound size={19} /></span><div><h2>O Tobie</h2><p>Drobna personalizacja porannego widoku.</p></div></header>
+            <label className="field"><span>Jak mam się do Ciebie zwracać?</span><input value={preferences.name} onChange={(event) => updatePreferences({ name: event.target.value })} placeholder="Twoje imię" /></label>
+            <div className="settings-row">
+              <div><strong>Tydzień zaczyna się w poniedziałek</strong><span>{preferences.weekStartsOnMonday ? "Poniedziałek" : "Niedziela"}</span></div>
+              <button className={preferences.weekStartsOnMonday ? "toggle-switch active" : "toggle-switch"} type="button" onClick={() => updatePreferences({ weekStartsOnMonday: !preferences.weekStartsOnMonday })} aria-label="Tydzień zaczyna się w poniedziałek" aria-pressed={preferences.weekStartsOnMonday}><span /></button>
+            </div>
+          </section>
+
+          {serverMode && <GoogleCalendarSettings onToast={onToast} />}
+
+          {serverMode && snapshot && <section className="panel settings-card settings-card--danger"><header><span className="settings-icon"><LogOut size={19} /></span><div><h2>Sesja</h2><p>Zalogowano jako {snapshot.user.email}</p></div></header><button className="button button--danger-ghost" type="button" onClick={() => void logout()}><LogOut size={16} /> Wyloguj się</button></section>}
+
+          <section className="about-card">
+            <span className="brand__mark">P</span><div><strong>Puls 2.0</strong><p>Self-hosted centrum codziennego życia.</p></div><Check size={17} /><span>{serverMode ? `${householdMembers.length} osoby we wspólnym domu` : "Tryb lokalny"}</span>
+          </section>
         </section>
+      )}
 
-        {serverMode && <GoogleCalendarSettings onToast={onToast} />}
-
-        <section className="panel settings-card">
-          <header><span className="settings-icon"><Sun size={19} /></span><div><h2>Wygląd</h2><p>Wybierz motyw wygodny dla oczu.</p></div></header>
-          <div className="theme-options">
-            <ThemeOption value="light" current={preferences.theme} onSelect={(theme) => updatePreferences({ theme })} icon={Sun} label="Jasny" />
-            <ThemeOption value="dark" current={preferences.theme} onSelect={(theme) => updatePreferences({ theme })} icon={Moon} label="Ciemny" />
-            <ThemeOption value="system" current={preferences.theme} onSelect={(theme) => updatePreferences({ theme })} icon={Laptop} label="Systemowy" />
-          </div>
+      {activeTab === "appearance" && (
+        <section
+          role="tabpanel"
+          id={`${SETTINGS_TABS_ID_BASE}-panel-appearance`}
+          aria-labelledby={`${SETTINGS_TABS_ID_BASE}-tab-appearance`}
+          tabIndex={0}
+          className="settings-panel--single"
+        >
+          <section className="panel settings-card">
+            <header><span className="settings-icon"><Sun size={19} /></span><div><h2>Wygląd</h2><p>Wybierz motyw wygodny dla oczu.</p></div></header>
+            <div className="theme-options">
+              <ThemeOption value="light" current={preferences.theme} onSelect={(theme) => updatePreferences({ theme })} icon={Sun} label="Jasny" />
+              <ThemeOption value="dark" current={preferences.theme} onSelect={(theme) => updatePreferences({ theme })} icon={Moon} label="Ciemny" />
+              <ThemeOption value="system" current={preferences.theme} onSelect={(theme) => updatePreferences({ theme })} icon={Laptop} label="Systemowy" />
+            </div>
+          </section>
         </section>
+      )}
 
-        <section className="panel settings-card settings-card--notifications">
-          <header><span className="settings-icon"><Bell size={19} /></span><div><h2>Powiadomienia</h2><p>{serverMode ? "Systemowe przypomnienia również po zamknięciu PWA." : "Przypomnienia, kiedy dashboard jest otwarty."}</p></div></header>
-          <div className="settings-row">
-            <div><strong>Powiadomienia przeglądarki</strong><span>{preferences.notificationsEnabled ? "Włączone" : "Wyłączone"}</span></div>
-            <button className={preferences.notificationsEnabled ? "toggle-switch active" : "toggle-switch"} type="button" onClick={preferences.notificationsEnabled ? () => void disableNotifications() : requestNotifications} aria-label="Powiadomienia przeglądarki" aria-pressed={preferences.notificationsEnabled}><span /></button>
-          </div>
-          <div className="info-callout"><Info size={16} /><p>{serverMode ? "PWA może odbierać przypomnienia push również po zamknięciu dashboardu, jeśli serwer ma skonfigurowane klucze VAPID." : "Przeglądarka może wysłać alert tylko wtedy, gdy aplikacja jest otwarta."}</p></div>
+      {activeTab === "notifications" && (
+        <section
+          role="tabpanel"
+          id={`${SETTINGS_TABS_ID_BASE}-panel-notifications`}
+          aria-labelledby={`${SETTINGS_TABS_ID_BASE}-tab-notifications`}
+          tabIndex={0}
+          className="settings-panel--single"
+        >
+          <section className="panel settings-card settings-card--notifications">
+            <header><span className="settings-icon"><Bell size={19} /></span><div><h2>Powiadomienia</h2><p>{serverMode ? "Systemowe przypomnienia również po zamknięciu PWA." : "Przypomnienia, kiedy dashboard jest otwarty."}</p></div></header>
+            <div className="settings-row">
+              <div><strong>Powiadomienia przeglądarki</strong><span>{preferences.notificationsEnabled ? "Włączone" : "Wyłączone"}</span></div>
+              <button className={preferences.notificationsEnabled ? "toggle-switch active" : "toggle-switch"} type="button" onClick={preferences.notificationsEnabled ? () => void disableNotifications() : requestNotifications} aria-label="Powiadomienia przeglądarki" aria-pressed={preferences.notificationsEnabled}><span /></button>
+            </div>
+            <div className="info-callout"><Info size={16} /><p>{serverMode ? "PWA może odbierać przypomnienia push również po zamknięciu dashboardu, jeśli serwer ma skonfigurowane klucze VAPID." : "Przeglądarka może wysłać alert tylko wtedy, gdy aplikacja jest otwarta."}</p></div>
+          </section>
         </section>
+      )}
 
-        <section className="panel settings-card settings-card--data">
-          <header><span className="settings-icon"><Database size={19} /></span><div><h2>Twoje dane</h2><p>{serverMode ? "Dane są synchronizowane z prywatnym serwerem." : "Wszystko jest zapisane lokalnie w tej przeglądarce."}</p></div></header>
-          <div className="data-summary"><span><strong>{tasks.length}</strong> zadań</span><span><strong>{events.length}</strong> wydarzeń</span><span><strong>{financeTransactions.length}</strong> transakcji</span><span><strong>{trips.length}</strong> podróży</span></div>
-          <div className="backup-actions">
-            <button className="button button--soft" type="button" onClick={downloadBackup}><Download size={16} /> Eksportuj kopię</button>
-            {canManageHousehold && <button className="button button--ghost-border" type="button" onClick={() => fileInput.current?.click()}><Upload size={16} /> Importuj dane</button>}
-            <input ref={fileInput} hidden type="file" accept="application/json,.json" onChange={importBackup} />
-          </div>
-          <div className="privacy-note"><ShieldCheck size={16} /><span>{serverMode ? "Dane pozostają na Twoim serwerze i są oddzielone per gospodarstwo." : "Bez konta, bez wysyłania danych, bez śledzenia."}</span></div>
+      {activeTab === "data" && (
+        <section
+          role="tabpanel"
+          id={`${SETTINGS_TABS_ID_BASE}-panel-data`}
+          aria-labelledby={`${SETTINGS_TABS_ID_BASE}-tab-data`}
+          tabIndex={0}
+          className="settings-panel--single"
+        >
+          <section className="panel settings-card settings-card--data">
+            <header><span className="settings-icon"><Database size={19} /></span><div><h2>Twoje dane</h2><p>{serverMode ? "Dane są synchronizowane z prywatnym serwerem." : "Wszystko jest zapisane lokalnie w tej przeglądarce."}</p></div></header>
+            <div className="data-summary"><span><strong>{tasks.length}</strong> zadań</span><span><strong>{events.length}</strong> wydarzeń</span><span><strong>{financeTransactions.length}</strong> transakcji</span><span><strong>{trips.length}</strong> podróży</span></div>
+            <div className="backup-actions">
+              <button className="button button--soft" type="button" onClick={downloadBackup}><Download size={16} /> Eksportuj kopię</button>
+              {canManageHousehold && <button className="button button--ghost-border" type="button" onClick={() => fileInput.current?.click()}><Upload size={16} /> Importuj dane</button>}
+              <input ref={fileInput} hidden type="file" accept="application/json,.json" onChange={importBackup} />
+            </div>
+            <div className="privacy-note"><ShieldCheck size={16} /><span>{serverMode ? "Dane pozostają na Twoim serwerze i są oddzielone per gospodarstwo." : "Bez konta, bez wysyłania danych, bez śledzenia."}</span></div>
+          </section>
         </section>
+      )}
 
-        {serverMode && snapshot && <section className="panel settings-card settings-card--danger"><header><span className="settings-icon"><LogOut size={19} /></span><div><h2>Sesja</h2><p>Zalogowano jako {snapshot.user.email}</p></div></header><button className="button button--danger-ghost" type="button" onClick={() => void logout()}><LogOut size={16} /> Wyloguj się</button></section>}
-
-        <section className="about-card">
-          <span className="brand__mark">P</span><div><strong>Puls 2.0</strong><p>Self-hosted centrum codziennego życia.</p></div><Check size={17} /><span>{serverMode ? `${householdMembers.length} osoby we wspólnym domu` : "Tryb lokalny"}</span>
+      {activeTab === "users" && isOwner && (
+        <section
+          role="tabpanel"
+          id={`${SETTINGS_TABS_ID_BASE}-panel-users`}
+          aria-labelledby={`${SETTINGS_TABS_ID_BASE}-tab-users`}
+          tabIndex={0}
+          className="settings-panel--single"
+        >
+          <UsersSettings onToast={onToast} />
         </section>
-      </div>
+      )}
 
-      {canManageHousehold && (
-        <section className="danger-zone">
+      {activeTab === "danger" && isOwner && (
+        <section
+          role="tabpanel"
+          id={`${SETTINGS_TABS_ID_BASE}-panel-danger`}
+          aria-labelledby={`${SETTINGS_TABS_ID_BASE}-tab-danger`}
+          tabIndex={0}
+          className="danger-zone"
+        >
           <header className="danger-zone__header">
             <AlertTriangle size={17} />
             <div><h2>Strefa niebezpieczna</h2><p>Poniższe działanie jest nieodwracalne — zachowaj ostrożność.</p></div>
@@ -238,24 +326,143 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   );
 }
 
-function HouseholdSettings({ onToast }: { onToast: (message: string) => void }) {
-  const { snapshot } = useServerAuth();
+interface MemberRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: "owner" | "admin" | "member";
+  joined_at?: string;
+}
+
+function roleLabel(role: MemberRecord["role"]) {
+  if (role === "owner") return "Właściciel";
+  if (role === "admin") return "Administrator";
+  return "Członek";
+}
+
+function UsersSettings({ onToast }: { onToast: (message: string) => void }) {
+  const { snapshot, refresh } = useServerAuth();
   const household = snapshot?.households.find((item) => item.id === snapshot.activeHouseholdId);
-  const canInvite = household?.role === "owner" || household?.role === "admin";
+  const currentUserId = snapshot?.user.id;
   const [email, setEmail] = useState("");
   const [inviteUrl, setInviteUrl] = useState("");
   const [busy, setBusy] = useState(false);
-  const [members, setMembers] = useState<Array<{ id: string; name: string; email: string; role: string }>>([]);
-  useEffect(() => { void apiRequest<{ members: typeof members }>("/api/v1/households/current/members").then((result) => setMembers(result.members)).catch(() => undefined); }, []);
-  const submit = async (event: FormEvent) => {
-    event.preventDefault(); setBusy(true);
+  const [members, setMembers] = useState<MemberRecord[]>([]);
+  const [memberToRemove, setMemberToRemove] = useState<MemberRecord | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  const loadMembers = () =>
+    apiRequest<{ members: MemberRecord[] }>("/api/v1/households/current/members")
+      .then((result) => setMembers(result.members))
+      .catch(() => undefined);
+
+  useEffect(() => {
+    void loadMembers();
+  }, []);
+
+  const submitInvite = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
     try {
-      const result = await apiRequest<{ inviteUrl: string }>("/api/v1/households/current/invitations", { method: "POST", json: { email: email || undefined, role: "member" } });
-      setInviteUrl(result.inviteUrl); setEmail(""); onToast("Zaproszenie jest gotowe i ważne przez 7 dni");
-    } catch (error) { onToast(error instanceof Error ? error.message : "Nie udało się utworzyć zaproszenia"); }
-    finally { setBusy(false); }
+      const result = await apiRequest<{ inviteUrl: string }>("/api/v1/households/current/invitations", {
+        method: "POST",
+        json: { email: email || undefined, role: "member" },
+      });
+      setInviteUrl(result.inviteUrl);
+      setEmail("");
+      onToast("Zaproszenie jest gotowe i ważne przez 7 dni");
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : "Nie udało się utworzyć zaproszenia");
+    } finally {
+      setBusy(false);
+    }
   };
-  return <section className="panel settings-card settings-card--household"><header><span className="settings-icon"><UsersRound size={19} /></span><div><h2>Wspólny dom</h2><p>{household?.name ?? "Dom"} · Twoja rola: {household?.role}</p></div></header>{members.length > 0 && <div className="data-summary">{members.map((member) => <span key={member.id}><strong>{member.name}</strong>{member.role}</span>)}</div>}{canInvite && <form className="invite-form" onSubmit={submit}><label className="field"><span>Zaproś przez e-mail</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Opcjonalnie — link może być uniwersalny" /></label><button className="button button--soft" type="submit" disabled={busy}><Link2 size={15} /> Utwórz link</button></form>}{inviteUrl && <div className="invite-link"><span>{inviteUrl}</span><button className="icon-button" type="button" onClick={() => { void navigator.clipboard.writeText(inviteUrl); onToast("Link skopiowany"); }} aria-label="Skopiuj zaproszenie"><Copy size={15} /></button></div>}</section>;
+
+  const closeRemoveModal = () => {
+    if (removing) return;
+    setMemberToRemove(null);
+  };
+
+  const confirmRemove = async () => {
+    if (!memberToRemove) return;
+    setRemoving(true);
+    try {
+      await apiRequest(`/api/v1/households/current/members/${memberToRemove.id}`, { method: "DELETE", json: {} });
+      onToast(`Usunięto ${memberToRemove.name} z gospodarstwa`);
+      setMemberToRemove(null);
+      await loadMembers();
+      await refresh();
+    } catch (error) {
+      onToast(error instanceof Error ? error.message : "Nie udało się usunąć użytkownika");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  return (
+    <>
+      <section className="panel settings-card settings-card--household">
+        <header><span className="settings-icon"><UsersRound size={19} /></span><div><h2>Wspólny dom</h2><p>{household?.name ?? "Dom"} · Twoja rola: {household?.role ? roleLabel(household.role) : "—"}</p></div></header>
+        {members.length > 0 && (
+          <ul className="members-list">
+            {members.map((member) => {
+              const removable = member.role !== "owner" && member.id !== currentUserId;
+              return (
+                <li key={member.id} className="member-row">
+                  <div className="member-row__info">
+                    <strong>{member.name}</strong>
+                    <span>{member.email}</span>
+                  </div>
+                  <span className={`member-role-badge member-role-badge--${member.role}`}>{roleLabel(member.role)}</span>
+                  {removable && (
+                    <button
+                      className="icon-button icon-button--danger"
+                      type="button"
+                      onClick={() => setMemberToRemove(member)}
+                      aria-label={`Usuń ${member.name} z gospodarstwa`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <form className="invite-form" onSubmit={submitInvite}>
+          <label className="field"><span>Zaproś przez e-mail</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Opcjonalnie — link może być uniwersalny" /></label>
+          <button className="button button--soft" type="submit" disabled={busy}><Link2 size={15} /> Utwórz link</button>
+        </form>
+        {inviteUrl && (
+          <div className="invite-link">
+            <span>{inviteUrl}</span>
+            <button className="icon-button" type="button" onClick={() => { void navigator.clipboard.writeText(inviteUrl); onToast("Link skopiowany"); }} aria-label="Skopiuj zaproszenie"><Copy size={15} /></button>
+          </div>
+        )}
+      </section>
+
+      <Modal
+        open={memberToRemove !== null}
+        onClose={closeRemoveModal}
+        title="Usuń członka gospodarstwa"
+        eyebrow="Nieodwracalne"
+        size="small"
+      >
+        {memberToRemove && (
+          <div className="remove-member-confirm">
+            <p>Czy na pewno chcesz usunąć <strong>{memberToRemove.name}</strong> ({memberToRemove.email}) z gospodarstwa?</p>
+            <p className="remove-member-confirm__warning">
+              <AlertTriangle size={15} /> Ta operacja jest nieodwracalna — usunie też wszystkie jego prywatne dane w tym gospodarstwie (prywatne konta, podróże, samochody i ustawienia).
+            </p>
+            <div className="modal-actions">
+              <button className="button button--ghost-border" type="button" onClick={closeRemoveModal} disabled={removing}>Anuluj</button>
+              <button className="button button--danger-ghost" type="button" onClick={() => void confirmRemove()} disabled={removing}>{removing ? "Usuwanie…" : "Usuń z gospodarstwa"}</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </>
+  );
 }
 
 function GoogleCalendarSettings({ onToast }: { onToast: (message: string) => void }) {
