@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { pool, query, transaction } from "./db.mjs";
 import { validateConfiguration } from "./config.mjs";
 import { mergeWorkspaceData, splitWorkspaceData, workspaceDocumentIsValid } from "./workspace.mjs";
+import { assertRemovableMember } from "./householdMembers.mjs";
 import {
   decryptSecret,
   encryptSecret,
@@ -445,7 +446,7 @@ app.get("/api/v1/households/current/members", async (request) => {
 });
 
 app.post("/api/v1/households/current/invitations", async (request) => {
-  const session = await requireHousehold(request, ["owner", "admin"]);
+  const session = await requireHousehold(request, ["owner"]);
   const body = request.body ?? {};
   const role = body.role === "admin" ? "admin" : "member";
   const email = body.email ? normalizeEmail(body.email) : null;
@@ -462,6 +463,33 @@ app.post("/api/v1/households/current/invitations", async (request) => {
     inviteUrl: `${appOrigin}/?invite=${encodeURIComponent(token)}`,
     expiresAt: result.rows[0].expires_at,
   };
+});
+
+app.delete("/api/v1/households/current/members/:userId", async (request) => {
+  const session = await requireHousehold(request, ["owner"]);
+  const targetUserId = request.params.userId;
+  assertUuidParam(targetUserId);
+  await transaction(async (client) => {
+    const target = await client.query(
+      "SELECT role FROM household_members WHERE household_id = $1 AND user_id = $2 FOR UPDATE",
+      [session.household_id, targetUserId],
+    );
+    const targetRole = target.rows[0]?.role ?? null;
+    assertRemovableMember({ targetUserId, targetRole, sessionUserId: session.user_id });
+    await client.query(
+      "DELETE FROM household_members WHERE household_id = $1 AND user_id = $2",
+      [session.household_id, targetUserId],
+    );
+    await client.query(
+      "DELETE FROM user_workspace_states WHERE household_id = $1 AND user_id = $2",
+      [session.household_id, targetUserId],
+    );
+    await audit(client, session, "member.remove", "user", targetUserId, {
+      role: targetRole,
+      householdId: session.household_id,
+    });
+  });
+  return { ok: true };
 });
 
 app.get("/api/v1/workspace", async (request) => {
