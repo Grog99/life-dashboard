@@ -13,6 +13,8 @@ import { Modal } from "./Modal";
 import { dateKey } from "../lib/date";
 import { parseSmartCapture } from "../lib/smartCapture";
 import { useLifeStore } from "../store/useLifeStore";
+import { useServerAuth } from "../server/AuthGate";
+import type { Visibility } from "../advancedTypes";
 import type {
   Energy,
   EventKind,
@@ -45,6 +47,8 @@ export function QuickAddModal({
   const addEvent = useLifeStore((state) => state.addEvent);
   const addReminder = useLifeStore((state) => state.addReminder);
   const addNote = useLifeStore((state) => state.addNote);
+  const { snapshot } = useServerAuth();
+  const currentOwnerId = snapshot?.user.id ?? "me";
 
   const [type, setType] = useState<QuickAddType>(initialType);
   const [title, setTitle] = useState("");
@@ -58,6 +62,7 @@ export function QuickAddModal({
   const [kind, setKind] = useState<EventKind>("personal");
   const [location, setLocation] = useState("");
   const [noteColor, setNoteColor] = useState<NoteColor>("cream");
+  const [visibility, setVisibility] = useState<Visibility>("private");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [dateEditedManually, setDateEditedManually] = useState(false);
   const [timeEditedManually, setTimeEditedManually] = useState(false);
@@ -77,6 +82,7 @@ export function QuickAddModal({
     setKind("personal");
     setLocation("");
     setNoteColor("cream");
+    setVisibility("private");
     setDetailsOpen(false);
     setDateEditedManually(false);
     setTimeEditedManually(false);
@@ -116,6 +122,8 @@ export function QuickAddModal({
         category,
         isFocus: false,
         energy,
+        visibility,
+        ownerId: currentOwnerId,
       });
       onAdded?.("Zadanie trafiło na listę");
     } else if (type === "event") {
@@ -130,6 +138,8 @@ export function QuickAddModal({
         endTime,
         kind,
         location: location.trim() || undefined,
+        visibility,
+        ownerId: currentOwnerId,
       });
       onAdded?.("Wydarzenie dodane do kalendarza");
     } else if (type === "reminder") {
@@ -137,7 +147,7 @@ export function QuickAddModal({
         onAdded?.("Uzupełnij datę i godzinę przypomnienia");
         return;
       }
-      addReminder({ title: parsed.title, date, time });
+      addReminder({ title: parsed.title, date, time, visibility, ownerId: currentOwnerId });
       onAdded?.("Przypomnienie jest ustawione");
     } else {
       addNote({
@@ -145,6 +155,8 @@ export function QuickAddModal({
         content: "",
         color: noteColor,
         pinned: false,
+        visibility,
+        ownerId: currentOwnerId,
       });
       onAdded?.("Notatka została utworzona");
     }
@@ -308,6 +320,14 @@ export function QuickAddModal({
             ))}
           </fieldset>
         )}
+
+        <label className="field">
+          <span>Widoczność</span>
+          <select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}>
+            <option value="private">Tylko ja</option>
+            <option value="household">Cały dom</option>
+          </select>
+        </label>
 
         <footer className="modal-actions">
           <span className="keyboard-hint"><Lightbulb size={14} /> Enter zapisuje</span>

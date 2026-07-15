@@ -94,6 +94,8 @@ export const useLifeStore = create<LifeStore>()(
               status: "todo",
               createdAt: timestamp,
               updatedAt: timestamp,
+              visibility: task.visibility ?? "private",
+              ownerId: task.ownerId ?? "me",
             },
             ...state.tasks,
           ],
@@ -159,7 +161,16 @@ export const useLifeStore = create<LifeStore>()(
       addEvent: (event) => {
         const eventId = id();
         set((state) => ({
-          events: [...state.events, { ...event, id: eventId, updatedAt: new Date().toISOString() }],
+          events: [
+            ...state.events,
+            {
+              ...event,
+              id: eventId,
+              updatedAt: new Date().toISOString(),
+              visibility: event.visibility ?? "private",
+              ownerId: event.ownerId ?? "me",
+            },
+          ],
         }));
         return eventId;
       },
@@ -177,7 +188,14 @@ export const useLifeStore = create<LifeStore>()(
         const reminderId = id();
         set((state) => ({
           reminders: [
-            { ...reminder, id: reminderId, done: false, updatedAt: new Date().toISOString() },
+            {
+              ...reminder,
+              id: reminderId,
+              done: false,
+              updatedAt: new Date().toISOString(),
+              visibility: reminder.visibility ?? "private",
+              ownerId: reminder.ownerId ?? "me",
+            },
             ...state.reminders,
           ],
         }));
@@ -224,7 +242,14 @@ export const useLifeStore = create<LifeStore>()(
         const timestamp = new Date().toISOString();
         set((state) => ({
           notes: [
-            { ...note, id: noteId, createdAt: timestamp, updatedAt: timestamp },
+            {
+              ...note,
+              id: noteId,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+              visibility: note.visibility ?? "private",
+              ownerId: note.ownerId ?? "me",
+            },
             ...state.notes,
           ],
         }));
@@ -256,7 +281,17 @@ export const useLifeStore = create<LifeStore>()(
         })),
       addHabit: (habit) =>
         set((state) => ({
-          habits: [...state.habits, { ...habit, id: id(), completedDates: [], updatedAt: new Date().toISOString() }],
+          habits: [
+            ...state.habits,
+            {
+              ...habit,
+              id: id(),
+              completedDates: [],
+              updatedAt: new Date().toISOString(),
+              visibility: habit.visibility ?? "private",
+              ownerId: habit.ownerId ?? "me",
+            },
+          ],
         })),
       deleteHabit: (habitId) =>
         set((state) => ({ habits: state.habits.filter((habit) => habit.id !== habitId) })),

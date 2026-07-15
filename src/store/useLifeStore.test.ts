@@ -47,6 +47,73 @@ describe("life store", () => {
     });
   });
 
+  it("nowy rekord bez podanej widoczności domyślnie jest prywatny z ownerId 'me'", () => {
+    const taskId = useLifeStore.getState().addTask({
+      title: "Zadanie bez widoczności",
+      priority: "medium",
+      category: "Prywatne",
+      isFocus: false,
+      energy: "low",
+    });
+    const task = useLifeStore.getState().tasks.find((item) => item.id === taskId);
+    expect(task?.visibility).toBe("private");
+    expect(task?.ownerId).toBe("me");
+
+    const eventId = useLifeStore.getState().addEvent({
+      title: "Wydarzenie bez widoczności",
+      date: "2026-07-20",
+      startTime: "10:00",
+      endTime: "11:00",
+      kind: "personal",
+    });
+    const event = useLifeStore.getState().events.find((item) => item.id === eventId);
+    expect(event?.visibility).toBe("private");
+    expect(event?.ownerId).toBe("me");
+
+    const reminderId = useLifeStore.getState().addReminder({
+      title: "Przypomnienie bez widoczności",
+      date: "2026-07-20",
+      time: "10:00",
+    });
+    const reminder = useLifeStore.getState().reminders.find((item) => item.id === reminderId);
+    expect(reminder?.visibility).toBe("private");
+    expect(reminder?.ownerId).toBe("me");
+
+    const noteId = useLifeStore.getState().addNote({
+      title: "Notatka bez widoczności",
+      content: "",
+      color: "cream",
+      pinned: false,
+    });
+    const note = useLifeStore.getState().notes.find((item) => item.id === noteId);
+    expect(note?.visibility).toBe("private");
+    expect(note?.ownerId).toBe("me");
+
+    useLifeStore.getState().addHabit({
+      name: "Rytuał bez widoczności",
+      icon: "walk",
+      targetLabel: "raz dziennie",
+    });
+    const habit = useLifeStore.getState().habits.find((item) => item.name === "Rytuał bez widoczności");
+    expect(habit?.visibility).toBe("private");
+    expect(habit?.ownerId).toBe("me");
+  });
+
+  it("przekazana widoczność 'household' i ownerId są zachowywane", () => {
+    const taskId = useLifeStore.getState().addTask({
+      title: "Wspólne zadanie",
+      priority: "medium",
+      category: "Dom",
+      isFocus: false,
+      energy: "low",
+      visibility: "household",
+      ownerId: "user-123",
+    });
+    const task = useLifeStore.getState().tasks.find((item) => item.id === taskId);
+    expect(task?.visibility).toBe("household");
+    expect(task?.ownerId).toBe("user-123");
+  });
+
   it("odrzuca tylko uszkodzony rekord przy scalaniu zapisanych danych, zachowując resztę", () => {
     const sample = createSampleData();
     const persistedState = {

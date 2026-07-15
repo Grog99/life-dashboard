@@ -25,6 +25,11 @@ const clockTime = z
   }, "Nieprawidłowa godzina");
 const timestamp = z.string().refine((value) => !Number.isNaN(Date.parse(value)), "Nieprawidłowy znacznik czasu");
 
+// Wyhoistowane ponad schematy life (potrzebne dla opcjonalnych `visibility`/`ownerId` poniżej);
+// reużywane też niżej przez sharedMetaSchema (kolekcje advanced).
+const idSchema = z.string().min(1).max(200);
+const visibilitySchema = z.enum(["private", "household"]);
+
 export const taskSchema = z.object({
   id: z.string(),
   title: nonEmptyText,
@@ -40,6 +45,8 @@ export const taskSchema = z.object({
   createdAt: timestamp,
   updatedAt: timestamp,
   completedAt: timestamp.optional(),
+  ownerId: idSchema.optional(),
+  visibility: visibilitySchema.optional(),
 });
 
 export const eventSchema = z.object({
@@ -55,6 +62,8 @@ export const eventSchema = z.object({
   externalId: z.string().max(500).optional(),
   externalUpdatedAt: timestamp.optional(),
   updatedAt: timestamp,
+  ownerId: idSchema.optional(),
+  visibility: visibilitySchema.optional(),
 });
 
 export const reminderSchema = z.object({
@@ -65,6 +74,8 @@ export const reminderSchema = z.object({
   done: z.boolean(),
   notifiedAt: timestamp.optional(),
   updatedAt: timestamp,
+  ownerId: idSchema.optional(),
+  visibility: visibilitySchema.optional(),
 });
 
 export const noteSchema = z.object({
@@ -75,6 +86,8 @@ export const noteSchema = z.object({
   pinned: z.boolean(),
   createdAt: timestamp,
   updatedAt: timestamp,
+  ownerId: idSchema.optional(),
+  visibility: visibilitySchema.optional(),
 });
 
 export const habitSchema = z.object({
@@ -84,6 +97,8 @@ export const habitSchema = z.object({
   targetLabel: nonEmptyText,
   completedDates: z.array(isoDate),
   updatedAt: timestamp,
+  ownerId: idSchema.optional(),
+  visibility: visibilitySchema.optional(),
 });
 
 export const preferencesSchema = z.object({
@@ -115,9 +130,7 @@ export const backupEnvelopeSchema = z.object({
   data: lifeDataSchema,
 });
 
-const idSchema = z.string().min(1).max(200);
 const currencySchema = z.enum(["PLN", "EUR", "USD", "GBP"]);
-const visibilitySchema = z.enum(["private", "household"]);
 const safeMoney = z.number().int().safe();
 const sharedMetaSchema = z.object({ ownerId: idSchema, visibility: visibilitySchema });
 

@@ -115,6 +115,16 @@ export function splitWorkspaceData(input, userId) {
     delete sharedLife[key];
   }
 
+  for (const key of LIFE_COLLECTIONS) {
+    const records = asArray(life[key]);
+    privateLife[key] = records
+      .filter((item) => item?.visibility === "private")
+      .map((item) => withOwner(item, userId, true));
+    sharedLife[key] = records
+      .filter((item) => item?.visibility !== "private")
+      .map((item) => withOwner(item, userId, false));
+  }
+
   return {
     sharedData: { ...data, life: sharedLife, advanced: sharedAdvanced },
     privateData: { life: privateLife, advanced: privateAdvanced },
@@ -174,8 +184,16 @@ export function mergeWorkspaceData(sharedInput, privateInput, context) {
     color: memberColor(member.id),
   }));
 
+  const lifeCollections = {};
+  for (const key of LIFE_COLLECTIONS) {
+    lifeCollections[key] = mergeById(sharedLife[key], privateLife[key]).map((item) =>
+      item?.visibility === "private" ? withOwner(item, context.userId, true) : item,
+    );
+  }
+
   const life = {
     ...sharedLife,
+    ...lifeCollections,
     scratchpad: privateLife.scratchpad ?? "",
     intention: privateLife.intention ?? "",
     energy: privateLife.energy ?? "medium",

@@ -30,6 +30,60 @@ test("private advanced records and their children are stored per user", () => {
   assert.equal(privateData.life.preferences.notificationsEnabled, undefined);
 });
 
+test("private life records are split per user while legacy records stay shared", () => {
+  const source = {
+    schemaVersion: 2,
+    life: {
+      tasks: [
+        { id: "private-task", ownerId: "me", visibility: "private", title: "Sekret" },
+        { id: "shared-task", ownerId: "me", visibility: "household", title: "Zakupy" },
+        { id: "legacy-task", title: "Stare zadanie" },
+      ],
+      events: [],
+      reminders: [
+        { id: "private-reminder", ownerId: "me", visibility: "private" },
+      ],
+      notes: [],
+      habits: [],
+    },
+    advanced: {},
+  };
+
+  const { sharedData, privateData } = splitWorkspaceData(source, "user-1");
+  assert.deepEqual(sharedData.life.tasks.map((item) => item.id), ["shared-task", "legacy-task"]);
+  assert.deepEqual(privateData.life.tasks.map((item) => item.id), ["private-task"]);
+  assert.equal(privateData.life.tasks[0].ownerId, "user-1");
+  assert.equal(sharedData.life.tasks[1].ownerId, undefined, "legacy record without ownerId is left untouched, not attributed to anyone");
+  assert.deepEqual(privateData.life.reminders.map((item) => item.id), ["private-reminder"]);
+  assert.deepEqual(sharedData.life.reminders, []);
+});
+
+test("merge combines shared and private life collections and enforces ownerId from session", () => {
+  const merged = mergeWorkspaceData(
+    {
+      life: {
+        tasks: [
+          { id: "shared-task", visibility: "household", title: "Zakupy" },
+          { id: "legacy-task", title: "Stare zadanie" },
+        ],
+      },
+    },
+    {
+      life: {
+        tasks: [
+          { id: "private-task", ownerId: "someone-else", visibility: "private", title: "Sekret" },
+        ],
+      },
+    },
+    { userId: "user-2", userName: "Ola", householdName: "Dom", members: [] },
+  );
+  assert.deepEqual(merged.life.tasks.map((item) => item.id), ["shared-task", "legacy-task", "private-task"]);
+  const privateTask = merged.life.tasks.find((item) => item.id === "private-task");
+  assert.equal(privateTask.ownerId, "user-2", "server must assign ownerId from session, never trust the client value");
+  const legacyTask = merged.life.tasks.find((item) => item.id === "legacy-task");
+  assert.equal(legacyTask.ownerId, undefined, "legacy shared record is not retroactively attributed to anyone");
+});
+
 test("merge exposes only the current user's private state and real members", () => {
   const merged = mergeWorkspaceData(
     { advanced: { subscriptions: [{ id: "shared", visibility: "household" }] }, life: { tasks: [] } },

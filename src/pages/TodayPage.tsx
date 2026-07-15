@@ -15,6 +15,7 @@ import {
   Leaf,
   Lightbulb,
   ListTodo,
+  Lock,
   MapPin,
   Pause,
   Play,
@@ -62,6 +63,7 @@ type AgendaItem = {
   endTime?: string;
   kind: "meeting" | "focus" | "personal" | "task";
   meta?: string;
+  visibility?: "private" | "household";
 };
 
 const habitIcons = {
@@ -148,6 +150,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
       endTime: event.endTime,
       kind: event.kind,
       meta: event.location,
+      visibility: event.visibility,
     }));
     const taskItems: AgendaItem[] = todayOpenTasks
       .filter((task) => task.time)
@@ -157,6 +160,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
         time: task.time!,
         kind: "task",
         meta: task.category,
+        visibility: task.visibility,
       }));
     return [...eventItems, ...taskItems].sort((a, b) => a.time.localeCompare(b.time));
   }, [todayEvents, todayOpenTasks]);
@@ -300,6 +304,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
                       <div className="timeline-card">
                         <div>
                           <strong>{item.title}</strong>
+                          {item.visibility === "private" && <span className="private-badge"><Lock size={11} /> Prywatne</span>}
                           <span>
                             {item.endTime && <><Clock3 size={13} /> {item.time}–{item.endTime}</>}
                             {item.meta && <><MapPin size={13} /> {item.meta}</>}
@@ -421,7 +426,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
               {activeReminders.slice(0, 4).map((reminder) => (
                 <div className="reminder-row" key={reminder.id}>
                   <button className="reminder-check" type="button" onClick={() => toggleReminder(reminder.id)} aria-label={`Ukończ: ${reminder.title}`}><Check size={13} /></button>
-                  <div><strong>{reminder.title}</strong><span>{relativeDay(reminder.date)} · {reminder.time}</span></div>
+                  <div><strong>{reminder.title}{reminder.visibility === "private" && <span className="private-badge"><Lock size={10} /> Prywatne</span>}</strong><span>{relativeDay(reminder.date)} · {reminder.time}</span></div>
                   <button className="snooze-button" type="button" onClick={() => { snoozeReminder(reminder.id, 30); onToast("Przypomnę ponownie za 30 minut"); }} title="Odłóż o 30 minut"><AlarmClock size={15} /></button>
                 </div>
               ))}
