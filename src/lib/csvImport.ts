@@ -1,4 +1,4 @@
-import type { CurrencyCode, FinanceTransaction, Visibility } from "../advancedTypes";
+import type { CurrencyCode, FinanceTransaction, Visibility } from "../financeTypes";
 import { parseMoneyToMinor } from "./money";
 
 export interface CsvMapping {
@@ -200,7 +200,7 @@ export function mapCsvRows(
   preview: CsvPreview,
   mapping: CsvMapping,
   context: CsvImportContext,
-): Array<Omit<FinanceTransaction, "id" | "updatedAt">> {
+): Array<Omit<FinanceTransaction, "id" | "updatedAt" | "version">> {
   const occurrences = new Map<string, number>();
   return preview.rows
     .map((row) => {

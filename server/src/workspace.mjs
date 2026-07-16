@@ -1,7 +1,4 @@
 const META_COLLECTIONS = [
-  "financeAccounts",
-  "financeTransactions",
-  "savingsGoals",
   "trips",
   "subscriptions",
   "recipes",
@@ -16,7 +13,6 @@ const META_COLLECTIONS = [
 ];
 
 const CHILD_RELATIONS = {
-  financeTransactions: ["accountId", "financeAccounts"],
   tripItinerary: ["tripId", "trips"],
   tripBookings: ["tripId", "trips"],
   packingItems: ["tripId", "trips"],
@@ -31,10 +27,6 @@ const CHILD_RELATIONS = {
 const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
 const LIFE_COLLECTIONS = ["tasks", "events", "reminders", "notes", "habits"];
 const ADVANCED_COLLECTIONS = [
-  "financeAccounts",
-  "financeTransactions",
-  "financeBudgets",
-  "savingsGoals",
   "trips",
   "tripItinerary",
   "tripBookings",

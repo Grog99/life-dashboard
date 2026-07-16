@@ -253,6 +253,11 @@
 .sync-indicator--conflict {
   color: var(--blue);
 }
+/* Wskaźnik finansów (FinanceSync) jest osobną instancją od tego workspace'u (WorkspaceSync) —
+   przesunięty nad niego, żeby oba mogły być widoczne równocześnie bez nakładania się. */
+.sync-indicator--finance {
+  bottom: 54px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -276,6 +281,9 @@
     right: auto;
     left: 10px;
     bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--finance {
+    bottom: calc(114px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;

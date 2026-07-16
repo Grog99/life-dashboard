@@ -9,6 +9,14 @@ import { validateConfiguration } from "./config.mjs";
 import { mergeWorkspaceData, splitWorkspaceData, workspaceDocumentIsValid } from "./workspace.mjs";
 import { assertRemovableMember } from "./householdMembers.mjs";
 import {
+  applyFinanceMutation,
+  assertFinanceMutationShape,
+  MAX_FINANCE_MUTATIONS_BYTES,
+  MAX_FINANCE_MUTATIONS_PER_BATCH,
+  readFinanceSnapshot,
+  resetFinanceForUser,
+} from "./finance.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -641,6 +649,56 @@ app.put("/api/v1/workspace", async (request, reply) => {
     };
   }
   return result;
+});
+
+// Finance module: normalized tables, not part of the workspace JSONB document (see
+// docs/plans/model-synchronizacji-danych.md and server/src/finance.mjs). GET returns a snapshot,
+// mutations go through a single idempotent batch endpoint mapping 1:1 onto the client's offline queue.
+app.get("/api/v1/finance", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readFinanceSnapshot(pool, session.household_id, session.user_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/finance/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(400, "Nieprawidłowe żądanie mutacji finansowych", "INVALID_FINANCE_MUTATIONS");
+  }
+  if (body.mutations.length > MAX_FINANCE_MUTATIONS_PER_BATCH) {
+    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "FINANCE_MUTATIONS_TOO_LARGE");
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_FINANCE_MUTATIONS_BYTES) {
+    throw httpError(
+      413,
+      "Dane mutacji przekraczają dozwolony rozmiar",
+      "FINANCE_MUTATIONS_TOO_LARGE",
+    );
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see finance.mjs's assertFinanceMutationShape.
+  for (const mutation of body.mutations) assertFinanceMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order (e.g.
+    // transaction.create after the account.create it depends on).
+    const result = await transaction((client) => applyFinanceMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): finance nie jest już częścią
+// dokumentu JSONB, więc nie ma go czym nadpisać zwykłym PUT /api/v1/workspace -- ten endpoint
+// odtwarza dokładnie ten sam zakres usuwania (wspólne rekordy + WYŁĄCZNIE prywatne rekordy
+// wywołującego, nigdy prywatne rekordy innych domowników).
+app.post("/api/v1/finance/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetFinanceForUser(client, session.household_id, session.user_id));
+  return { serverAt: new Date().toISOString() };
 });
 
 app.post("/api/v1/migration/local-v1/preview", async (request) => {

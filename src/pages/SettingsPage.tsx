@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { backupEnvelopeSchema, backupEnvelopeV2Schema, lifeDataSchema } from "../lib/schema";
 import { exportData, useLifeStore } from "../store/useLifeStore";
 import { exportAdvancedData, useAdvancedStore } from "../store/useAdvancedStore";
+import { useFinanceStore } from "../store/useFinanceStore";
 import { apiRequest, serverMode } from "../server/api";
 import { useServerAuth } from "../server/AuthGate";
 import { removeCurrentPushSubscription } from "../server/push";
@@ -40,11 +41,13 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   const tasks = useLifeStore((state) => state.tasks);
   const events = useLifeStore((state) => state.events);
   const replaceAdvancedData = useAdvancedStore((state) => state.replaceAdvancedData);
-  const financeTransactions = useAdvancedStore((state) => state.financeTransactions);
+  const resetFinanceData = useFinanceStore((state) => state.resetFinanceData);
+  const financeTransactions = useFinanceStore((state) => state.transactions);
   const trips = useAdvancedStore((state) => state.trips);
   const householdMembers = useAdvancedStore((state) => state.householdMembers);
   const { snapshot, logout } = useServerAuth();
   const fileInput = useRef<HTMLInputElement>(null);
+  const [clearingData, setClearingData] = useState(false);
   const activeHousehold = snapshot?.households.find(
     (item) => item.id === snapshot.activeHouseholdId,
   );
@@ -154,13 +157,31 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
     }
   };
 
-  const clearAllAppData = () => {
+  const clearAllAppData = async () => {
     if (
       !window.confirm(
         "Czy na pewno chcesz całkowicie wyczyścić dane aplikacji? Tej operacji nie można cofnąć.",
       )
     )
       return;
+    // Finanse nie są już częścią dokumentu JSONB, więc nie da się ich wyczyścić samym lokalnym
+    // replaceAdvancedData -- trzeba jawnie poprosić serwer o usunięcie znormalizowanych rekordów.
+    // Robimy to PRZED czyszczeniem reszty i przerywamy przy błędzie sieci, żeby nie pokazać
+    // "wyczyszczono", gdy finanse w rzeczywistości przetrwały na serwerze i wrócą przy kolejnej
+    // synchronizacji.
+    setClearingData(true);
+    try {
+      await apiRequest("/api/v1/finance/reset", { method: "POST", json: {} });
+    } catch (error) {
+      onToast(
+        error instanceof Error
+          ? error.message
+          : "Nie udało się wyczyścić danych finansowych na serwerze — spróbuj ponownie",
+      );
+      return;
+    } finally {
+      setClearingData(false);
+    }
     replaceData({
       tasks: [],
       events: [],
@@ -176,10 +197,6 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       householdName: "Dom",
       hideAmounts: false,
       householdMembers: [],
-      financeAccounts: [],
-      financeTransactions: [],
-      financeBudgets: [],
-      savingsGoals: [],
       trips: [],
       tripItinerary: [],
       tripBookings: [],
@@ -198,6 +215,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       medications: [],
       healthMeasurements: [],
     });
+    resetFinanceData();
     onToast("Dane aplikacji zostały całkowicie wyczyszczone");
   };
 
@@ -512,8 +530,13 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
                 </p>
               </div>
             </header>
-            <button className="button button--danger-ghost" type="button" onClick={clearAllAppData}>
-              <Trash2 size={16} /> Wyczyść wszystkie dane
+            <button
+              className="button button--danger-ghost"
+              type="button"
+              disabled={clearingData}
+              onClick={() => void clearAllAppData()}
+            >
+              <Trash2 size={16} /> {clearingData ? "Czyszczenie…" : "Wyczyść wszystkie dane"}
             </button>
           </div>
         </section>

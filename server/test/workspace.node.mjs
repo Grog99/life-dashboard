@@ -15,13 +15,9 @@ test("private advanced records and their children are stored per user", () => {
       preferences: { theme: "dark", notificationsEnabled: true },
     },
     advanced: {
-      financeAccounts: [
-        { id: "private-account", ownerId: "me", visibility: "private" },
-        { id: "shared-account", ownerId: "me", visibility: "household" },
-      ],
-      financeTransactions: [
-        { id: "private-tx", accountId: "private-account", ownerId: "me", visibility: "household" },
-        { id: "shared-tx", accountId: "shared-account", ownerId: "me", visibility: "household" },
+      subscriptions: [
+        { id: "private-sub", ownerId: "me", visibility: "private" },
+        { id: "shared-sub", ownerId: "me", visibility: "household" },
       ],
       hideAmounts: true,
       householdMembers: [{ id: "demo" }],
@@ -30,18 +26,14 @@ test("private advanced records and their children are stored per user", () => {
 
   const { sharedData, privateData } = splitWorkspaceData(source, "user-1");
   assert.deepEqual(
-    sharedData.advanced.financeAccounts.map((item) => item.id),
-    ["shared-account"],
+    sharedData.advanced.subscriptions.map((item) => item.id),
+    ["shared-sub"],
   );
   assert.deepEqual(
-    privateData.advanced.financeAccounts.map((item) => item.id),
-    ["private-account"],
+    privateData.advanced.subscriptions.map((item) => item.id),
+    ["private-sub"],
   );
-  assert.deepEqual(
-    privateData.advanced.financeTransactions.map((item) => item.id),
-    ["private-tx"],
-  );
-  assert.equal(privateData.advanced.financeAccounts[0].ownerId, "user-1");
+  assert.equal(privateData.advanced.subscriptions[0].ownerId, "user-1");
   assert.equal(sharedData.life.scratchpad, undefined);
   assert.equal(privateData.life.scratchpad, "sekret");
   assert.equal(privateData.life.preferences.notificationsEnabled, undefined);
@@ -170,10 +162,6 @@ test("server rejects malformed workspace documents", () => {
     false,
   );
   const collections = [
-    "financeAccounts",
-    "financeTransactions",
-    "financeBudgets",
-    "savingsGoals",
     "trips",
     "tripItinerary",
     "tripBookings",

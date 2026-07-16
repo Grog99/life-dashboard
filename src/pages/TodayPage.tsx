@@ -47,6 +47,7 @@ import {
 } from "../lib/date";
 import { useLifeStore } from "../store/useLifeStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useFinanceStore } from "../store/useFinanceStore";
 import { formatMoney } from "../lib/money";
 import { polishPlural } from "../lib/pluralize";
 import type { QuickAddType, ViewId } from "../types";
@@ -91,8 +92,8 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
   const setIntention = useLifeStore((state) => state.setIntention);
   const setEnergy = useLifeStore((state) => state.setEnergy);
   const addTask = useLifeStore((state) => state.addTask);
-  const financeTransactions = useAdvancedStore((state) => state.financeTransactions);
-  const financeBudgets = useAdvancedStore((state) => state.financeBudgets);
+  const financeTransactions = useFinanceStore((state) => state.transactions);
+  const financeBudgets = useFinanceStore((state) => state.budgets);
   const trips = useAdvancedStore((state) => state.trips);
   const mealSlots = useAdvancedStore((state) => state.mealSlots);
   const subscriptions = useAdvancedStore((state) => state.subscriptions);

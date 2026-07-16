@@ -6,9 +6,6 @@ import { quarantineRawValue, reportStorageWarning, safeLocalStorage } from "../l
 import { generateId as makeId } from "../lib/id";
 import {
   carExpenseSchema,
-  financeAccountSchema,
-  financeBudgetSchema,
-  financeTransactionSchema,
   healthAppointmentSchema,
   healthMeasurementSchema,
   hideAmountsSchema,
@@ -21,7 +18,6 @@ import {
   petSchema,
   petVisitSchema,
   recipeSchema,
-  savingsGoalSchema,
   shoppingItemSchema,
   subscriptionSchema,
   tripBookingSchema,
@@ -34,9 +30,6 @@ import type {
   AdvancedData,
   AdvancedDataWithHealth,
   CarExpense,
-  FinanceAccount,
-  FinanceBudget,
-  FinanceTransaction,
   HealthAppointment,
   HealthMeasurement,
   Medication,
@@ -46,7 +39,6 @@ import type {
   PetExpense,
   PetVisit,
   Recipe,
-  SavingsGoal,
   ShoppingItem,
   Subscription,
   Trip,
@@ -82,19 +74,6 @@ function parseScalarField<T>(
 
 interface AdvancedActions {
   toggleHideAmounts: () => void;
-  addAccount: (account: Omit<FinanceAccount, "id" | "updatedAt">) => string;
-  addTransaction: (transaction: Omit<FinanceTransaction, "id" | "updatedAt">) => string;
-  importTransactions: (transactions: Array<Omit<FinanceTransaction, "id" | "updatedAt">>) => {
-    added: number;
-    duplicates: number;
-  };
-  deleteTransaction: (transactionId: string) => void;
-  addBudget: (budget: Omit<FinanceBudget, "id" | "updatedAt">) => string;
-  updateBudget: (budgetId: string, changes: Partial<FinanceBudget>) => void;
-  deleteBudget: (budgetId: string) => void;
-  addSavingsGoal: (goal: Omit<SavingsGoal, "id" | "updatedAt">) => string;
-  updateSavingsGoal: (goalId: string, changes: Partial<SavingsGoal>) => void;
-  deleteSavingsGoal: (goalId: string) => void;
   addTrip: (trip: Omit<Trip, "id" | "updatedAt">) => string;
   updateTrip: (tripId: string, changes: Partial<Trip>) => void;
   addTripItineraryItem: (item: Omit<TripItineraryItem, "id" | "updatedAt">) => string;
@@ -148,127 +127,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
     (set, get) => ({
       ...createAdvancedData(),
       toggleHideAmounts: () => set((state) => ({ hideAmounts: !state.hideAmounts })),
-      addAccount: (account) => {
-        const id = makeId();
-        set((state) => ({
-          financeAccounts: [
-            ...state.financeAccounts,
-            { ...account, id, updatedAt: new Date().toISOString() },
-          ],
-        }));
-        return id;
-      },
-      addTransaction: (transaction) => {
-        const id = makeId();
-        set((state) => ({
-          financeTransactions: [
-            { ...transaction, id, updatedAt: new Date().toISOString() },
-            ...state.financeTransactions,
-          ],
-          financeAccounts: state.financeAccounts.map((account) =>
-            account.id === transaction.accountId
-              ? {
-                  ...account,
-                  balanceMinor: account.balanceMinor + transaction.amountMinor,
-                  updatedAt: new Date().toISOString(),
-                }
-              : account,
-          ),
-        }));
-        return id;
-      },
-      importTransactions: (transactions) => {
-        const existing = new Set(
-          get()
-            .financeTransactions.map((transaction) => transaction.fingerprint)
-            .filter(Boolean),
-        );
-        let duplicates = 0;
-        const accepted = transactions
-          .filter((transaction) => {
-            if (transaction.fingerprint && existing.has(transaction.fingerprint)) {
-              duplicates += 1;
-              return false;
-            }
-            if (transaction.fingerprint) existing.add(transaction.fingerprint);
-            return true;
-          })
-          .map((transaction) => ({
-            ...transaction,
-            id: makeId(),
-            updatedAt: new Date().toISOString(),
-          }));
-        set((state) => ({
-          financeTransactions: [...accepted, ...state.financeTransactions],
-          // Imported statements describe historical movements. The account field is the
-          // current balance, so replaying the statement here would count those movements twice.
-          financeAccounts: state.financeAccounts,
-        }));
-        return { added: accepted.length, duplicates };
-      },
-      deleteTransaction: (transactionId) =>
-        set((state) => {
-          const transaction = state.financeTransactions.find((item) => item.id === transactionId);
-          return {
-            financeTransactions: state.financeTransactions.filter(
-              (item) => item.id !== transactionId,
-            ),
-            financeAccounts:
-              transaction && transaction.source !== "csv"
-                ? state.financeAccounts.map((account) =>
-                    account.id === transaction.accountId
-                      ? {
-                          ...account,
-                          balanceMinor: account.balanceMinor - transaction.amountMinor,
-                          updatedAt: new Date().toISOString(),
-                        }
-                      : account,
-                  )
-                : state.financeAccounts,
-          };
-        }),
-      addBudget: (budget) => {
-        const id = makeId();
-        set((state) => ({
-          financeBudgets: [
-            ...state.financeBudgets,
-            { ...budget, id, updatedAt: new Date().toISOString() },
-          ],
-        }));
-        return id;
-      },
-      updateBudget: (budgetId, changes) =>
-        set((state) => ({
-          financeBudgets: state.financeBudgets.map((budget) =>
-            budget.id === budgetId
-              ? { ...budget, ...changes, updatedAt: new Date().toISOString() }
-              : budget,
-          ),
-        })),
-      deleteBudget: (budgetId) =>
-        set((state) => ({
-          financeBudgets: state.financeBudgets.filter((budget) => budget.id !== budgetId),
-        })),
-      addSavingsGoal: (goal) => {
-        const id = makeId();
-        set((state) => ({
-          savingsGoals: [
-            ...state.savingsGoals,
-            { ...goal, id, updatedAt: new Date().toISOString() },
-          ],
-        }));
-        return id;
-      },
-      updateSavingsGoal: (goalId, changes) =>
-        set((state) => ({
-          savingsGoals: state.savingsGoals.map((goal) =>
-            goal.id === goalId
-              ? { ...goal, ...changes, updatedAt: new Date().toISOString() }
-              : goal,
-          ),
-        })),
-      deleteSavingsGoal: (goalId) =>
-        set((state) => ({ savingsGoals: state.savingsGoals.filter((goal) => goal.id !== goalId) })),
       addTrip: (trip) => {
         const id = makeId();
         set((state) => ({
@@ -577,13 +435,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         }
         const state = persistedState as Record<string, unknown>;
 
-        const financeAccounts = parseArrayField(state.financeAccounts, financeAccountSchema);
-        const financeTransactions = parseArrayField(
-          state.financeTransactions,
-          financeTransactionSchema,
-        );
-        const financeBudgets = parseArrayField(state.financeBudgets, financeBudgetSchema);
-        const savingsGoals = parseArrayField(state.savingsGoals, savingsGoalSchema);
         const trips = parseArrayField(state.trips, tripSchema);
         const tripItinerary = parseArrayField(state.tripItinerary, tripItinerarySchema);
         const tripBookings = parseArrayField(state.tripBookings, tripBookingSchema);
@@ -620,10 +471,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         );
 
         const arrayFields = [
-          financeAccounts,
-          financeTransactions,
-          financeBudgets,
-          savingsGoals,
           trips,
           tripItinerary,
           tripBookings,
@@ -657,10 +504,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 
         return {
           ...currentState,
-          financeAccounts: financeAccounts.items,
-          financeTransactions: financeTransactions.items,
-          financeBudgets: financeBudgets.items,
-          savingsGoals: savingsGoals.items,
           trips: trips.items,
           tripItinerary: tripItinerary.items,
           tripBookings: tripBookings.items,
@@ -684,10 +527,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         };
       },
       partialize: (state) => ({
-        financeAccounts: state.financeAccounts,
-        financeTransactions: state.financeTransactions,
-        financeBudgets: state.financeBudgets,
-        savingsGoals: state.savingsGoals,
         trips: state.trips,
         tripItinerary: state.tripItinerary,
         tripBookings: state.tripBookings,
@@ -716,10 +555,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 export function exportAdvancedData(): AdvancedDataWithHealth {
   const state = useAdvancedStore.getState();
   return {
-    financeAccounts: state.financeAccounts,
-    financeTransactions: state.financeTransactions,
-    financeBudgets: state.financeBudgets,
-    savingsGoals: state.savingsGoals,
     trips: state.trips,
     tripItinerary: state.tripItinerary,
     tripBookings: state.tripBookings,

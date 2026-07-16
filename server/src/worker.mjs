@@ -263,6 +263,9 @@ async function tick() {
       query("DELETE FROM oauth_states WHERE expires_at < now()"),
       query("DELETE FROM household_invitations WHERE expires_at < now() - interval '30 days'"),
       query("DELETE FROM notification_deliveries WHERE created_at < now() - interval '180 days'"),
+      // finance_mutations is an idempotency-key dedup window, not an audit log (see
+      // docs/plans/model-synchronizacji-danych.md "Retencja kluczy idempotencji: 30 dni").
+      query("DELETE FROM finance_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }
