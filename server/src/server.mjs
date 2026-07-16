@@ -14,6 +14,7 @@ import {
   MAX_FINANCE_MUTATIONS_BYTES,
   MAX_FINANCE_MUTATIONS_PER_BATCH,
   readFinanceSnapshot,
+  resetFinanceForUser,
 } from "./finance.mjs";
 import {
   decryptSecret,
@@ -688,6 +689,16 @@ app.post("/api/v1/finance/mutations", async (request) => {
     results.push(result);
   }
   return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): finance nie jest już częścią
+// dokumentu JSONB, więc nie ma go czym nadpisać zwykłym PUT /api/v1/workspace -- ten endpoint
+// odtwarza dokładnie ten sam zakres usuwania (wspólne rekordy + WYŁĄCZNIE prywatne rekordy
+// wywołującego, nigdy prywatne rekordy innych domowników).
+app.post("/api/v1/finance/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetFinanceForUser(client, session.household_id, session.user_id));
+  return { serverAt: new Date().toISOString() };
 });
 
 app.post("/api/v1/migration/local-v1/preview", async (request) => {

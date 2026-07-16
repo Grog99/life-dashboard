@@ -82,18 +82,7 @@ describe("advanced health store", () => {
     });
   });
 
-  it("tworzy budżet, cel i rezerwację podróży", () => {
-    const budgetId = useAdvancedStore
-      .getState()
-      .addBudget({ category: "Edukacja", limitMinor: 50000, currency: "PLN", color: "#123456" });
-    const goalId = useAdvancedStore.getState().addSavingsGoal({
-      name: "Kurs",
-      targetMinor: 200000,
-      savedMinor: 25000,
-      currency: "PLN",
-      ownerId: "me",
-      visibility: "private",
-    });
+  it("tworzy rezerwację podróży", () => {
     const tripId = useAdvancedStore.getState().trips[0].id;
     const bookingId = useAdvancedStore.getState().addTripBooking({
       tripId,
@@ -106,45 +95,9 @@ describe("advanced health store", () => {
       paid: false,
     });
 
-    expect(useAdvancedStore.getState().financeBudgets.some((item) => item.id === budgetId)).toBe(
-      true,
-    );
-    expect(useAdvancedStore.getState().savingsGoals.some((item) => item.id === goalId)).toBe(true);
     expect(
       useAdvancedStore.getState().tripBookings.find((item) => item.id === bookingId)?.paid,
     ).toBe(false);
-  });
-
-  it("import i usunięcie historycznej operacji CSV nie zmieniają aktualnego salda", () => {
-    const account = useAdvancedStore.getState().financeAccounts[0];
-    const before = account.balanceMinor;
-    useAdvancedStore.getState().importTransactions([
-      {
-        accountId: account.id,
-        bookedOn: "2026-07-01",
-        amountMinor: -12345,
-        currency: account.currency,
-        merchant: "Test",
-        title: "Historia",
-        category: "Inne",
-        source: "csv",
-        fingerprint: "test-history",
-        ownerId: "me",
-        visibility: "private",
-      },
-    ]);
-    const imported = useAdvancedStore
-      .getState()
-      .financeTransactions.find((item) => item.fingerprint === "test-history");
-    expect(
-      useAdvancedStore.getState().financeAccounts.find((item) => item.id === account.id)
-        ?.balanceMinor,
-    ).toBe(before);
-    useAdvancedStore.getState().deleteTransaction(imported!.id);
-    expect(
-      useAdvancedStore.getState().financeAccounts.find((item) => item.id === account.id)
-        ?.balanceMinor,
-    ).toBe(before);
   });
 
   it("dodaje składniki przepisu do listy zakupów bez duplikatów", () => {
@@ -184,7 +137,6 @@ describe("advanced health store", () => {
 
     expect(merged.medications).toHaveLength(1);
     expect(merged.medications[0].id).toBe(sample.medications[0].id);
-    expect(merged.financeAccounts).toEqual(sample.financeAccounts);
     expect(merged.trips).toEqual(sample.trips);
   });
 });

@@ -12,6 +12,7 @@ import {
   goalRowToDto,
   normalizeCategoryName,
   readFinanceSnapshot,
+  resetFinanceForUser,
   resolveOwnerId,
   resolveTransactionVisibility,
   resolveVersionConflict,
@@ -198,6 +199,25 @@ test("validateGoalCreatePayload requires visibility; validateGoalUpdatePayload a
   );
   const { changes } = validateGoalUpdatePayload({ id: "g-1", changes: { deadline: null } }, 1);
   assert.equal(changes.deadline, null);
+});
+
+test("validateGoalUpdatePayload allows changing visibility (FinancePage.tsx's goal edit modal does this)", () => {
+  const { changes } = validateGoalUpdatePayload(
+    { id: "g-1", changes: { visibility: "household" } },
+    1,
+  );
+  assert.equal(changes.visibility, "household");
+  assert.throws(
+    () => validateGoalUpdatePayload({ id: "g-1", changes: { visibility: "public" } }, 1),
+    (error) => error.code === "INVALID_VISIBILITY",
+  );
+});
+
+test("validateBudgetUpdatePayload rejects visibility (budgets have no visibility column at all)", () => {
+  assert.throws(
+    () => validateBudgetUpdatePayload({ id: "b-1", changes: { visibility: "household" } }, 1),
+    (error) => error.code === "INVALID_CHANGES",
+  );
 });
 
 test("validateDeleteIdPayload requires a valid id", () => {
@@ -451,6 +471,85 @@ dbTest(
         "Prywatne właściciela",
         "Wspólne",
       ]);
+    });
+  },
+);
+
+dbTest(
+  "resetFinanceForUser (Settings 'Wyczyść dane aplikacji') deletes shared records and the caller's " +
+    "own private records, but never another member's private records",
+  async () => {
+    await withRollback(async (client) => {
+      const owner = await createHouseholdAndUser(client, "owner");
+      const otherUserId = await addHouseholdMember(client, owner.householdId, "other");
+      const ctxOwner = { householdId: owner.householdId, userId: owner.userId };
+      const ctxOther = { householdId: owner.householdId, userId: otherUserId };
+
+      await applyFinanceMutation(client, ctxOwner, {
+        idempotencyKey: randomUUID(),
+        op: "account.create",
+        payload: {
+          id: randomUUID(),
+          name: "Wspólne",
+          type: "checking",
+          balanceMinor: 0,
+          currency: "PLN",
+          color: "#397763",
+          archived: false,
+          visibility: "household",
+        },
+      });
+      await applyFinanceMutation(client, ctxOwner, {
+        idempotencyKey: randomUUID(),
+        op: "account.create",
+        payload: {
+          id: randomUUID(),
+          name: "Prywatne właściciela",
+          type: "checking",
+          balanceMinor: 0,
+          currency: "PLN",
+          color: "#397763",
+          archived: false,
+          visibility: "private",
+        },
+      });
+      await applyFinanceMutation(client, ctxOther, {
+        idempotencyKey: randomUUID(),
+        op: "account.create",
+        payload: {
+          id: randomUUID(),
+          name: "Prywatne innego",
+          type: "checking",
+          balanceMinor: 0,
+          currency: "PLN",
+          color: "#397763",
+          archived: false,
+          visibility: "private",
+        },
+      });
+      await applyFinanceMutation(client, ctxOwner, {
+        idempotencyKey: randomUUID(),
+        op: "budget.create",
+        payload: {
+          id: randomUUID(),
+          category: "jedzenie",
+          limitMinor: 100000,
+          currency: "PLN",
+          color: "#397763",
+        },
+      });
+
+      await resetFinanceForUser(client, owner.householdId, owner.userId);
+
+      const snapshotForOwner = await readFinanceSnapshot(client, owner.householdId, owner.userId);
+      assert.deepEqual(snapshotForOwner.accounts, []);
+      assert.deepEqual(snapshotForOwner.budgets, []);
+      const snapshotForOther = await readFinanceSnapshot(client, owner.householdId, otherUserId);
+      assert.deepEqual(
+        snapshotForOther.accounts.map((account) => account.name),
+        ["Prywatne innego"],
+        "the other member's private account must survive the owner's reset",
+      );
     });
   },
 );

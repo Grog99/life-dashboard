@@ -505,7 +505,17 @@ export function validateGoalCreatePayload(payload) {
   };
 }
 
-const GOAL_UPDATE_KEYS = new Set(["name", "targetMinor", "savedMinor", "currency", "deadline"]);
+// visibility JEST edytowalne (w odróżnieniu od account.update) — FinancePage.tsx pozwala zmienić
+// widoczność istniejącego celu w modalu edycji, i to działało w dzisiejszym modelu JSONB. owner_id
+// zostaje bez zmian (właściciel ustalony przy tworzeniu, z sesji) — zmienia się tylko visibility.
+const GOAL_UPDATE_KEYS = new Set([
+  "name",
+  "targetMinor",
+  "savedMinor",
+  "currency",
+  "deadline",
+  "visibility",
+]);
 
 export function validateGoalUpdatePayload(payload, baseVersion) {
   assertShape(isPlainObject(payload), "Nieprawidłowy ładunek mutacji", "INVALID_PAYLOAD");
@@ -555,6 +565,14 @@ export function validateGoalUpdatePayload(payload, baseVersion) {
       "INVALID_DEADLINE",
     );
     changes.deadline = payload.changes.deadline;
+  }
+  if (payload.changes.visibility !== undefined) {
+    assertShape(
+      VISIBILITIES.has(payload.changes.visibility),
+      "Nieprawidłowa widoczność celu",
+      "INVALID_VISIBILITY",
+    );
+    changes.visibility = payload.changes.visibility;
   }
   return { id: payload.id, changes, baseVersion: version };
 }
@@ -652,6 +670,34 @@ export async function readFinanceSnapshot(client, householdId, userId) {
     budgets: budgets.rows.map(budgetRowToDto),
     goals: goals.rows.map(goalRowToDto),
   };
+}
+
+// Wspiera "Wyczyść dane aplikacji" w Ustawieniach (SettingsPage.tsx danger zone). Przed normalizacji
+// finance ta strefa po prostu nadpisywała cały dokument JSONB pustymi tablicami (przez
+// replaceAdvancedData + zwykły PUT /api/v1/workspace), co i tak trwale usuwało finance ze
+// wspólnego dokumentu ORAZ z prywatnego dokumentu wywołującego użytkownika (ale NIGDY z prywatnych
+// rekordów innych domowników — te żyją w ich własnym wierszu user_workspace_states). Ta funkcja
+// odtwarza dokładnie ten sam zakres na znormalizowanych tabelach: usuwa wszystko wspólne
+// (`visibility = 'household'`) plus WYŁĄCZNIE prywatne rekordy wywołującego użytkownika
+// (`owner_id = userId`) w danym gospodarstwie. Budżety nie mają owner_id/visibility (zawsze
+// wspólne), więc usuwane są w całości dla gospodarstwa -- tak jak dziś.
+export async function resetFinanceForUser(client, householdId, userId) {
+  await client.query(
+    `DELETE FROM finance_transactions
+      WHERE household_id = $1 AND (visibility = 'household' OR owner_id = $2)`,
+    [householdId, userId],
+  );
+  await client.query(
+    `DELETE FROM finance_accounts
+      WHERE household_id = $1 AND (visibility = 'household' OR owner_id = $2)`,
+    [householdId, userId],
+  );
+  await client.query(`DELETE FROM finance_budgets WHERE household_id = $1`, [householdId]);
+  await client.query(
+    `DELETE FROM finance_goals
+      WHERE household_id = $1 AND (visibility = 'household' OR owner_id = $2)`,
+    [householdId, userId],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1108,11 +1154,12 @@ async function execGoalUpdate(client, ctx, payload, baseVersion) {
             saved_minor = COALESCE($3, saved_minor),
             currency = COALESCE($4, currency),
             deadline = CASE WHEN $5 THEN $6::date ELSE deadline END,
+            visibility = COALESCE($7, visibility),
             version = version + 1,
             updated_at = now(),
-            updated_by = $7
-      WHERE id = $8 AND household_id = $9 AND version = $10
-        AND (visibility = 'household' OR owner_id = $7)
+            updated_by = $8
+      WHERE id = $9 AND household_id = $10 AND version = $11
+        AND (visibility = 'household' OR owner_id = $8)
       RETURNING ${GOAL_SELECT_COLUMNS}`,
     [
       changes.name ?? null,
@@ -1121,6 +1168,7 @@ async function execGoalUpdate(client, ctx, payload, baseVersion) {
       changes.currency ?? null,
       hasDeadlineChange,
       changes.deadline ?? null,
+      changes.visibility ?? null,
       ownerId,
       id,
       ctx.householdId,

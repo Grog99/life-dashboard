@@ -40,7 +40,7 @@ import type {
   FinanceTransaction,
   SavingsGoal,
   Visibility,
-} from "../advancedTypes";
+} from "../financeTypes";
 import { Modal } from "../components/Modal";
 import {
   decodeCsvBytes,
@@ -52,6 +52,7 @@ import {
 } from "../lib/csvImport";
 import { formatMoney, parseMoneyToMinor } from "../lib/money";
 import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useFinanceStore } from "../store/useFinanceStore";
 import { useServerAuth } from "../server/AuthGate";
 import "../styles/finance.css";
 
@@ -188,14 +189,12 @@ const initialGoalForm: GoalFormState = {
 
 export function FinancePage({ onToast }: FinancePageProps) {
   const { snapshot } = useServerAuth();
+  const { householdMembers, hideAmounts, toggleHideAmounts } = useAdvancedStore();
   const {
-    financeAccounts,
-    financeTransactions,
-    financeBudgets,
-    savingsGoals,
-    householdMembers,
-    hideAmounts,
-    toggleHideAmounts,
+    accounts: financeAccounts,
+    transactions: financeTransactions,
+    budgets: financeBudgets,
+    goals: savingsGoals,
     addAccount,
     addTransaction,
     importTransactions,
@@ -206,7 +205,7 @@ export function FinancePage({ onToast }: FinancePageProps) {
     addSavingsGoal,
     updateSavingsGoal,
     deleteSavingsGoal,
-  } = useAdvancedStore();
+  } = useFinanceStore();
 
   const activeAccounts = useMemo(
     () => financeAccounts.filter((account) => !account.archived),
