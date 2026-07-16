@@ -39,13 +39,12 @@ import type {
   Trip,
   TripBooking,
   TripItineraryItem,
-  Visibility,
 } from "../advancedTypes";
 import { Modal } from "../components/Modal";
 import { formatShortDate } from "../lib/date";
 import { formatMoney, parseMoneyToMinor } from "../lib/money";
 import { useAdvancedStore } from "../store/useAdvancedStore";
-import { useServerAuth } from "../server/AuthGate";
+import { useTripsStore } from "../store/useTripsStore";
 import "../styles/trips.css";
 
 type TripView = "overview" | "itinerary" | "bookings" | "budget" | "packing";
@@ -135,23 +134,23 @@ function bookingDate(value: string): string {
 }
 
 export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
-  const { snapshot } = useServerAuth();
-  const currentOwnerId = snapshot?.user.id ?? "me";
-  const trips = useAdvancedStore((state) => state.trips);
-  const tripItinerary = useAdvancedStore((state) => state.tripItinerary);
-  const tripBookings = useAdvancedStore((state) => state.tripBookings);
-  const packingItems = useAdvancedStore((state) => state.packingItems);
+  const trips = useTripsStore((state) => state.trips);
+  const tripItinerary = useTripsStore((state) => state.itinerary);
+  const tripBookings = useTripsStore((state) => state.bookings);
+  const packingItems = useTripsStore((state) => state.packing);
   const hideAmounts = useAdvancedStore((state) => state.hideAmounts);
   const toggleHideAmounts = useAdvancedStore((state) => state.toggleHideAmounts);
-  const addTrip = useAdvancedStore((state) => state.addTrip);
-  const updateTrip = useAdvancedStore((state) => state.updateTrip);
-  const addTripItineraryItem = useAdvancedStore((state) => state.addTripItineraryItem);
-  const deleteTripItineraryItem = useAdvancedStore((state) => state.deleteTripItineraryItem);
-  const addTripBooking = useAdvancedStore((state) => state.addTripBooking);
-  const updateTripBooking = useAdvancedStore((state) => state.updateTripBooking);
-  const deleteTripBooking = useAdvancedStore((state) => state.deleteTripBooking);
-  const togglePackingItem = useAdvancedStore((state) => state.togglePackingItem);
-  const addPackingItem = useAdvancedStore((state) => state.addPackingItem);
+  const addTrip = useTripsStore((state) => state.addTrip);
+  const updateTrip = useTripsStore((state) => state.updateTrip);
+  const deleteTrip = useTripsStore((state) => state.deleteTrip);
+  const addTripItineraryItem = useTripsStore((state) => state.addTripItineraryItem);
+  const deleteTripItineraryItem = useTripsStore((state) => state.deleteTripItineraryItem);
+  const addTripBooking = useTripsStore((state) => state.addTripBooking);
+  const updateTripBooking = useTripsStore((state) => state.updateTripBooking);
+  const deleteTripBooking = useTripsStore((state) => state.deleteTripBooking);
+  const togglePackingItem = useTripsStore((state) => state.togglePackingItem);
+  const addPackingItem = useTripsStore((state) => state.addPackingItem);
+  const updatePackingItem = useTripsStore((state) => state.updatePackingItem);
 
   const sortedTrips = useMemo(
     () =>
@@ -241,7 +240,6 @@ export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
         <NewTripModal
           open={tripModalOpen}
           onClose={() => setTripModalOpen(false)}
-          ownerId={currentOwnerId}
           onCreate={(trip) => {
             const id = addTrip(trip);
             setSelectedTripId(id);
@@ -421,8 +419,9 @@ export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
                   ))}
                 </select>
                 <span>
-                  <UsersRound size={13} />{" "}
-                  {selectedTrip.visibility === "household" ? "Wspólna" : "Prywatna"}
+                  {/* Podróże są zawsze wspólne dla gospodarstwa -- Trip nie ma już pola
+                      `visibility` (docs/plans/podroze-trips.md "Odróżnianie prywatne/wspólne"). */}
+                  <UsersRound size={13} /> Wspólna
                 </span>
                 <button type="button" onClick={() => setEditTripModalOpen(true)}>
                   <Pencil size={12} /> Edytuj
@@ -1070,7 +1069,6 @@ export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
       <NewTripModal
         open={tripModalOpen}
         onClose={() => setTripModalOpen(false)}
-        ownerId={currentOwnerId}
         onCreate={(trip) => {
           const id = addTrip(trip);
           setSelectedTripId(id);
@@ -1086,8 +1084,9 @@ export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
         trip={selectedTrip}
         initialDate={itineraryDate || selectedTrip.startDate}
         onCreate={(item) => {
+          // Serwer liczy `progress` autorytatywnie z liczby dzieci (docs/plans/podroze-trips.md
+          // "Projekt progress") -- klient go już nie nadpisuje ręcznie po dodaniu punktu planu.
           addTripItineraryItem(item);
-          updateTrip(selectedTrip.id, { progress: Math.min(95, selectedTrip.progress + 3) });
           setItineraryModalOpen(false);
           onToast("Punkt został dodany do planu");
         }}
@@ -1099,7 +1098,6 @@ export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
         itinerary={itinerary}
         onCreate={(booking) => {
           addTripBooking(booking);
-          updateTrip(selectedTrip.id, { progress: Math.min(98, selectedTrip.progress + 5) });
           setBookingModalOpen(false);
           onToast("Rezerwacja została dodana");
         }}
@@ -1116,24 +1114,26 @@ export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
               if (newName && newName !== oldName) renameMap.set(oldName, newName);
             });
             if (renameMap.size) {
-              useAdvancedStore.setState((state) => ({
-                packingItems: state.packingItems.map((item) =>
-                  item.tripId === selectedTrip.id &&
-                  item.assignedTo &&
-                  renameMap.has(item.assignedTo)
-                    ? {
-                        ...item,
-                        assignedTo: renameMap.get(item.assignedTo),
-                        updatedAt: new Date().toISOString(),
-                      }
-                    : item,
-                ),
-              }));
+              // Masowa zmiana nazwy podróżnika przepisuje `assignedTo` na dotkniętych pozycjach
+              // pakowania -- seria `packing.update` na nowym store zamiast bezpośredniej mutacji
+              // dokumentu (docs/plans/podroze-trips.md "Ops mutacji").
+              packing
+                .filter((item) => item.assignedTo && renameMap.has(item.assignedTo))
+                .forEach((item) => {
+                  updatePackingItem(item.id, { assignedTo: renameMap.get(item.assignedTo!) });
+                });
             }
           }
           updateTrip(selectedTrip.id, changes);
           setEditTripModalOpen(false);
           onToast("Plan podróży został zaktualizowany");
+        }}
+        onDelete={() => {
+          if (window.confirm(`Usunąć podróż „${selectedTrip.name}” wraz z całym planem?`)) {
+            deleteTrip(selectedTrip.id);
+            setEditTripModalOpen(false);
+            onToast("Podróż została usunięta");
+          }
         }}
       />
     </div>
@@ -1143,11 +1143,10 @@ export function TripsPage({ onToast = () => undefined }: TripsPageProps) {
 interface NewTripModalProps {
   open: boolean;
   onClose: () => void;
-  ownerId: string;
-  onCreate: (trip: Omit<Trip, "id" | "updatedAt">) => void;
+  onCreate: (trip: Omit<Trip, "id" | "updatedAt" | "version" | "progress">) => void;
 }
 
-function NewTripModal({ open, onClose, ownerId, onCreate }: NewTripModalProps) {
+function NewTripModal({ open, onClose, onCreate }: NewTripModalProps) {
   const today = format(new Date(), "yyyy-MM-dd");
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -1163,6 +1162,9 @@ function NewTripModal({ open, onClose, ownerId, onCreate }: NewTripModalProps) {
     }
     endInput.setCustomValidity("");
     const status = String(form.get("status")) as Trip["status"];
+    // `progress` nie jest już wysyłane z formularza -- serwer liczy je autorytatywnie
+    // (docs/plans/podroze-trips.md "Projekt progress"); useTripsStore.addTrip liczy je lokalnie
+    // (optymistycznie) tą samą formułą.
     onCreate({
       name: String(form.get("name")).trim(),
       destination: String(form.get("destination")).trim(),
@@ -1177,11 +1179,8 @@ function NewTripModal({ open, onClose, ownerId, onCreate }: NewTripModalProps) {
         .split(",")
         .map((name) => name.trim())
         .filter(Boolean),
-      progress: status === "idea" ? 5 : 12,
       accent: String(form.get("accent")) as Trip["accent"],
       notes: String(form.get("notes")).trim(),
-      ownerId,
-      visibility: String(form.get("visibility")) as Visibility,
     });
   };
 
@@ -1224,7 +1223,7 @@ function NewTripModal({ open, onClose, ownerId, onCreate }: NewTripModalProps) {
             </select>
           </label>
         </div>
-        <div className="form-grid form-grid--3">
+        <div className="form-grid form-grid--2">
           <label className="field">
             <span>Budżet</span>
             <input name="budget" inputMode="decimal" placeholder="5 000" />
@@ -1236,13 +1235,6 @@ function NewTripModal({ open, onClose, ownerId, onCreate }: NewTripModalProps) {
               <option>EUR</option>
               <option>USD</option>
               <option>GBP</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Widoczność</span>
-            <select name="visibility" defaultValue="household">
-              <option value="household">Cały dom</option>
-              <option value="private">Tylko ja</option>
             </select>
           </label>
         </div>
@@ -1292,7 +1284,7 @@ interface NewItineraryModalProps {
   onClose: () => void;
   trip: Trip;
   initialDate: string;
-  onCreate: (item: Omit<TripItineraryItem, "id" | "updatedAt">) => void;
+  onCreate: (item: Omit<TripItineraryItem, "id" | "updatedAt" | "version">) => void;
 }
 
 function NewItineraryModal({ open, onClose, trip, initialDate, onCreate }: NewItineraryModalProps) {
@@ -1398,7 +1390,7 @@ interface NewBookingModalProps {
   onClose: () => void;
   trip: Trip;
   itinerary: TripItineraryItem[];
-  onCreate: (booking: Omit<TripBooking, "id" | "updatedAt">) => void;
+  onCreate: (booking: Omit<TripBooking, "id" | "updatedAt" | "version">) => void;
 }
 
 function NewBookingModal({ open, onClose, trip, itinerary, onCreate }: NewBookingModalProps) {
@@ -1504,11 +1496,13 @@ function EditTripModal({
   onClose,
   trip,
   onSave,
+  onDelete,
 }: {
   open: boolean;
   onClose: () => void;
   trip: Trip;
   onSave: (changes: Partial<Trip>) => void;
+  onDelete: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -1536,7 +1530,6 @@ function EditTripModal({
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean),
-      visibility: String(form.get("visibility")) as Visibility,
       accent: String(form.get("accent")) as Trip["accent"],
       notes: String(form.get("notes")).trim(),
     });
@@ -1558,7 +1551,6 @@ function EditTripModal({
         .map((value) => value.trim())
         .filter(Boolean)
         .join(", ") !== trip.travelers.join(", ") ||
-      String(data.get("visibility")) !== trip.visibility ||
       String(data.get("accent")) !== trip.accent ||
       String(data.get("notes")).trim() !== trip.notes
     );
@@ -1596,7 +1588,7 @@ function EditTripModal({
             <input required type="date" name="endDate" defaultValue={trip.endDate} />
           </label>
         </div>
-        <div className="form-grid form-grid--3">
+        <div className="form-grid form-grid--2">
           <label className="field">
             <span>Budżet</span>
             <input
@@ -1613,13 +1605,6 @@ function EditTripModal({
               <option>EUR</option>
               <option>USD</option>
               <option>GBP</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Widoczność</span>
-            <select name="visibility" defaultValue={trip.visibility}>
-              <option value="household">Domownicy</option>
-              <option value="private">Tylko ja</option>
             </select>
           </label>
         </div>
@@ -1643,7 +1628,14 @@ function EditTripModal({
           </label>
         </div>
         <div className="modal-actions">
-          <span />
+          <button
+            className="button button--danger-ghost"
+            type="button"
+            aria-label={`Usuń podróż ${trip.name}`}
+            onClick={onDelete}
+          >
+            Usuń podróż
+          </button>
           <div>
             <button
               className="button button--ghost"

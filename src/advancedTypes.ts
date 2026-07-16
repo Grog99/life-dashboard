@@ -1,64 +1,16 @@
 // Finanse (konta/transakcje/budżety/cele) żyją teraz w znormalizowanych tabelach SQL,
 // nie w tym dokumencie — patrz docs/plans/model-synchronizacji-danych.md i src/financeTypes.ts.
 // `Visibility`/`CurrencyCode`/`SharedMeta` zostają re-eksportowane stąd, bo reszta modułów
-// w tym pliku (Trip, Subscription, Vehicle, Pet, Health, ...) nadal z nich korzysta.
+// w tym pliku (Subscription, Vehicle, Pet, Health, ...) nadal z nich korzysta.
 import type { Visibility, CurrencyCode, SharedMeta } from "./financeTypes";
 
 export type { Visibility, CurrencyCode, SharedMeta };
 
-export interface Trip extends SharedMeta {
-  id: string;
-  name: string;
-  destination: string;
-  startDate: string;
-  endDate: string;
-  status: "idea" | "planning" | "active" | "archived";
-  budgetMinor?: number;
-  currency: CurrencyCode;
-  travelers: string[];
-  progress: number;
-  accent: "terracotta" | "ocean" | "forest" | "violet";
-  notes: string;
-  updatedAt: string;
-}
-
-export interface TripItineraryItem {
-  id: string;
-  tripId: string;
-  date: string;
-  time: string;
-  title: string;
-  type: "transport" | "stay" | "activity" | "food" | "other";
-  location?: string;
-  costMinor?: number;
-  booked: boolean;
-  notes?: string;
-  updatedAt: string;
-}
-
-export interface TripBooking {
-  id: string;
-  tripId: string;
-  itineraryItemId?: string;
-  type: "flight" | "train" | "stay" | "car" | "activity";
-  provider: string;
-  reference: string;
-  title: string;
-  startAt: string;
-  amountMinor: number;
-  paid: boolean;
-  updatedAt: string;
-}
-
-export interface PackingItem {
-  id: string;
-  tripId: string;
-  name: string;
-  category: "documents" | "clothes" | "electronics" | "health" | "other";
-  packed: boolean;
-  assignedTo?: string;
-  updatedAt: string;
-}
+// Podróże (trips/tripItinerary/tripBookings/packingItems) żyją teraz w znormalizowanych
+// tabelach SQL, nie w tym dokumencie — patrz docs/plans/podroze-trips.md i src/tripsTypes.ts.
+// Re-eksportowane stąd dla plików, które wciąż importują je z `advancedTypes` (jak zrobiono
+// z typami finance).
+export type { Trip, TripItineraryItem, TripBooking, PackingItem } from "./tripsTypes";
 
 export interface Subscription extends SharedMeta {
   id: string;
@@ -225,10 +177,6 @@ export interface HouseholdMember {
 }
 
 export interface AdvancedData {
-  trips: Trip[];
-  tripItinerary: TripItineraryItem[];
-  tripBookings: TripBooking[];
-  packingItems: PackingItem[];
   subscriptions: Subscription[];
   recipes: Recipe[];
   mealSlots: MealSlot[];

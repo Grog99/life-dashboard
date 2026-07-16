@@ -17,6 +17,14 @@ import {
   resetFinanceForUser,
 } from "./finance.mjs";
 import {
+  applyTripMutation,
+  assertTripMutationShape,
+  MAX_TRIP_MUTATIONS_BYTES,
+  MAX_TRIP_MUTATIONS_PER_BATCH,
+  readTripsSnapshot,
+  resetTripsForHousehold,
+} from "./trips.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -698,6 +706,52 @@ app.post("/api/v1/finance/mutations", async (request) => {
 app.post("/api/v1/finance/reset", async (request) => {
   const session = await requireHousehold(request);
   await transaction((client) => resetFinanceForUser(client, session.household_id, session.user_id));
+  return { serverAt: new Date().toISOString() };
+});
+
+// Trips module (Podróże): normalized tables, not part of the workspace JSONB document (see
+// docs/plans/podroze-trips.md and server/src/trips.mjs). GET returns a snapshot, mutations go through
+// a single idempotent batch endpoint mapping 1:1 onto the client's offline queue. Unlike Finance, trips
+// have no private records at all -- the snapshot and every mutation scope exclusively by household_id.
+app.get("/api/v1/trips", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readTripsSnapshot(pool, session.household_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/trips/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(400, "Nieprawidłowe żądanie mutacji podróży", "INVALID_TRIP_MUTATIONS");
+  }
+  if (body.mutations.length > MAX_TRIP_MUTATIONS_PER_BATCH) {
+    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "TRIP_MUTATIONS_TOO_LARGE");
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_TRIP_MUTATIONS_BYTES) {
+    throw httpError(413, "Dane mutacji przekraczają dozwolony rozmiar", "TRIP_MUTATIONS_TOO_LARGE");
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see trips.mjs's assertTripMutationShape.
+  for (const mutation of body.mutations) assertTripMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order (e.g.
+    // itinerary.create after the trip.create it depends on).
+    const result = await transaction((client) => applyTripMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): trips nie są już częścią dokumentu
+// JSONB, więc nie ma ich czym nadpisać zwykłym PUT /api/v1/workspace. Prostsze niż Finance's reset --
+// trips nie mają rekordów prywatnych, więc czyścimy całe gospodarstwo bezwarunkowo.
+app.post("/api/v1/trips/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetTripsForHousehold(client, session.household_id));
   return { serverAt: new Date().toISOString() };
 });
 

@@ -82,23 +82,8 @@ describe("advanced health store", () => {
     });
   });
 
-  it("tworzy rezerwację podróży", () => {
-    const tripId = useAdvancedStore.getState().trips[0].id;
-    const bookingId = useAdvancedStore.getState().addTripBooking({
-      tripId,
-      type: "stay",
-      provider: "Hotel",
-      reference: "ABC",
-      title: "Nocleg",
-      startAt: "2026-08-02T15:00",
-      amountMinor: 100000,
-      paid: false,
-    });
-
-    expect(
-      useAdvancedStore.getState().tripBookings.find((item) => item.id === bookingId)?.paid,
-    ).toBe(false);
-  });
+  // Rezerwacje podróży żyją teraz w znormalizowanych tabelach SQL / src/store/useTripsStore.ts,
+  // nie w tym dokumencie -- patrz docs/plans/podroze-trips.md.
 
   it("dodaje składniki przepisu do listy zakupów bez duplikatów", () => {
     useAdvancedStore.setState({
@@ -137,6 +122,6 @@ describe("advanced health store", () => {
 
     expect(merged.medications).toHaveLength(1);
     expect(merged.medications[0].id).toBe(sample.medications[0].id);
-    expect(merged.trips).toEqual(sample.trips);
+    expect(merged.pets).toEqual(sample.pets);
   });
 });

@@ -11,10 +11,12 @@ import { ArrowRight, Home, LoaderCircle, LockKeyhole, ShieldCheck, UserPlus } fr
 import { apiRequest, ApiError, serverMode, type AuthSnapshot } from "./api";
 import { WorkspaceSync } from "./WorkspaceSync";
 import { FinanceSync } from "./FinanceSync";
+import { TripsSync } from "./TripsSync";
 import { removeCurrentPushSubscription } from "./push";
 import { useLifeStore } from "../store/useLifeStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
+import { useTripsStore } from "../store/useTripsStore";
 import {
   reportStorageWarning,
   safeGetStorageItem,
@@ -62,9 +64,11 @@ function bindLocalStorageTo(snapshot: AuthSnapshot) {
     useLifeStore.getState().resetData();
     useAdvancedStore.getState().resetAdvancedData();
     useFinanceStore.getState().resetFinanceData();
+    useTripsStore.getState().resetTripsData();
     safeRemoveStorageItem("puls-life-dashboard");
     safeRemoveStorageItem("puls-advanced-dashboard");
     safeRemoveStorageItem("puls-finance");
+    safeRemoveStorageItem("puls-trips");
   }
   safeSetStorageItem(STORAGE_OWNER_KEY, scope);
 }
@@ -73,11 +77,13 @@ function clearLocalUserData() {
   useLifeStore.getState().resetData();
   useAdvancedStore.getState().resetAdvancedData();
   useFinanceStore.getState().resetFinanceData();
+  useTripsStore.getState().resetTripsData();
   safeRemoveStorageItem(STORAGE_OWNER_KEY);
   safeRemoveStorageItem(AUTH_SNAPSHOT_KEY);
   safeRemoveStorageItem("puls-life-dashboard");
   safeRemoveStorageItem("puls-advanced-dashboard");
   safeRemoveStorageItem("puls-finance");
+  safeRemoveStorageItem("puls-trips");
   safeRemoveStoragePrefix("puls-sync-");
 }
 
@@ -89,7 +95,10 @@ function hasUnsyncedChanges(): boolean {
   } catch {
     return false;
   }
-  return useFinanceStore.getState().pendingMutations.length > 0;
+  return (
+    useFinanceStore.getState().pendingMutations.length > 0 ||
+    useTripsStore.getState().pendingMutations.length > 0
+  );
 }
 
 const isRejectedSession = (error: unknown) =>
@@ -317,7 +326,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
           key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
           onSessionExpired={() => endLocalSession(true, "expired")}
         >
-          {children}
+          <TripsSync
+            key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
+            onSessionExpired={() => endLocalSession(true, "expired")}
+          >
+            {children}
+          </TripsSync>
         </FinanceSync>
       </WorkspaceSync>
     </AuthContext.Provider>

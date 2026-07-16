@@ -167,17 +167,6 @@ function derivedReminders(data, nowKey) {
       });
     }
   }
-  for (const trip of Array.isArray(advanced.trips) ? advanced.trips : []) {
-    const dueKey = shiftLocalDateTime(trip?.startDate, "09:00", -7 * 24 * 60);
-    if (trip?.id && trip.status !== "archived" && withinDeliveryWindow(dueKey, nowKey)) {
-      reminders.push({
-        id: `trip:${trip.id}`,
-        title: `Za tydzień: ${trip.name}`,
-        date: trip.startDate,
-        time: "09:00",
-      });
-    }
-  }
   for (const deadline of Array.isArray(advanced.vehicleDeadlines)
     ? advanced.vehicleDeadlines
     : []) {
@@ -241,6 +230,32 @@ function derivedReminders(data, nowKey) {
   return reminders;
 }
 
+// Trips (Podróże) are no longer part of the workspace JSONB document (server/migrations/
+// 007_trips_normalized.sql, docs/plans/podroze-trips.md "Worker"): they live in the normalized `trips`
+// table and are always household-wide (no private trips), so this reads them once per household
+// instead of going through derivedReminders/data.advanced like the other collections above. Same
+// "Za tydzień: <nazwa>" push, same 7-day window and archived-exclusion as before the migration.
+async function tripReminders(householdId, nowKey) {
+  const result = await query(
+    `SELECT id, name, start_date::text AS start_date, status
+       FROM trips WHERE household_id = $1 AND status <> 'archived'`,
+    [householdId],
+  );
+  const reminders = [];
+  for (const trip of result.rows) {
+    const dueKey = shiftLocalDateTime(trip.start_date, "09:00", -7 * 24 * 60);
+    if (withinDeliveryWindow(dueKey, nowKey)) {
+      reminders.push({
+        id: `trip:${trip.id}`,
+        title: `Za tydzień: ${trip.name}`,
+        date: trip.start_date,
+        time: "09:00",
+      });
+    }
+  }
+  return reminders;
+}
+
 async function deliverDerived(workspace, data, targetUserId = null) {
   const nowKey = localNowKey(workspace.timezone);
   for (const reminder of derivedReminders(data, nowKey)) {
@@ -263,9 +278,11 @@ async function tick() {
       query("DELETE FROM oauth_states WHERE expires_at < now()"),
       query("DELETE FROM household_invitations WHERE expires_at < now() - interval '30 days'"),
       query("DELETE FROM notification_deliveries WHERE created_at < now() - interval '180 days'"),
-      // finance_mutations is an idempotency-key dedup window, not an audit log (see
-      // docs/plans/model-synchronizacji-danych.md "Retencja kluczy idempotencji: 30 dni").
+      // finance_mutations/trip_mutations are idempotency-key dedup windows, not audit logs (see
+      // docs/plans/model-synchronizacji-danych.md "Retencja kluczy idempotencji: 30 dni" and
+      // docs/plans/podroze-trips.md "Worker").
       query("DELETE FROM finance_mutations WHERE created_at < now() - interval '30 days'"),
+      query("DELETE FROM trip_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }
@@ -278,6 +295,17 @@ async function tick() {
     try {
       await deliverDerived(workspace, workspace.data);
       const nowKey = localNowKey(workspace.timezone);
+      for (const reminder of await tripReminders(workspace.household_id, nowKey)) {
+        try {
+          await deliverReminder(workspace, reminder);
+        } catch (error) {
+          console.error("Trip reminder failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
       const due = dueReminders(workspace.data?.life?.reminders, nowKey);
       if (!due.length) continue;
       const completedIds = [];
