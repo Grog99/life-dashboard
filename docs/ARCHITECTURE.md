@@ -63,6 +63,9 @@ Refresh token Google jest szyfrowany AES-256-GCM. Puls nie przechowuje danych lo
 
 ## Dalsza ewolucja
 
+Status i priorytety kolejnych migracji z modelu JSONB na znormalizowane tabele SQL (wzorzec
+ustalony przez Finanse) śledzi `docs/DATA_MODEL_MIGRATION.md`.
+
 1. Znormalizowane finanse, import batches i reguły kategoryzacji.
 2. CAMT.053 oraz opcjonalny konektor Open Banking.
 3. Inkrementalny Google Calendar przez `syncToken` i webhook.

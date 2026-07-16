@@ -12,6 +12,8 @@ w trzy kategorie i w miarę możliwości odwołują się do konkretnych plików/
    ale nie skaluje się dobrze przy wielu domownikach edytujących równolegle. `ARCHITECTURE.md` sam
    wskazuje to jako kierunek ewolucji — warto rozważyć przejście na znormalizowane tabele i mutacje
    domenowe z kluczami idempotencji, zaczynając od Finansów jako najbardziej naturalnego kandydata.
+   Finanse już zmigrowane (PR #11); kolejność i status dalszych modułów śledzi
+   `docs/DATA_MODEL_MIGRATION.md`.
 2. **Rozmiar największych stron.** `src/pages/FinancePage.tsx` (~1150 linii) i
    `src/pages/TripsPage.tsx` (~940 linii) robią zbyt dużo w jednym pliku. Warto rozbić je na mniejsze
    komponenty (np. osobno: lista transakcji, formularz budżetu, kreator importu CSV) — ułatwi to
