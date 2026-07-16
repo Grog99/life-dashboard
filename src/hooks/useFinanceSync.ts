@@ -113,7 +113,10 @@ export function useFinanceSync(onSessionExpired?: () => void): { syncState: Fina
           }
           await hydrate();
           if (!mounted.current || controller.signal.aborted) return;
-          if (useFinanceStore.getState().pendingMutations.length === 0 || totalRounds >= MAX_FLUSH_ROUNDS) {
+          if (
+            useFinanceStore.getState().pendingMutations.length === 0 ||
+            totalRounds >= MAX_FLUSH_ROUNDS
+          ) {
             return;
           }
           // W trakcie hydratacji przybyła nowa mutacja — wróć na początek pętli i wyślij ją.

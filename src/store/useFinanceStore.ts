@@ -19,7 +19,12 @@ import {
   financeTransactionSchema,
   savingsGoalSchema,
 } from "../lib/schema";
-import type { FinanceAccount, FinanceBudget, FinanceTransaction, SavingsGoal } from "../financeTypes";
+import type {
+  FinanceAccount,
+  FinanceBudget,
+  FinanceTransaction,
+  SavingsGoal,
+} from "../financeTypes";
 
 const STORAGE_NAME = "puls-finance";
 
@@ -117,7 +122,10 @@ interface Collections {
 function upsertByUpdateOp(op: FinanceOp, record: unknown, collections: Collections): Collections {
   switch (op) {
     case "account.update":
-      return { ...collections, accounts: upsertById(collections.accounts, record as FinanceAccount) };
+      return {
+        ...collections,
+        accounts: upsertById(collections.accounts, record as FinanceAccount),
+      };
     case "budget.update":
       return { ...collections, budgets: upsertById(collections.budgets, record as FinanceBudget) };
     case "goal.update":
@@ -150,7 +158,8 @@ function reconcileTerminal(
       if (result.record) goals = upsertById(goals, result.record as SavingsGoal);
       break;
     case "transaction.create":
-      if (result.record) transactions = upsertById(transactions, result.record as FinanceTransaction);
+      if (result.record)
+        transactions = upsertById(transactions, result.record as FinanceTransaction);
       if (result.account) accounts = upsertById(accounts, result.account);
       break;
     case "transaction.delete":
@@ -286,7 +295,11 @@ export const useFinanceStore = create<FinanceStore>()(
           transactions: [record, ...state.transactions],
           accounts: state.accounts.map((account) =>
             account.id === transaction.accountId
-              ? { ...account, balanceMinor: account.balanceMinor + transaction.amountMinor, updatedAt }
+              ? {
+                  ...account,
+                  balanceMinor: account.balanceMinor + transaction.amountMinor,
+                  updatedAt,
+                }
               : account,
           ),
           pendingMutations: [
@@ -360,7 +373,11 @@ export const useFinanceStore = create<FinanceStore>()(
             transaction.source !== "csv"
               ? state.accounts.map((account) =>
                   account.id === transaction.accountId
-                    ? { ...account, balanceMinor: account.balanceMinor - transaction.amountMinor, updatedAt }
+                    ? {
+                        ...account,
+                        balanceMinor: account.balanceMinor - transaction.amountMinor,
+                        updatedAt,
+                      }
                     : account,
                 )
               : state.accounts,
@@ -515,7 +532,11 @@ export const useFinanceStore = create<FinanceStore>()(
               const currentVersion = result.currentVersion;
               if (!freshRecord || currentVersion === undefined) continue;
               const payload = mutation.payload as { id: string; changes: Record<string, unknown> };
-              collections = upsertByUpdateOp(mutation.op, { ...freshRecord, ...payload.changes }, collections);
+              collections = upsertByUpdateOp(
+                mutation.op,
+                { ...freshRecord, ...payload.changes },
+                collections,
+              );
               rebased.push({
                 idempotencyKey: makeId(),
                 op: mutation.op,

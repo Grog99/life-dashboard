@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useFinanceStore, type FinanceMutationResult } from "./useFinanceStore";
 
-const account = () =>
-  useFinanceStore.getState().accounts.find((item) => item.id === "account-1")!;
+const account = () => useFinanceStore.getState().accounts.find((item) => item.id === "account-1")!;
 
 function seedAccount() {
   useFinanceStore.setState({
@@ -244,7 +243,10 @@ describe("useFinanceStore", () => {
     ];
     useFinanceStore.getState().applyMutationResults(results);
     expect(useFinanceStore.getState().pendingMutations).toHaveLength(0);
-    expect(useFinanceStore.getState().budgets[0]).toMatchObject({ version: 1, updatedAt: "2026-01-02T00:00:00.000Z" });
+    expect(useFinanceStore.getState().budgets[0]).toMatchObject({
+      version: 1,
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
   });
 
   it("applyMutationResults zdejmuje z kolejki trwałe błędy (error) bez ponawiania", () => {
@@ -256,7 +258,12 @@ describe("useFinanceStore", () => {
     });
     const mutation = useFinanceStore.getState().pendingMutations[0];
     useFinanceStore.getState().applyMutationResults([
-      { idempotencyKey: mutation.idempotencyKey, status: "error", error: "Zły ładunek", code: "BUDGET_CATEGORY_DUPLICATE" },
+      {
+        idempotencyKey: mutation.idempotencyKey,
+        status: "error",
+        error: "Zły ładunek",
+        code: "BUDGET_CATEGORY_DUPLICATE",
+      },
     ]);
     expect(useFinanceStore.getState().pendingMutations).toHaveLength(0);
   });
@@ -346,10 +353,12 @@ describe("useFinanceStore", () => {
       },
     ]);
     const mutation = useFinanceStore.getState().pendingMutations[0];
-    const sentIds = (mutation.payload.transactions as Array<{ id: string; fingerprint?: string }>).map(
-      (item) => item.id,
-    );
-    const rowA = useFinanceStore.getState().transactions.find((item) => item.fingerprint === "row-a")!;
+    const sentIds = (
+      mutation.payload.transactions as Array<{ id: string; fingerprint?: string }>
+    ).map((item) => item.id);
+    const rowA = useFinanceStore
+      .getState()
+      .transactions.find((item) => item.fingerprint === "row-a")!;
 
     useFinanceStore.getState().applyMutationResults([
       {
