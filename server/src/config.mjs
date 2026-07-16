@@ -16,12 +16,18 @@ export function validateConfiguration({
     throw new Error("APP_ORIGIN must be an absolute URL");
   }
 
-  if (origin.origin !== appOrigin) throw new Error("APP_ORIGIN must not contain a path, query, or fragment");
-  if (production && origin.protocol !== "https:") throw new Error("APP_ORIGIN must use HTTPS in production");
+  if (origin.origin !== appOrigin)
+    throw new Error("APP_ORIGIN must not contain a path, query, or fragment");
+  if (production && origin.protocol !== "https:")
+    throw new Error("APP_ORIGIN must use HTTPS in production");
   if (!Number.isFinite(sessionDays) || sessionDays < 1 || sessionDays > 365) {
     throw new Error("SESSION_DAYS must be between 1 and 365");
   }
-  if (!Number.isFinite(maxWorkspaceBytes) || maxWorkspaceBytes < 100_000 || maxWorkspaceBytes > 50_000_000) {
+  if (
+    !Number.isFinite(maxWorkspaceBytes) ||
+    maxWorkspaceBytes < 100_000 ||
+    maxWorkspaceBytes > 50_000_000
+  ) {
     throw new Error("MAX_WORKSPACE_BYTES is outside the safe range");
   }
   if (String(bootstrapToken ?? "").length < 24) {
@@ -43,6 +49,7 @@ export function validateConfiguration({
     } catch {
       throw new Error("GOOGLE_REDIRECT_URI must be an absolute URL");
     }
-    if (redirect.origin !== origin.origin) throw new Error("GOOGLE_REDIRECT_URI must use APP_ORIGIN");
+    if (redirect.origin !== origin.origin)
+      throw new Error("GOOGLE_REDIRECT_URI must use APP_ORIGIN");
   }
 }

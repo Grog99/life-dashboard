@@ -40,13 +40,15 @@ const snapshot = (id = "user-1", email = "ola@example.com"): AuthSnapshot => ({
     timezone: "Europe/Warsaw",
   },
   activeHouseholdId: `house-${id}`,
-  households: [{
-    id: `house-${id}`,
-    name: "Dom",
-    currency: "PLN",
-    timezone: "Europe/Warsaw",
-    role: "owner",
-  }],
+  households: [
+    {
+      id: `house-${id}`,
+      name: "Dom",
+      currency: "PLN",
+      timezone: "Europe/Warsaw",
+      role: "owner",
+    },
+  ],
 });
 
 class FakeBroadcastChannel extends EventTarget {
@@ -99,7 +101,11 @@ describe("AuthGate session regression", () => {
       return Promise.reject(new Error(`Unexpected request: ${path}`));
     });
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
 
     expect(await screen.findByRole("heading", { name: /Witaj ponownie/i })).toBeInTheDocument();
     expect(localStorage.getItem(AUTH_SNAPSHOT_KEY)).toBeNull();
@@ -109,7 +115,10 @@ describe("AuthGate session regression", () => {
   it("keeps local data and warns instead of wiping when the session expires with unsynced changes", async () => {
     localStorage.setItem(AUTH_SNAPSHOT_KEY, JSON.stringify(snapshot()));
     localStorage.setItem(STORAGE_OWNER_KEY, "user-1:house-user-1");
-    localStorage.setItem("puls-life-dashboard", JSON.stringify({ state: { intention: "Coś ważnego" } }));
+    localStorage.setItem(
+      "puls-life-dashboard",
+      JSON.stringify({ state: { intention: "Coś ważnego" } }),
+    );
     localStorage.setItem("puls-sync-dirty:user-1:house-user-1", "1");
     mocks.apiRequest.mockImplementation((path: string) => {
       if (path.endsWith("bootstrap-status")) return Promise.resolve({ configured: true });
@@ -119,7 +128,11 @@ describe("AuthGate session regression", () => {
       return Promise.reject(new Error(`Unexpected request: ${path}`));
     });
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
 
     expect(await screen.findByRole("heading", { name: /Witaj ponownie/i })).toBeInTheDocument();
     expect(localStorage.getItem(AUTH_SNAPSHOT_KEY)).toBeNull();
@@ -136,7 +149,11 @@ describe("AuthGate session regression", () => {
       return Promise.reject(new Error(`Unexpected request: ${path}`));
     });
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
     expect(await screen.findByText("ola@example.com")).toBeInTheDocument();
 
     const channel = FakeBroadcastChannel.instances.find((item) => item.name === "puls-auth");
@@ -154,10 +171,17 @@ describe("AuthGate session regression", () => {
       return Promise.reject(new Error(`Unexpected request: ${path}`));
     });
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
     expect(await screen.findByText("ola@example.com")).toBeInTheDocument();
 
-    localStorage.setItem("puls-life-dashboard", JSON.stringify({ state: { intention: "Coś ważnego" } }));
+    localStorage.setItem(
+      "puls-life-dashboard",
+      JSON.stringify({ state: { intention: "Coś ważnego" } }),
+    );
     localStorage.setItem("puls-sync-dirty:user-1:house-user-1", "1");
 
     const channel = FakeBroadcastChannel.instances.find((item) => item.name === "puls-auth");
@@ -177,16 +201,22 @@ describe("AuthGate session regression", () => {
       return Promise.reject(new Error(`Unexpected request: ${path}`));
     });
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
     expect(await screen.findByText("ola@example.com")).toBeInTheDocument();
 
     const next = snapshot("user-2", "jan@example.com");
     localStorage.setItem(AUTH_SNAPSHOT_KEY, JSON.stringify(next));
     act(() => {
-      window.dispatchEvent(new StorageEvent("storage", {
-        key: AUTH_SNAPSHOT_KEY,
-        newValue: JSON.stringify(next),
-      }));
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: AUTH_SNAPSHOT_KEY,
+          newValue: JSON.stringify(next),
+        }),
+      );
     });
 
     expect(await screen.findByText("jan@example.com")).toBeInTheDocument();
@@ -209,7 +239,11 @@ describe("AuthGate session regression", () => {
     });
     const user = userEvent.setup();
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
     expect(await screen.findByRole("heading", { name: /Dołącz do domu/i })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Twoje imię"), "Ola");
@@ -218,7 +252,9 @@ describe("AuthGate session regression", () => {
     await user.click(screen.getByRole("button", { name: /Utwórz konto/i }));
 
     expect(await screen.findByText("ola@example.com")).toBeInTheDocument();
-    expect(mocks.apiRequest.mock.calls.some(([path]) => String(path).includes("invitations/accept"))).toBe(false);
+    expect(
+      mocks.apiRequest.mock.calls.some(([path]) => String(path).includes("invitations/accept")),
+    ).toBe(false);
     expect(new URL(window.location.href).searchParams.has("invite")).toBe(false);
   });
 
@@ -239,14 +275,20 @@ describe("AuthGate session regression", () => {
     });
     const user = userEvent.setup();
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
     await user.click(await screen.findByRole("button", { name: /Mam już konto/i }));
     await user.type(screen.getByLabelText("Adres e-mail"), "ola@example.com");
     await user.type(screen.getByLabelText(/^Hasło/), "bardzo-dlugie-haslo");
     await user.click(screen.getByRole("button", { name: /Zaloguj się/i }));
 
     expect(await screen.findByText("ola@example.com")).toBeInTheDocument();
-    expect(mocks.apiRequest.mock.calls.some(([path]) => String(path).includes("invitations/accept"))).toBe(true);
+    expect(
+      mocks.apiRequest.mock.calls.some(([path]) => String(path).includes("invitations/accept")),
+    ).toBe(true);
     expect(new URL(window.location.href).searchParams.has("invite")).toBe(false);
   });
 
@@ -256,11 +298,16 @@ describe("AuthGate session regression", () => {
     mocks.apiRequest.mockImplementation((path: string) => {
       if (path.endsWith("bootstrap-status")) return Promise.resolve({ configured: true });
       if (path.endsWith("/auth/me")) return Promise.resolve(snapshot());
-      if (path.includes("invitations/accept")) return Promise.reject(new Error("Zaproszenie wygasło"));
+      if (path.includes("invitations/accept"))
+        return Promise.reject(new Error("Zaproszenie wygasło"));
       return Promise.reject(new Error(`Unexpected request: ${path}`));
     });
 
-    render(<AuthGate><SessionProbe /></AuthGate>);
+    render(
+      <AuthGate>
+        <SessionProbe />
+      </AuthGate>,
+    );
 
     expect(await screen.findByText("ola@example.com")).toBeInTheDocument();
     expect(sessionStorage.getItem("puls-invite-warning")).toBe("Zaproszenie wygasło");

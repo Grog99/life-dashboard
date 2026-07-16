@@ -31,17 +31,37 @@ const CHILD_RELATIONS = {
 const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
 const LIFE_COLLECTIONS = ["tasks", "events", "reminders", "notes", "habits"];
 const ADVANCED_COLLECTIONS = [
-  "financeAccounts", "financeTransactions", "financeBudgets", "savingsGoals", "trips",
-  "tripItinerary", "tripBookings", "packingItems", "subscriptions", "recipes", "mealSlots",
-  "shoppingItems", "vehicles", "carExpenses", "vehicleDeadlines", "healthAppointments",
-  "medications", "healthMeasurements", "householdMembers", "pets", "petExpenses", "petVisits",
+  "financeAccounts",
+  "financeTransactions",
+  "financeBudgets",
+  "savingsGoals",
+  "trips",
+  "tripItinerary",
+  "tripBookings",
+  "packingItems",
+  "subscriptions",
+  "recipes",
+  "mealSlots",
+  "shoppingItems",
+  "vehicles",
+  "carExpenses",
+  "vehicleDeadlines",
+  "healthAppointments",
+  "medications",
+  "healthMeasurements",
+  "householdMembers",
+  "pets",
+  "petExpenses",
+  "petVisits",
 ];
 
-const asObject = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
-const asArray = (value) => Array.isArray(value) ? value : [];
+const asObject = (value) =>
+  value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 export function workspaceDocumentIsValid(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 2) return false;
+  if (!value || typeof value !== "object" || Array.isArray(value) || value.schemaVersion !== 2)
+    return false;
   const life = asObject(value.life);
   const advanced = asObject(value.advanced);
   if (!Object.keys(life).length || !Object.keys(advanced).length) return false;
@@ -51,7 +71,17 @@ export function workspaceDocumentIsValid(value) {
   for (const key of ADVANCED_COLLECTIONS) {
     if (!Array.isArray(advanced[key])) return false;
     if (advanced[key].length > 100_000) return false;
-    if (advanced[key].some((item) => !item || typeof item !== "object" || typeof item.id !== "string" || item.id.length < 1 || item.id.length > 200)) return false;
+    if (
+      advanced[key].some(
+        (item) =>
+          !item ||
+          typeof item !== "object" ||
+          typeof item.id !== "string" ||
+          item.id.length < 1 ||
+          item.id.length > 200,
+      )
+    )
+      return false;
   }
   return typeof life.preferences === "object" && typeof advanced.householdName === "string";
 }
@@ -83,8 +113,13 @@ export function splitWorkspaceData(input, userId) {
     const parentIds = privateIds.get(parentKey) ?? new Set();
     const records = asArray(advanced[key]);
     const ownPrivate = records.filter((item) => item?.visibility === "private");
-    const relatedPrivate = records.filter((item) => item?.[foreignKey] && parentIds.has(item[foreignKey]));
-    privateIds.set(key, new Set([...ownPrivate, ...relatedPrivate].map((item) => item?.id).filter(Boolean)));
+    const relatedPrivate = records.filter(
+      (item) => item?.[foreignKey] && parentIds.has(item[foreignKey]),
+    );
+    privateIds.set(
+      key,
+      new Set([...ownPrivate, ...relatedPrivate].map((item) => item?.id).filter(Boolean)),
+    );
   }
 
   const collectionKeys = new Set([
@@ -113,9 +148,14 @@ export function splitWorkspaceData(input, userId) {
   const privateLife = {};
   for (const key of PERSONAL_LIFE_KEYS) {
     if (key in life) {
-      privateLife[key] = key === "preferences"
-        ? Object.fromEntries(Object.entries(asObject(life[key])).filter(([preference]) => preference !== "notificationsEnabled"))
-        : life[key];
+      privateLife[key] =
+        key === "preferences"
+          ? Object.fromEntries(
+              Object.entries(asObject(life[key])).filter(
+                ([preference]) => preference !== "notificationsEnabled",
+              ),
+            )
+          : life[key];
     }
     delete sharedLife[key];
   }
@@ -162,7 +202,8 @@ export function mergeWorkspaceData(sharedInput, privateInput, context) {
   const personal = structuredClone(asObject(privateInput));
   const sharedAdvanced = asObject(shared.advanced);
   const privateAdvanced = asObject(personal.advanced);
-  const hasAdvancedState = Object.keys(sharedAdvanced).length > 0 || Object.keys(privateAdvanced).length > 0;
+  const hasAdvancedState =
+    Object.keys(sharedAdvanced).length > 0 || Object.keys(privateAdvanced).length > 0;
   const sharedLife = asObject(shared.life);
   const privateLife = asObject(personal.life);
   const privatePreferences = asObject(privateLife.preferences);

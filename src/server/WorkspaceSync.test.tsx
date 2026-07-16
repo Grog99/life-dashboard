@@ -88,11 +88,14 @@ describe("WorkspaceSync regression", () => {
     localStorage.setItem("puls-life-dashboard", "{}");
     localStorage.setItem("puls-advanced-dashboard", "{}");
     localStorage.setItem(`puls-sync-dirty:${scope}`, "1");
-    localStorage.setItem(`puls-sync-base:${scope}`, JSON.stringify({
-      schemaVersion: 2,
-      life: baseLife,
-      advanced,
-    }));
+    localStorage.setItem(
+      `puls-sync-base:${scope}`,
+      JSON.stringify({
+        schemaVersion: 2,
+        life: baseLife,
+        advanced,
+      }),
+    );
     apiRequest
       .mockRejectedValueOnce(new Error("cold start offline"))
       .mockRejectedValueOnce(new ApiError(409, "Konflikt", "REVISION_CONFLICT"))
@@ -123,13 +126,15 @@ describe("WorkspaceSync regression", () => {
     const advanced = {
       ...createAdvancedData(),
       householdName: "Rodzina Testowa",
-      householdMembers: [{
-        id: "user-1",
-        name: "Ola",
-        email: "ola@example.com",
-        role: "owner" as const,
-        color: "#397763",
-      }],
+      householdMembers: [
+        {
+          id: "user-1",
+          name: "Ola",
+          email: "ola@example.com",
+          role: "owner" as const,
+          color: "#397763",
+        },
+      ],
     };
     const enriched = {
       revision: 1,

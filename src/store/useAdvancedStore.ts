@@ -70,7 +70,11 @@ function parseArrayField<T>(value: unknown, schema: z.ZodType<T>): { items: T[];
   return { items, dropped };
 }
 
-function parseScalarField<T>(value: unknown, schema: z.ZodType<T>, fallback: T): { value: T; dropped: number } {
+function parseScalarField<T>(
+  value: unknown,
+  schema: z.ZodType<T>,
+  fallback: T,
+): { value: T; dropped: number } {
   if (value === undefined) return { value: fallback, dropped: 0 };
   const result = schema.safeParse(value);
   return result.success ? { value: result.data, dropped: 0 } : { value: fallback, dropped: 1 };
@@ -147,7 +151,10 @@ export const useAdvancedStore = create<AdvancedStore>()(
       addAccount: (account) => {
         const id = makeId();
         set((state) => ({
-          financeAccounts: [...state.financeAccounts, { ...account, id, updatedAt: new Date().toISOString() }],
+          financeAccounts: [
+            ...state.financeAccounts,
+            { ...account, id, updatedAt: new Date().toISOString() },
+          ],
         }));
         return id;
       },
@@ -160,7 +167,11 @@ export const useAdvancedStore = create<AdvancedStore>()(
           ],
           financeAccounts: state.financeAccounts.map((account) =>
             account.id === transaction.accountId
-              ? { ...account, balanceMinor: account.balanceMinor + transaction.amountMinor, updatedAt: new Date().toISOString() }
+              ? {
+                  ...account,
+                  balanceMinor: account.balanceMinor + transaction.amountMinor,
+                  updatedAt: new Date().toISOString(),
+                }
               : account,
           ),
         }));
@@ -168,7 +179,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
       },
       importTransactions: (transactions) => {
         const existing = new Set(
-          get().financeTransactions.map((transaction) => transaction.fingerprint).filter(Boolean),
+          get()
+            .financeTransactions.map((transaction) => transaction.fingerprint)
+            .filter(Boolean),
         );
         let duplicates = 0;
         const accepted = transactions
@@ -180,7 +193,11 @@ export const useAdvancedStore = create<AdvancedStore>()(
             if (transaction.fingerprint) existing.add(transaction.fingerprint);
             return true;
           })
-          .map((transaction) => ({ ...transaction, id: makeId(), updatedAt: new Date().toISOString() }));
+          .map((transaction) => ({
+            ...transaction,
+            id: makeId(),
+            updatedAt: new Date().toISOString(),
+          }));
         set((state) => ({
           financeTransactions: [...accepted, ...state.financeTransactions],
           // Imported statements describe historical movements. The account field is the
@@ -193,69 +210,131 @@ export const useAdvancedStore = create<AdvancedStore>()(
         set((state) => {
           const transaction = state.financeTransactions.find((item) => item.id === transactionId);
           return {
-            financeTransactions: state.financeTransactions.filter((item) => item.id !== transactionId),
-            financeAccounts: transaction && transaction.source !== "csv"
-              ? state.financeAccounts.map((account) =>
-                  account.id === transaction.accountId
-                    ? { ...account, balanceMinor: account.balanceMinor - transaction.amountMinor, updatedAt: new Date().toISOString() }
-                    : account,
-                )
-              : state.financeAccounts,
+            financeTransactions: state.financeTransactions.filter(
+              (item) => item.id !== transactionId,
+            ),
+            financeAccounts:
+              transaction && transaction.source !== "csv"
+                ? state.financeAccounts.map((account) =>
+                    account.id === transaction.accountId
+                      ? {
+                          ...account,
+                          balanceMinor: account.balanceMinor - transaction.amountMinor,
+                          updatedAt: new Date().toISOString(),
+                        }
+                      : account,
+                  )
+                : state.financeAccounts,
           };
         }),
       addBudget: (budget) => {
         const id = makeId();
         set((state) => ({
-          financeBudgets: [...state.financeBudgets, { ...budget, id, updatedAt: new Date().toISOString() }],
+          financeBudgets: [
+            ...state.financeBudgets,
+            { ...budget, id, updatedAt: new Date().toISOString() },
+          ],
         }));
         return id;
       },
       updateBudget: (budgetId, changes) =>
-        set((state) => ({ financeBudgets: state.financeBudgets.map((budget) => budget.id === budgetId ? { ...budget, ...changes, updatedAt: new Date().toISOString() } : budget) })),
+        set((state) => ({
+          financeBudgets: state.financeBudgets.map((budget) =>
+            budget.id === budgetId
+              ? { ...budget, ...changes, updatedAt: new Date().toISOString() }
+              : budget,
+          ),
+        })),
       deleteBudget: (budgetId) =>
-        set((state) => ({ financeBudgets: state.financeBudgets.filter((budget) => budget.id !== budgetId) })),
+        set((state) => ({
+          financeBudgets: state.financeBudgets.filter((budget) => budget.id !== budgetId),
+        })),
       addSavingsGoal: (goal) => {
         const id = makeId();
-        set((state) => ({ savingsGoals: [...state.savingsGoals, { ...goal, id, updatedAt: new Date().toISOString() }] }));
+        set((state) => ({
+          savingsGoals: [
+            ...state.savingsGoals,
+            { ...goal, id, updatedAt: new Date().toISOString() },
+          ],
+        }));
         return id;
       },
       updateSavingsGoal: (goalId, changes) =>
-        set((state) => ({ savingsGoals: state.savingsGoals.map((goal) => goal.id === goalId ? { ...goal, ...changes, updatedAt: new Date().toISOString() } : goal) })),
+        set((state) => ({
+          savingsGoals: state.savingsGoals.map((goal) =>
+            goal.id === goalId
+              ? { ...goal, ...changes, updatedAt: new Date().toISOString() }
+              : goal,
+          ),
+        })),
       deleteSavingsGoal: (goalId) =>
         set((state) => ({ savingsGoals: state.savingsGoals.filter((goal) => goal.id !== goalId) })),
       addTrip: (trip) => {
         const id = makeId();
-        set((state) => ({ trips: [{ ...trip, id, updatedAt: new Date().toISOString() }, ...state.trips] }));
+        set((state) => ({
+          trips: [{ ...trip, id, updatedAt: new Date().toISOString() }, ...state.trips],
+        }));
         return id;
       },
       updateTrip: (tripId, changes) =>
         set((state) => ({
-          trips: state.trips.map((trip) => (trip.id === tripId ? { ...trip, ...changes, updatedAt: new Date().toISOString() } : trip)),
+          trips: state.trips.map((trip) =>
+            trip.id === tripId
+              ? { ...trip, ...changes, updatedAt: new Date().toISOString() }
+              : trip,
+          ),
         })),
       addTripItineraryItem: (item) => {
         const id = makeId();
-        set((state) => ({ tripItinerary: [...state.tripItinerary, { ...item, id, updatedAt: new Date().toISOString() }] }));
+        set((state) => ({
+          tripItinerary: [
+            ...state.tripItinerary,
+            { ...item, id, updatedAt: new Date().toISOString() },
+          ],
+        }));
         return id;
       },
       deleteTripItineraryItem: (itemId) =>
-        set((state) => ({ tripItinerary: state.tripItinerary.filter((item) => item.id !== itemId) })),
+        set((state) => ({
+          tripItinerary: state.tripItinerary.filter((item) => item.id !== itemId),
+        })),
       addTripBooking: (booking) => {
         const id = makeId();
-        set((state) => ({ tripBookings: [...state.tripBookings, { ...booking, id, updatedAt: new Date().toISOString() }] }));
+        set((state) => ({
+          tripBookings: [
+            ...state.tripBookings,
+            { ...booking, id, updatedAt: new Date().toISOString() },
+          ],
+        }));
         return id;
       },
       updateTripBooking: (bookingId, changes) =>
-        set((state) => ({ tripBookings: state.tripBookings.map((booking) => booking.id === bookingId ? { ...booking, ...changes, updatedAt: new Date().toISOString() } : booking) })),
+        set((state) => ({
+          tripBookings: state.tripBookings.map((booking) =>
+            booking.id === bookingId
+              ? { ...booking, ...changes, updatedAt: new Date().toISOString() }
+              : booking,
+          ),
+        })),
       deleteTripBooking: (bookingId) =>
-        set((state) => ({ tripBookings: state.tripBookings.filter((booking) => booking.id !== bookingId) })),
+        set((state) => ({
+          tripBookings: state.tripBookings.filter((booking) => booking.id !== bookingId),
+        })),
       togglePackingItem: (itemId) =>
         set((state) => ({
           packingItems: state.packingItems.map((item) =>
-            item.id === itemId ? { ...item, packed: !item.packed, updatedAt: new Date().toISOString() } : item,
+            item.id === itemId
+              ? { ...item, packed: !item.packed, updatedAt: new Date().toISOString() }
+              : item,
           ),
         })),
       addPackingItem: (item) =>
-        set((state) => ({ packingItems: [...state.packingItems, { ...item, id: makeId(), updatedAt: new Date().toISOString() }] })),
+        set((state) => ({
+          packingItems: [
+            ...state.packingItems,
+            { ...item, id: makeId(), updatedAt: new Date().toISOString() },
+          ],
+        })),
       deletePackingItem: (itemId) =>
         set((state) => ({ packingItems: state.packingItems.filter((item) => item.id !== itemId) })),
       addSubscription: (subscription) => {
@@ -266,14 +345,14 @@ export const useAdvancedStore = create<AdvancedStore>()(
       updateSubscription: (subscriptionId, changes) =>
         set((state) => ({
           subscriptions: state.subscriptions.map((subscription) =>
-            subscription.id === subscriptionId
-              ? { ...subscription, ...changes }
-              : subscription,
+            subscription.id === subscriptionId ? { ...subscription, ...changes } : subscription,
           ),
         })),
       deleteSubscription: (subscriptionId) =>
         set((state) => ({
-          subscriptions: state.subscriptions.filter((subscription) => subscription.id !== subscriptionId),
+          subscriptions: state.subscriptions.filter(
+            (subscription) => subscription.id !== subscriptionId,
+          ),
         })),
       setMealSlot: (slot) =>
         set((state) => {
@@ -356,9 +435,7 @@ export const useAdvancedStore = create<AdvancedStore>()(
       toggleVehicleDeadline: (deadlineId) =>
         set((state) => ({
           vehicleDeadlines: state.vehicleDeadlines.map((deadline) =>
-            deadline.id === deadlineId
-              ? { ...deadline, completed: !deadline.completed }
-              : deadline,
+            deadline.id === deadlineId ? { ...deadline, completed: !deadline.completed } : deadline,
           ),
         })),
       addPet: (pet) => {
@@ -382,7 +459,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
         return id;
       },
       deletePetExpense: (expenseId) =>
-        set((state) => ({ petExpenses: state.petExpenses.filter((expense) => expense.id !== expenseId) })),
+        set((state) => ({
+          petExpenses: state.petExpenses.filter((expense) => expense.id !== expenseId),
+        })),
       addPetVisit: (visit) => {
         const id = makeId();
         set((state) => ({ petVisits: [...state.petVisits, { ...visit, id }] }));
@@ -390,7 +469,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
       },
       updatePetVisit: (visitId, changes) =>
         set((state) => ({
-          petVisits: state.petVisits.map((visit) => (visit.id === visitId ? { ...visit, ...changes } : visit)),
+          petVisits: state.petVisits.map((visit) =>
+            visit.id === visitId ? { ...visit, ...changes } : visit,
+          ),
         })),
       deletePetVisit: (visitId) =>
         set((state) => ({ petVisits: state.petVisits.filter((visit) => visit.id !== visitId) })),
@@ -433,7 +514,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
           ),
         })),
       deleteMedication: (medicationId) =>
-        set((state) => ({ medications: state.medications.filter((medication) => medication.id !== medicationId) })),
+        set((state) => ({
+          medications: state.medications.filter((medication) => medication.id !== medicationId),
+        })),
       toggleMedicationTaken: (medicationId, date) =>
         set((state) => ({
           medications: state.medications.map((medication) =>
@@ -469,15 +552,16 @@ export const useAdvancedStore = create<AdvancedStore>()(
             (measurement) => measurement.id !== measurementId,
           ),
         })),
-      replaceAdvancedData: (data) => set({
-        ...data,
-        pets: data.pets ?? [],
-        petExpenses: data.petExpenses ?? [],
-        petVisits: data.petVisits ?? [],
-        healthAppointments: data.healthAppointments ?? [],
-        medications: data.medications ?? [],
-        healthMeasurements: data.healthMeasurements ?? [],
-      }),
+      replaceAdvancedData: (data) =>
+        set({
+          ...data,
+          pets: data.pets ?? [],
+          petExpenses: data.petExpenses ?? [],
+          petVisits: data.petVisits ?? [],
+          healthAppointments: data.healthAppointments ?? [],
+          medications: data.medications ?? [],
+          healthMeasurements: data.healthMeasurements ?? [],
+        }),
       resetAdvancedData: () => set(createAdvancedData()),
     }),
     {
@@ -486,13 +570,18 @@ export const useAdvancedStore = create<AdvancedStore>()(
       storage: createJSONStorage(() => safeLocalStorage),
       merge: (persistedState, currentState) => {
         if (!persistedState || typeof persistedState !== "object") {
-          reportStorageWarning("Zapis modułów miał niezgodny format — zachowano bezpieczne dane startowe");
+          reportStorageWarning(
+            "Zapis modułów miał niezgodny format — zachowano bezpieczne dane startowe",
+          );
           return currentState;
         }
         const state = persistedState as Record<string, unknown>;
 
         const financeAccounts = parseArrayField(state.financeAccounts, financeAccountSchema);
-        const financeTransactions = parseArrayField(state.financeTransactions, financeTransactionSchema);
+        const financeTransactions = parseArrayField(
+          state.financeTransactions,
+          financeTransactionSchema,
+        );
         const financeBudgets = parseArrayField(state.financeBudgets, financeBudgetSchema);
         const savingsGoals = parseArrayField(state.savingsGoals, savingsGoalSchema);
         const trips = parseArrayField(state.trips, tripSchema);
@@ -509,24 +598,60 @@ export const useAdvancedStore = create<AdvancedStore>()(
         const pets = parseArrayField(state.pets, petSchema);
         const petExpenses = parseArrayField(state.petExpenses, petExpenseSchema);
         const petVisits = parseArrayField(state.petVisits, petVisitSchema);
-        const healthAppointments = parseArrayField(state.healthAppointments, healthAppointmentSchema);
+        const healthAppointments = parseArrayField(
+          state.healthAppointments,
+          healthAppointmentSchema,
+        );
         const medications = parseArrayField(state.medications, medicationSchema);
-        const healthMeasurements = parseArrayField(state.healthMeasurements, healthMeasurementSchema);
+        const healthMeasurements = parseArrayField(
+          state.healthMeasurements,
+          healthMeasurementSchema,
+        );
         const householdMembers = parseArrayField(state.householdMembers, householdMemberSchema);
-        const householdName = parseScalarField(state.householdName, householdNameSchema, currentState.householdName);
-        const hideAmounts = parseScalarField(state.hideAmounts, hideAmountsSchema, currentState.hideAmounts);
+        const householdName = parseScalarField(
+          state.householdName,
+          householdNameSchema,
+          currentState.householdName,
+        );
+        const hideAmounts = parseScalarField(
+          state.hideAmounts,
+          hideAmountsSchema,
+          currentState.hideAmounts,
+        );
 
         const arrayFields = [
-          financeAccounts, financeTransactions, financeBudgets, savingsGoals, trips, tripItinerary,
-          tripBookings, packingItems, subscriptions, recipes, mealSlots, shoppingItems, vehicles,
-          carExpenses, vehicleDeadlines, pets, petExpenses, petVisits, healthAppointments, medications,
-          healthMeasurements, householdMembers,
+          financeAccounts,
+          financeTransactions,
+          financeBudgets,
+          savingsGoals,
+          trips,
+          tripItinerary,
+          tripBookings,
+          packingItems,
+          subscriptions,
+          recipes,
+          mealSlots,
+          shoppingItems,
+          vehicles,
+          carExpenses,
+          vehicleDeadlines,
+          pets,
+          petExpenses,
+          petVisits,
+          healthAppointments,
+          medications,
+          healthMeasurements,
+          householdMembers,
         ];
         const droppedCount =
-          arrayFields.reduce((sum, field) => sum + field.dropped, 0) + householdName.dropped + hideAmounts.dropped;
+          arrayFields.reduce((sum, field) => sum + field.dropped, 0) +
+          householdName.dropped +
+          hideAmounts.dropped;
 
         if (droppedCount > 0) {
-          reportStorageWarning("Część zapisanych danych modułów była uszkodzona i została pominięta — pozostałe pozycje zostały zachowane");
+          reportStorageWarning(
+            "Część zapisanych danych modułów była uszkodzona i została pominięta — pozostałe pozycje zostały zachowane",
+          );
           quarantineRawValue(STORAGE_NAME, JSON.stringify(persistedState));
         }
 

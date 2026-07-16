@@ -29,6 +29,7 @@ const normalizeWeekdays = (freq: RecurrenceFreq, weekdays: number[]): number[] |
 const parsedInterval = (value: string) => Math.max(1, Number(value) || 1);
 const parsedCount = (value: string) => (value ? Math.max(1, Number(value) || 1) : undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook celowo współdzielony z komponentem RecurrenceFields w tym samym pliku (patrz komentarz na górze pliku); podział na osobne pliki nie jest wart utraty spójności.
 export function useRecurrenceForm(initial?: Recurrence): RecurrenceForm {
   const [freq, setFreq] = useState<RecurrenceFreq>(initial?.freq ?? "weekly");
   const [interval, setInterval] = useState(String(initial?.interval ?? 1));
@@ -37,7 +38,9 @@ export function useRecurrenceForm(initial?: Recurrence): RecurrenceForm {
 
   const toggleWeekday = (iso: number) =>
     setWeekdays((current) =>
-      current.includes(iso) ? current.filter((value) => value !== iso) : [...current, iso].sort((a, b) => a - b),
+      current.includes(iso)
+        ? current.filter((value) => value !== iso)
+        : [...current, iso].sort((a, b) => a - b),
     );
 
   const reset = (recurrence?: Recurrence) => {
@@ -60,7 +63,9 @@ export function useRecurrenceForm(initial?: Recurrence): RecurrenceForm {
     if (!recurrence) return false;
     const currentWeekdays = normalizeWeekdays(freq, weekdays);
     const recurrenceWeekdays =
-      recurrence.weekdays && recurrence.weekdays.length ? [...recurrence.weekdays].sort((a, b) => a - b) : undefined;
+      recurrence.weekdays && recurrence.weekdays.length
+        ? [...recurrence.weekdays].sort((a, b) => a - b)
+        : undefined;
     return (
       freq !== recurrence.freq ||
       parsedInterval(interval) !== recurrence.interval ||
@@ -91,7 +96,10 @@ export function RecurrenceFields({ form }: { form: RecurrenceForm }) {
       <div className="form-grid form-grid--3">
         <label className="field">
           <span>Co ile</span>
-          <select value={form.freq} onChange={(event) => form.setFreq(event.target.value as RecurrenceFreq)}>
+          <select
+            value={form.freq}
+            onChange={(event) => form.setFreq(event.target.value as RecurrenceFreq)}
+          >
             <option value="daily">Dni</option>
             <option value="weekly">Tygodni</option>
             <option value="monthly">Miesięcy</option>
@@ -99,7 +107,12 @@ export function RecurrenceFields({ form }: { form: RecurrenceForm }) {
         </label>
         <label className="field">
           <span>Co ile jednostek</span>
-          <input type="number" min={1} value={form.interval} onChange={(event) => form.setInterval(event.target.value)} />
+          <input
+            type="number"
+            min={1}
+            value={form.interval}
+            onChange={(event) => form.setInterval(event.target.value)}
+          />
         </label>
         <label className="field">
           <span>Zakończ po (opcjonalnie)</span>

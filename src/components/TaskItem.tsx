@@ -89,7 +89,9 @@ export function TaskItem({
   }, [menuId, menuOpen]);
 
   return (
-    <article className={`task-item ${task.status === "done" ? "task-item--done" : ""} ${compact ? "task-item--compact" : ""}`}>
+    <article
+      className={`task-item ${task.status === "done" ? "task-item--done" : ""} ${compact ? "task-item--compact" : ""}`}
+    >
       <button
         className="task-check"
         type="button"
@@ -109,7 +111,9 @@ export function TaskItem({
             <h3>{task.title}</h3>
           )}
           {task.isFocus && task.status !== "done" && (
-            <span className="focus-label"><Star size={11} fill="currentColor" /> Priorytet</span>
+            <span className="focus-label">
+              <Star size={11} fill="currentColor" /> Priorytet
+            </span>
           )}
           {task.seriesId && (
             <Repeat size={13} className="series-icon" role="img" aria-label="Zadanie powtarzalne" />
@@ -118,9 +122,13 @@ export function TaskItem({
         {!compact && task.description && <p>{task.description}</p>}
         <div className="task-meta">
           {task.visibility === "private" && (
-            <span className="private-badge"><Lock size={12} /> Prywatne</span>
+            <span className="private-badge">
+              <Lock size={12} /> Prywatne
+            </span>
           )}
-          <span className={`category-tag category-tag--${task.category.toLowerCase().replaceAll(" ", "-")}`}>
+          <span
+            className={`category-tag category-tag--${task.category.toLowerCase().replaceAll(" ", "-")}`}
+          >
             {task.category}
           </span>
           {task.date && (
@@ -130,10 +138,14 @@ export function TaskItem({
             </span>
           )}
           {task.estimatedMinutes && (
-            <span><Clock3 size={13} /> {formatMinutes(task.estimatedMinutes)}</span>
+            <span>
+              <Clock3 size={13} /> {formatMinutes(task.estimatedMinutes)}
+            </span>
           )}
           {task.priority === "high" && (
-            <span className="priority-high"><Sparkles size={13} /> {priorityLabels[task.priority]}</span>
+            <span className="priority-high">
+              <Sparkles size={13} /> {priorityLabels[task.priority]}
+            </span>
           )}
         </div>
       </div>

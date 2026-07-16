@@ -250,11 +250,7 @@ export interface Medication extends SharedMeta {
 }
 
 export type HealthMeasurementType =
-  | "weight"
-  | "blood_pressure"
-  | "glucose"
-  | "temperature"
-  | "other";
+  "weight" | "blood_pressure" | "glucose" | "temperature" | "other";
 
 export interface HealthMeasurement extends SharedMeta {
   id: string;

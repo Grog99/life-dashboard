@@ -75,25 +75,59 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
   const syncGoogle = async () => {
     setGoogleSyncing(true);
     try {
-      const result = await apiRequest<{ events: Array<{ externalId: string; title: string; start?: string; end?: string; location?: string; status?: string; updatedAt?: string }> }>("/api/v1/integrations/google/sync", { method: "POST", json: {}, timeoutMs: 180_000 });
+      const result = await apiRequest<{
+        events: Array<{
+          externalId: string;
+          title: string;
+          start?: string;
+          end?: string;
+          location?: string;
+          status?: string;
+          updatedAt?: string;
+        }>;
+      }>("/api/v1/integrations/google/sync", { method: "POST", json: {}, timeoutMs: 180_000 });
       let added = 0;
       let updated = 0;
       let removed = 0;
       result.events.forEach((item) => {
-        const existing = useLifeStore.getState().events.find((event) => event.source === "google" && event.externalId === item.externalId);
+        const existing = useLifeStore
+          .getState()
+          .events.find(
+            (event) => event.source === "google" && event.externalId === item.externalId,
+          );
         if (item.status === "cancelled") {
-          if (existing) { deleteEvent(existing.id); removed += 1; }
+          if (existing) {
+            deleteEvent(existing.id);
+            removed += 1;
+          }
           return;
         }
         if (!item.start) return;
         const date = item.start.slice(0, 10);
         const startTime = item.start.includes("T") ? item.start.slice(11, 16) : "09:00";
         const endTime = item.end?.includes("T") ? item.end.slice(11, 16) : "10:00";
-        const changes = { title: item.title, date, startTime, endTime, kind: "meeting" as const, location: item.location, source: "google" as const, externalId: item.externalId, externalUpdatedAt: item.updatedAt };
-        if (existing) { updateEvent(existing.id, changes); updated += 1; }
-        else { addEvent({ ...changes, visibility: "private", ownerId: currentOwnerId }); added += 1; }
+        const changes = {
+          title: item.title,
+          date,
+          startTime,
+          endTime,
+          kind: "meeting" as const,
+          location: item.location,
+          source: "google" as const,
+          externalId: item.externalId,
+          externalUpdatedAt: item.updatedAt,
+        };
+        if (existing) {
+          updateEvent(existing.id, changes);
+          updated += 1;
+        } else {
+          addEvent({ ...changes, visibility: "private", ownerId: currentOwnerId });
+          added += 1;
+        }
       });
-      onToast(`Google Calendar: ${added} nowych · ${updated} zaktualizowanych${removed ? ` · ${removed} usuniętych` : ""}`);
+      onToast(
+        `Google Calendar: ${added} nowych · ${updated} zaktualizowanych${removed ? ` · ${removed} usuniętych` : ""}`,
+      );
     } catch (error) {
       onToast(error instanceof Error ? error.message : "Nie udało się zsynchronizować kalendarza");
     } finally {
@@ -116,43 +150,89 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
           <h1>Kalendarz</h1>
           <p>Zobacz cały tydzień i zostaw trochę miejsca na niespodziewane.</p>
         </div>
-        <div className="page-header__actions">{serverMode && <button className="button button--ghost-border" type="button" onClick={() => void syncGoogle()} disabled={googleSyncing}><RefreshCw size={16} className={googleSyncing ? "spin" : ""} /> Google</button>}<button className="button button--primary" type="button" onClick={onQuickAdd}><Plus size={17} /> Nowe wydarzenie</button></div>
+        <div className="page-header__actions">
+          {serverMode && (
+            <button
+              className="button button--ghost-border"
+              type="button"
+              onClick={() => void syncGoogle()}
+              disabled={googleSyncing}
+            >
+              <RefreshCw size={16} className={googleSyncing ? "spin" : ""} /> Google
+            </button>
+          )}
+          <button className="button button--primary" type="button" onClick={onQuickAdd}>
+            <Plus size={17} /> Nowe wydarzenie
+          </button>
+        </div>
       </header>
 
       <section className="calendar-shell panel">
         <header className="calendar-toolbar">
           <div className="calendar-toolbar__month">
-            <button className="icon-button" type="button" onClick={() => changeWeek(-1)} aria-label="Poprzedni tydzień"><ChevronLeft size={20} /></button>
-            <div><strong>{format(anchor, "LLLL yyyy", { locale: pl })}</strong><span>Tydzień {format(anchor, "w")}</span></div>
-            <button className="icon-button" type="button" onClick={() => changeWeek(1)} aria-label="Następny tydzień"><ChevronRight size={20} /></button>
+            <button
+              className="icon-button"
+              type="button"
+              onClick={() => changeWeek(-1)}
+              aria-label="Poprzedni tydzień"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <strong>{format(anchor, "LLLL yyyy", { locale: pl })}</strong>
+              <span>Tydzień {format(anchor, "w")}</span>
+            </div>
+            <button
+              className="icon-button"
+              type="button"
+              onClick={() => changeWeek(1)}
+              aria-label="Następny tydzień"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
-          <button className="button button--soft button--small" type="button" onClick={selectToday}>Dzisiaj</button>
+          <button className="button button--soft button--small" type="button" onClick={selectToday}>
+            Dzisiaj
+          </button>
         </header>
 
         <div className="week-overview" ref={weekOverviewRef}>
           {days.map((day) => {
             const dayKey = dateKey(day);
             const dayEvents = events.filter((event) => event.date === dayKey);
-            const dayTasks = tasks.filter((task) => task.date === dayKey && task.status === "todo" && task.time);
+            const dayTasks = tasks.filter(
+              (task) => task.date === dayKey && task.status === "todo" && task.time,
+            );
             const selected = dayKey === selectedDate;
             const today = isSameDay(day, new Date());
             return (
-              <div className={`week-day ${selected ? "week-day--selected" : ""} ${today ? "week-day--today" : ""}`} key={dayKey}>
-                <button className="week-day__header" type="button" onClick={() => setSelectedDate(dayKey)} aria-pressed={selected}>
+              <div
+                className={`week-day ${selected ? "week-day--selected" : ""} ${today ? "week-day--today" : ""}`}
+                key={dayKey}
+              >
+                <button
+                  className="week-day__header"
+                  type="button"
+                  onClick={() => setSelectedDate(dayKey)}
+                  aria-pressed={selected}
+                >
                   <span>{formatDayName(day)}</span>
                   <strong>{format(day, "d")}</strong>
                   {today && <small>dziś</small>}
                 </button>
                 <div className="week-day__events">
-                  {[...dayEvents, ...dayTasks.map((task) => ({
-                    id: task.id,
-                    title: task.title,
-                    date: task.date!,
-                    startTime: task.time!,
-                    endTime: "",
-                    kind: "task" as const,
-                    seriesId: task.seriesId,
-                  }))]
+                  {[
+                    ...dayEvents,
+                    ...dayTasks.map((task) => ({
+                      id: task.id,
+                      title: task.title,
+                      date: task.date!,
+                      startTime: task.time!,
+                      endTime: "",
+                      kind: "task" as const,
+                      seriesId: task.seriesId,
+                    })),
+                  ]
                     .sort((a, b) => a.startTime.localeCompare(b.startTime))
                     .map((item) => (
                       <button
@@ -172,13 +252,19 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                       >
                         <time>{item.startTime}</time>
                         <strong>{item.title}</strong>
-                        {item.seriesId && <Repeat size={11} className="series-icon" aria-hidden="true" />}
+                        {item.seriesId && (
+                          <Repeat size={11} className="series-icon" aria-hidden="true" />
+                        )}
                         {"visibility" in item && item.visibility === "private" && (
-                          <span className="private-badge"><Lock size={10} /> Prywatne</span>
+                          <span className="private-badge">
+                            <Lock size={10} /> Prywatne
+                          </span>
                         )}
                       </button>
                     ))}
-                  {!dayEvents.length && !dayTasks.length && <span className="week-day__empty">—</span>}
+                  {!dayEvents.length && !dayTasks.length && (
+                    <span className="week-day__empty">—</span>
+                  )}
                 </div>
               </div>
             );
@@ -189,19 +275,49 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
       <div className="calendar-lower-grid">
         <section className="panel day-agenda">
           <header className="panel__header">
-            <div><span className="section-kicker"><CalendarDays size={14} /> Wybrany dzień</span><h2>{relativeDay(selectedDate)}</h2></div>
-            <span className="date-badge">{format(parseISO(selectedDate), "d MMMM", { locale: pl })}</span>
+            <div>
+              <span className="section-kicker">
+                <CalendarDays size={14} /> Wybrany dzień
+              </span>
+              <h2>{relativeDay(selectedDate)}</h2>
+            </div>
+            <span className="date-badge">
+              {format(parseISO(selectedDate), "d MMMM", { locale: pl })}
+            </span>
           </header>
           <div className="day-agenda__list">
             {selectedEvents.map((event) => (
-              <button className={`agenda-event agenda-event--${event.kind}`} type="button" key={event.id} onClick={() => setEditingEvent(event)}>
-                <span className="agenda-event__time">{event.startTime}<small>{event.endTime}</small></span>
+              <button
+                className={`agenda-event agenda-event--${event.kind}`}
+                type="button"
+                key={event.id}
+                onClick={() => setEditingEvent(event)}
+              >
+                <span className="agenda-event__time">
+                  {event.startTime}
+                  <small>{event.endTime}</small>
+                </span>
                 <span className="agenda-event__line" />
                 <span className="agenda-event__content">
                   <strong>{event.title}</strong>
-                  {event.seriesId && <Repeat size={12} className="series-icon" role="img" aria-label="Wydarzenie powtarzalne" />}
-                  {event.visibility === "private" && <small className="private-badge"><Lock size={11} /> Prywatne</small>}
-                  {event.location && <small><MapPin size={13} /> {event.location}</small>}
+                  {event.seriesId && (
+                    <Repeat
+                      size={12}
+                      className="series-icon"
+                      role="img"
+                      aria-label="Wydarzenie powtarzalne"
+                    />
+                  )}
+                  {event.visibility === "private" && (
+                    <small className="private-badge">
+                      <Lock size={11} /> Prywatne
+                    </small>
+                  )}
+                  {event.location && (
+                    <small>
+                      <MapPin size={13} /> {event.location}
+                    </small>
+                  )}
                 </span>
                 <ChevronRight size={17} />
               </button>
@@ -212,23 +328,42 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                 <span className="agenda-event__line" />
                 <span className="agenda-event__content">
                   <strong>{task.title}</strong>
-                  {task.seriesId && <Repeat size={12} className="series-icon" role="img" aria-label="Zadanie powtarzalne" />}
+                  {task.seriesId && (
+                    <Repeat
+                      size={12}
+                      className="series-icon"
+                      role="img"
+                      aria-label="Zadanie powtarzalne"
+                    />
+                  )}
                   <small>Zadanie · {task.category}</small>
                 </span>
               </div>
             ))}
             {!selectedEvents.length && !selectedTasks.length && (
-              <EmptyState icon={CalendarDays} title="Dzień bez planu" description="Zostaw go wolnym albo dodaj rzecz, dla której warto zarezerwować czas." action="Dodaj wydarzenie" onAction={onQuickAdd} />
+              <EmptyState
+                icon={CalendarDays}
+                title="Dzień bez planu"
+                description="Zostaw go wolnym albo dodaj rzecz, dla której warto zarezerwować czas."
+                action="Dodaj wydarzenie"
+                onAction={onQuickAdd}
+              />
             )}
           </div>
         </section>
 
         <aside className="calendar-tip">
-          <div className="calendar-tip__icon"><Clock3 size={20} /></div>
+          <div className="calendar-tip__icon">
+            <Clock3 size={20} />
+          </div>
           <span>Wskazówka</span>
           <h3>Planuj tylko 60–70% dnia</h3>
           <p>Bufor między blokami chroni plan przed jednym opóźnionym spotkaniem.</p>
-          <div className="calendar-tip__arrows"><ArrowLeft size={16} /><span>miejsce na oddech</span><ArrowRight size={16} /></div>
+          <div className="calendar-tip__arrows">
+            <ArrowLeft size={16} />
+            <span>miejsce na oddech</span>
+            <ArrowRight size={16} />
+          </div>
         </aside>
       </div>
 
@@ -304,7 +439,15 @@ interface EventEditModalProps {
   onToast: (message: string) => void;
 }
 
-function EventEditModal({ event, onClose, onSave, onDelete, onSaveSeries, onDeleteSeries, onToast }: EventEditModalProps) {
+function EventEditModal({
+  event,
+  onClose,
+  onSave,
+  onDelete,
+  onSaveSeries,
+  onDeleteSeries,
+  onToast,
+}: EventEditModalProps) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -372,36 +515,120 @@ function EventEditModal({ event, onClose, onSave, onDelete, onSaveSeries, onDele
       <form className="edit-form" onSubmit={submit}>
         {event?.seriesId && (
           <p className="series-edit-note">
-            <Repeat size={13} role="img" aria-label="Wydarzenie powtarzalne" /> To wydarzenie jest częścią serii. „Zapisz” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”, aby zmienić przyszłe wystąpienia.
+            <Repeat size={13} role="img" aria-label="Wydarzenie powtarzalne" /> To wydarzenie jest
+            częścią serii. „Zapisz” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”,
+            aby zmienić przyszłe wystąpienia.
           </p>
         )}
-        <label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={title} onChange={(input) => setTitle(input.target.value)} /></label>
+        <label className="field field--prominent">
+          <span>Nazwa</span>
+          <input
+            autoFocus
+            required
+            value={title}
+            onChange={(input) => setTitle(input.target.value)}
+          />
+        </label>
         <div className="form-grid form-grid--3">
-          <label className="field"><span>Data</span><input required type="date" value={date} onChange={(input) => setDate(input.target.value)} /></label>
-          <label className="field"><span>Od</span><input required type="time" value={startTime} onChange={(input) => setStartTime(input.target.value)} /></label>
-          <label className="field"><span>Do</span><input required min={startTime} type="time" value={endTime} onChange={(input) => setEndTime(input.target.value)} /></label>
+          <label className="field">
+            <span>Data</span>
+            <input
+              required
+              type="date"
+              value={date}
+              onChange={(input) => setDate(input.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>Od</span>
+            <input
+              required
+              type="time"
+              value={startTime}
+              onChange={(input) => setStartTime(input.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>Do</span>
+            <input
+              required
+              min={startTime}
+              type="time"
+              value={endTime}
+              onChange={(input) => setEndTime(input.target.value)}
+            />
+          </label>
         </div>
         <div className="form-grid form-grid--2">
-          <label className="field"><span>Rodzaj</span><select value={kind} onChange={(input) => setKind(input.target.value as EventKind)}><option value="personal">Prywatne</option><option value="meeting">Spotkanie</option><option value="focus">Skupienie</option></select></label>
-          <label className="field"><span>Miejsce</span><input value={location} onChange={(input) => setLocation(input.target.value)} placeholder="Opcjonalnie" /></label>
+          <label className="field">
+            <span>Rodzaj</span>
+            <select value={kind} onChange={(input) => setKind(input.target.value as EventKind)}>
+              <option value="personal">Prywatne</option>
+              <option value="meeting">Spotkanie</option>
+              <option value="focus">Skupienie</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Miejsce</span>
+            <input
+              value={location}
+              onChange={(input) => setLocation(input.target.value)}
+              placeholder="Opcjonalnie"
+            />
+          </label>
         </div>
-        <label className="field"><span>Widoczność</span><select value={visibility} onChange={(input) => setVisibility(input.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
-        <label className="field"><span>Notatka</span><textarea value={notes} onChange={(input) => setNotes(input.target.value)} placeholder="Szczegóły, link, przygotowanie…" /></label>
+        <label className="field">
+          <span>Widoczność</span>
+          <select
+            value={visibility}
+            onChange={(input) => setVisibility(input.target.value as Visibility)}
+          >
+            <option value="household">Cały dom</option>
+            <option value="private">Tylko ja</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Notatka</span>
+          <textarea
+            value={notes}
+            onChange={(input) => setNotes(input.target.value)}
+            placeholder="Szczegóły, link, przygotowanie…"
+          />
+        </label>
 
         {event?.seriesId && <RecurrenceFields form={repeat} />}
 
         <footer className="modal-actions modal-actions--spread">
           <div>
-            <button className="button button--danger-ghost" type="button" onClick={onDelete}><Trash2 size={15} /> Usuń</button>
+            <button className="button button--danger-ghost" type="button" onClick={onDelete}>
+              <Trash2 size={15} /> Usuń
+            </button>
             {event?.seriesId && (
-              <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm("Usunąć całą serię wydarzeń, wraz z przyszłymi wystąpieniami?")) onDeleteSeries(); }}><Trash2 size={15} /> Usuń serię</button>
+              <button
+                className="button button--danger-ghost"
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm("Usunąć całą serię wydarzeń, wraz z przyszłymi wystąpieniami?")
+                  )
+                    onDeleteSeries();
+                }}
+              >
+                <Trash2 size={15} /> Usuń serię
+              </button>
             )}
           </div>
           <div>
-            <button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button>
-            <button className="button button--primary" type="submit">Zapisz</button>
+            <button className="button button--ghost" type="button" onClick={onClose}>
+              Anuluj
+            </button>
+            <button className="button button--primary" type="submit">
+              Zapisz
+            </button>
             {event?.seriesId && (
-              <button className="button button--soft" type="button" onClick={submitSeries}><Repeat size={14} /> Zapisz dla całej serii</button>
+              <button className="button button--soft" type="button" onClick={submitSeries}>
+                <Repeat size={14} /> Zapisz dla całej serii
+              </button>
             )}
           </div>
         </footer>
@@ -419,7 +646,14 @@ interface TaskEditModalProps {
   onDeleteSeries: () => void;
 }
 
-function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDeleteSeries }: TaskEditModalProps) {
+function TaskEditModal({
+  task,
+  onClose,
+  onSave,
+  onDelete,
+  onSaveSeries,
+  onDeleteSeries,
+}: TaskEditModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -471,38 +705,121 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
   };
 
   return (
-    <Modal open={Boolean(task)} onClose={onClose} title="Szczegóły zadania" eyebrow={task?.date ? `Termin: ${formatShortDate(task.date)}` : "Bez terminu"}>
+    <Modal
+      open={Boolean(task)}
+      onClose={onClose}
+      title="Szczegóły zadania"
+      eyebrow={task?.date ? `Termin: ${formatShortDate(task.date)}` : "Bez terminu"}
+    >
       <form className="edit-form" onSubmit={submit}>
         {task?.seriesId && (
           <p className="series-edit-note">
-            <Repeat size={13} role="img" aria-label="Zadanie powtarzalne" /> To zadanie jest częścią serii. „Zapisz zmiany” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”, aby zmienić przyszłe wystąpienia.
+            <Repeat size={13} role="img" aria-label="Zadanie powtarzalne" /> To zadanie jest częścią
+            serii. „Zapisz zmiany” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”,
+            aby zmienić przyszłe wystąpienia.
           </p>
         )}
-        <label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={title} onChange={(input) => setTitle(input.target.value)} /></label>
-        <label className="field"><span>Notatka</span><textarea value={description} onChange={(input) => setDescription(input.target.value)} placeholder="Opcjonalny kontekst…" /></label>
+        <label className="field field--prominent">
+          <span>Nazwa</span>
+          <input
+            autoFocus
+            required
+            value={title}
+            onChange={(input) => setTitle(input.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>Notatka</span>
+          <textarea
+            value={description}
+            onChange={(input) => setDescription(input.target.value)}
+            placeholder="Opcjonalny kontekst…"
+          />
+        </label>
         <div className="form-grid form-grid--2">
-          <label className="field"><span>Data</span><input type="date" value={date} onChange={(input) => setDate(input.target.value)} /></label>
-          <label className="field"><span>Godzina</span><input type="time" value={time} onChange={(input) => setTime(input.target.value)} /></label>
-          <label className="field"><span>Obszar</span><select value={category} onChange={(input) => setCategory(input.target.value)}><option>Praca</option><option>Prywatne</option><option>Dom</option><option>Zdrowie</option><option>Finanse</option></select></label>
-          <label className="field"><span>Ważność</span><select value={priority} onChange={(input) => setPriority(input.target.value as Priority)}><option value="high">Ważne</option><option value="medium">Normalne</option><option value="low">Może poczekać</option></select></label>
-          <label className="field"><span>Czas</span><select value={estimatedMinutes} onChange={(input) => setEstimatedMinutes(input.target.value)}><option value="10">10 minut</option><option value="15">15 minut</option><option value="30">30 minut</option><option value="60">1 godzina</option><option value="90">1,5 godziny</option></select></label>
-          <label className="field"><span>Energia</span><select value={energy} onChange={(input) => setEnergy(input.target.value as Energy)}><option value="low">Mała</option><option value="medium">Średnia</option><option value="high">Duża</option></select></label>
+          <label className="field">
+            <span>Data</span>
+            <input type="date" value={date} onChange={(input) => setDate(input.target.value)} />
+          </label>
+          <label className="field">
+            <span>Godzina</span>
+            <input type="time" value={time} onChange={(input) => setTime(input.target.value)} />
+          </label>
+          <label className="field">
+            <span>Obszar</span>
+            <select value={category} onChange={(input) => setCategory(input.target.value)}>
+              <option>Praca</option>
+              <option>Prywatne</option>
+              <option>Dom</option>
+              <option>Zdrowie</option>
+              <option>Finanse</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Ważność</span>
+            <select
+              value={priority}
+              onChange={(input) => setPriority(input.target.value as Priority)}
+            >
+              <option value="high">Ważne</option>
+              <option value="medium">Normalne</option>
+              <option value="low">Może poczekać</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Czas</span>
+            <select
+              value={estimatedMinutes}
+              onChange={(input) => setEstimatedMinutes(input.target.value)}
+            >
+              <option value="10">10 minut</option>
+              <option value="15">15 minut</option>
+              <option value="30">30 minut</option>
+              <option value="60">1 godzina</option>
+              <option value="90">1,5 godziny</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Energia</span>
+            <select value={energy} onChange={(input) => setEnergy(input.target.value as Energy)}>
+              <option value="low">Mała</option>
+              <option value="medium">Średnia</option>
+              <option value="high">Duża</option>
+            </select>
+          </label>
         </div>
 
         {task?.seriesId && <RecurrenceFields form={repeat} />}
 
         <footer className="modal-actions modal-actions--spread">
           <div>
-            <button className="button button--danger-ghost" type="button" onClick={onDelete}><Trash2 size={15} /> Usuń</button>
+            <button className="button button--danger-ghost" type="button" onClick={onDelete}>
+              <Trash2 size={15} /> Usuń
+            </button>
             {task?.seriesId && (
-              <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm("Usunąć całą serię zadań, wraz z przyszłymi wystąpieniami?")) onDeleteSeries(); }}><Trash2 size={15} /> Usuń serię</button>
+              <button
+                className="button button--danger-ghost"
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Usunąć całą serię zadań, wraz z przyszłymi wystąpieniami?"))
+                    onDeleteSeries();
+                }}
+              >
+                <Trash2 size={15} /> Usuń serię
+              </button>
             )}
           </div>
           <div>
-            <button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button>
-            <button className="button button--primary" type="submit">Zapisz zmiany</button>
+            <button className="button button--ghost" type="button" onClick={onClose}>
+              Anuluj
+            </button>
+            <button className="button button--primary" type="submit">
+              Zapisz zmiany
+            </button>
             {task?.seriesId && (
-              <button className="button button--soft" type="button" onClick={submitSeries}><Repeat size={14} /> Zapisz dla całej serii</button>
+              <button className="button button--soft" type="button" onClick={submitSeries}>
+                <Repeat size={14} /> Zapisz dla całej serii
+              </button>
             )}
           </div>
         </footer>

@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { ArrowRight, Home, LoaderCircle, LockKeyhole, ShieldCheck, UserPlus } from "lucide-react";
 import { apiRequest, ApiError, serverMode, type AuthSnapshot } from "./api";
 import { WorkspaceSync } from "./WorkspaceSync";
@@ -26,6 +34,7 @@ const AuthContext = createContext<AuthContextValue>({
   logout: async () => undefined,
 });
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook celowo współdzielony z komponentem AuthGate w tym samym pliku; korzysta z lokalnego AuthContext zdefiniowanego tutaj.
 export const useServerAuth = () => useContext(AuthContext);
 
 const STORAGE_OWNER_KEY = "puls-server-storage-owner";
@@ -34,7 +43,9 @@ const INVITE_WARNING_KEY = "puls-invite-warning";
 
 function cachedSnapshot(): AuthSnapshot | null {
   try {
-    const value = JSON.parse(safeGetStorageItem(AUTH_SNAPSHOT_KEY) ?? "null") as AuthSnapshot | null;
+    const value = JSON.parse(
+      safeGetStorageItem(AUTH_SNAPSHOT_KEY) ?? "null",
+    ) as AuthSnapshot | null;
     return value?.user?.id && value.activeHouseholdId ? value : null;
   } catch {
     safeRemoveStorageItem(AUTH_SNAPSHOT_KEY);
@@ -104,7 +115,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
       clearLocalUserData();
     }
     if (broadcast) {
-      try { authChannel.current?.postMessage({ type: "logout", reason }); } catch { /* storage event remains the fallback */ }
+      try {
+        authChannel.current?.postMessage({ type: "logout", reason });
+      } catch {
+        /* storage event remains the fallback */
+      }
     }
   };
 
@@ -130,11 +145,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     if (inviteToken && acceptPendingInvite) {
       try {
-        await apiRequest("/api/v1/households/invitations/accept", { method: "POST", json: { inviteToken } });
+        await apiRequest("/api/v1/households/invitations/accept", {
+          method: "POST",
+          json: { inviteToken },
+        });
         next = await apiRequest<AuthSnapshot>("/api/v1/auth/me");
         const url = new URL(window.location.href);
         url.searchParams.delete("invite");
-        window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${url.pathname}${url.search}${url.hash}`,
+        );
       } catch (error) {
         if (isRejectedSession(error) && (error as ApiError).status === 401) {
           endLocalSession(true, "expired");
@@ -144,7 +166,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
         // and surface the invitation failure once the application mounts.
         const url = new URL(window.location.href);
         url.searchParams.delete("invite");
-        window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${url.pathname}${url.search}${url.hash}`,
+        );
         try {
           sessionStorage.setItem(
             INVITE_WARNING_KEY,
@@ -158,7 +184,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
       // Registration consumes the invitation atomically on the server.
       const url = new URL(window.location.href);
       url.searchParams.delete("invite");
-      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
     }
 
     commitSnapshot(next);
@@ -186,11 +216,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `refresh` nie jest memoizowane; ten efekt ma odpalić się tylko raz przy montowaniu, nie przy każdym renderze.
   }, []);
 
   useEffect(() => {
     if (!serverMode) return;
-    const applyRemoteLogout = (reason: "logout" | "expired" = "logout") => endLocalSession(false, reason);
+    const applyRemoteLogout = (reason: "logout" | "expired" = "logout") =>
+      endLocalSession(false, reason);
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== AUTH_SNAPSHOT_KEY) return;
       if (!event.newValue) {
@@ -212,7 +244,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         const channel = new BroadcastChannel("puls-auth");
         authChannel.current = channel;
         channel.addEventListener("message", (event) => {
-          if (event.data?.type === "logout") applyRemoteLogout(event.data.reason === "expired" ? "expired" : "logout");
+          if (event.data?.type === "logout")
+            applyRemoteLogout(event.data.reason === "expired" ? "expired" : "logout");
         });
       } catch {
         authChannel.current = null;
@@ -235,17 +268,36 @@ export function AuthGate({ children }: { children: ReactNode }) {
   };
 
   if (!serverMode) {
-    return <AuthContext.Provider value={{ snapshot: null, refresh, logout }}>{children}</AuthContext.Provider>;
+    return (
+      <AuthContext.Provider value={{ snapshot: null, refresh, logout }}>
+        {children}
+      </AuthContext.Provider>
+    );
   }
 
   if (loading) return <AuthLoading />;
 
   if (!configured) {
-    return <AuthScreen mode="bootstrap" onSuccess={async () => { setConfigured(true); await refresh(false); }} />;
+    return (
+      <AuthScreen
+        mode="bootstrap"
+        onSuccess={async () => {
+          setConfigured(true);
+          await refresh(false);
+        }}
+      />
+    );
   }
 
   if (!snapshot) {
-    return <AuthScreen mode={authMode} inviteToken={inviteToken ?? undefined} onModeChange={setAuthMode} onSuccess={() => refresh(authMode !== "register")} />;
+    return (
+      <AuthScreen
+        mode={authMode}
+        inviteToken={inviteToken ?? undefined}
+        onModeChange={setAuthMode}
+        onSuccess={() => refresh(authMode !== "register")}
+      />
+    );
   }
 
   return (
@@ -264,14 +316,28 @@ export function AuthGate({ children }: { children: ReactNode }) {
 function AuthLoading() {
   return (
     <div className="auth-shell">
-      <div className="auth-loading"><span className="brand__mark">P</span><LoaderCircle size={22} className="spin" /><span>Uruchamiam Puls…</span></div>
+      <div className="auth-loading">
+        <span className="brand__mark">P</span>
+        <LoaderCircle size={22} className="spin" />
+        <span>Uruchamiam Puls…</span>
+      </div>
     </div>
   );
 }
 
 type AuthMode = "login" | "register" | "bootstrap";
 
-function AuthScreen({ mode, inviteToken, onModeChange, onSuccess }: { mode: AuthMode; inviteToken?: string; onModeChange?: (mode: AuthMode) => void; onSuccess: () => Promise<void> }) {
+function AuthScreen({
+  mode,
+  inviteToken,
+  onModeChange,
+  onSuccess,
+}: {
+  mode: AuthMode;
+  inviteToken?: string;
+  onModeChange?: (mode: AuthMode) => void;
+  onSuccess: () => Promise<void>;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -285,7 +351,12 @@ function AuthScreen({ mode, inviteToken, onModeChange, onSuccess }: { mode: Auth
     setBusy(true);
     setError("");
     try {
-      const path = mode === "bootstrap" ? "/api/v1/auth/bootstrap" : mode === "register" ? "/api/v1/auth/register" : "/api/v1/auth/login";
+      const path =
+        mode === "bootstrap"
+          ? "/api/v1/auth/bootstrap"
+          : mode === "register"
+            ? "/api/v1/auth/register"
+            : "/api/v1/auth/login";
       await apiRequest(path, {
         method: "POST",
         json: {
@@ -305,29 +376,144 @@ function AuthScreen({ mode, inviteToken, onModeChange, onSuccess }: { mode: Auth
     }
   };
 
-  const title = mode === "login" ? "Witaj ponownie" : mode === "register" ? "Dołącz do domu" : "Skonfiguruj swój Puls";
-  const description = mode === "login" ? "Zaloguj się do wspólnej przestrzeni." : mode === "register" ? "Zaproszenie połączy Cię ze wspólnym dashboardem." : "Pierwsze konto otrzyma rolę właściciela.";
+  const title =
+    mode === "login"
+      ? "Witaj ponownie"
+      : mode === "register"
+        ? "Dołącz do domu"
+        : "Skonfiguruj swój Puls";
+  const description =
+    mode === "login"
+      ? "Zaloguj się do wspólnej przestrzeni."
+      : mode === "register"
+        ? "Zaproszenie połączy Cię ze wspólnym dashboardem."
+        : "Pierwsze konto otrzyma rolę właściciela.";
 
   return (
     <div className="auth-shell">
       <div className="auth-visual">
-        <div className="auth-brand"><span className="brand__mark">P</span><div><strong>Puls</strong><span>osobiste centrum życia</span></div></div>
-        <div className="auth-visual__content"><span><ShieldCheck size={17} /> Self-hosted · Twoje dane</span><h1>Wszystko, co ważne.<br />W jednym spokojnym miejscu.</h1><p>Plan dnia, wspólne finanse, podróże, posiłki, subskrypcje, samochód i podstawy zdrowia — dostępne na każdym urządzeniu.</p></div>
-        <div className="auth-feature-row"><span><Home size={16} /> Wspólny dom</span><span><LockKeyhole size={16} /> Prywatne dane</span><span><UserPlus size={16} /> Zaproszenia</span></div>
+        <div className="auth-brand">
+          <span className="brand__mark">P</span>
+          <div>
+            <strong>Puls</strong>
+            <span>osobiste centrum życia</span>
+          </div>
+        </div>
+        <div className="auth-visual__content">
+          <span>
+            <ShieldCheck size={17} /> Self-hosted · Twoje dane
+          </span>
+          <h1>
+            Wszystko, co ważne.
+            <br />W jednym spokojnym miejscu.
+          </h1>
+          <p>
+            Plan dnia, wspólne finanse, podróże, posiłki, subskrypcje, samochód i podstawy zdrowia —
+            dostępne na każdym urządzeniu.
+          </p>
+        </div>
+        <div className="auth-feature-row">
+          <span>
+            <Home size={16} /> Wspólny dom
+          </span>
+          <span>
+            <LockKeyhole size={16} /> Prywatne dane
+          </span>
+          <span>
+            <UserPlus size={16} /> Zaproszenia
+          </span>
+        </div>
       </div>
       <main className="auth-card">
-        <header><span className="auth-mobile-logo brand__mark">P</span><span className="page-eyebrow">Puls 2.0</span><h2>{title}</h2><p>{description}</p></header>
+        <header>
+          <span className="auth-mobile-logo brand__mark">P</span>
+          <span className="page-eyebrow">Puls 2.0</span>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </header>
         <form onSubmit={submit}>
-          {mode !== "login" && <label className="field"><span>Twoje imię</span><input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" /></label>}
-          {mode === "bootstrap" && <label className="field"><span>Nazwa domu</span><input required minLength={2} value={householdName} onChange={(event) => setHouseholdName(event.target.value)} /></label>}
-          <label className="field"><span>Adres e-mail</span><input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
-          <label className="field"><span>Hasło</span><input required minLength={8} type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} /><small>Minimum 8 znaków</small></label>
-          {mode === "bootstrap" && <label className="field"><span>Token pierwszej konfiguracji</span><input required type="password" value={bootstrapToken} onChange={(event) => setBootstrapToken(event.target.value)} autoComplete="off" /></label>}
-          {error && <div className="auth-error" role="alert">{error}</div>}
-          <button className="button button--primary auth-submit" type="submit" disabled={busy}>{busy ? <LoaderCircle size={17} className="spin" /> : <ArrowRight size={17} />}{busy ? "Chwila…" : mode === "login" ? "Zaloguj się" : "Utwórz konto"}</button>
-          {inviteToken && onModeChange && <button className="button button--ghost auth-submit" type="button" onClick={() => onModeChange(mode === "login" ? "register" : "login")}>{mode === "login" ? "Nie mam konta — zarejestruj mnie" : "Mam już konto — zaloguj mnie"}</button>}
+          {mode !== "login" && (
+            <label className="field">
+              <span>Twoje imię</span>
+              <input
+                required
+                minLength={2}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete="name"
+              />
+            </label>
+          )}
+          {mode === "bootstrap" && (
+            <label className="field">
+              <span>Nazwa domu</span>
+              <input
+                required
+                minLength={2}
+                value={householdName}
+                onChange={(event) => setHouseholdName(event.target.value)}
+              />
+            </label>
+          )}
+          <label className="field">
+            <span>Adres e-mail</span>
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+            />
+          </label>
+          <label className="field">
+            <span>Hasło</span>
+            <input
+              required
+              minLength={8}
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+            />
+            <small>Minimum 8 znaków</small>
+          </label>
+          {mode === "bootstrap" && (
+            <label className="field">
+              <span>Token pierwszej konfiguracji</span>
+              <input
+                required
+                type="password"
+                value={bootstrapToken}
+                onChange={(event) => setBootstrapToken(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+          )}
+          {error && (
+            <div className="auth-error" role="alert">
+              {error}
+            </div>
+          )}
+          <button className="button button--primary auth-submit" type="submit" disabled={busy}>
+            {busy ? <LoaderCircle size={17} className="spin" /> : <ArrowRight size={17} />}
+            {busy ? "Chwila…" : mode === "login" ? "Zaloguj się" : "Utwórz konto"}
+          </button>
+          {inviteToken && onModeChange && (
+            <button
+              className="button button--ghost auth-submit"
+              type="button"
+              onClick={() => onModeChange(mode === "login" ? "register" : "login")}
+            >
+              {mode === "login"
+                ? "Nie mam konta — zarejestruj mnie"
+                : "Mam już konto — zaloguj mnie"}
+            </button>
+          )}
         </form>
-        <footer><LockKeyhole size={14} /> Sesja jest chroniona ciasteczkiem HttpOnly. Puls nie wysyła danych poza Twój serwer.</footer>
+        <footer>
+          <LockKeyhole size={14} /> Sesja jest chroniona ciasteczkiem HttpOnly. Puls nie wysyła
+          danych poza Twój serwer.
+        </footer>
       </main>
     </div>
   );

@@ -37,8 +37,12 @@ describe("App", () => {
     const user = userEvent.setup();
     render(<App />);
     const modules = [
-      ["Finanse", "Spokojny obraz pieniędzy"], ["Podróże", "Planer podróży"], ["Subskrypcje", "Subskrypcje"],
-      ["Posiłki", "Posiłki"], ["Samochód", "Samochód"], ["Zdrowie", "Zdrowie"],
+      ["Finanse", "Spokojny obraz pieniędzy"],
+      ["Podróże", "Planer podróży"],
+      ["Subskrypcje", "Subskrypcje"],
+      ["Posiłki", "Posiłki"],
+      ["Samochód", "Samochód"],
+      ["Zdrowie", "Zdrowie"],
     ];
     for (const [navigation, heading] of modules) {
       await user.click(screen.getAllByRole("button", { name: navigation })[0]);

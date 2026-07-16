@@ -26,7 +26,10 @@ test("token comparison and AES-GCM secret storage work", () => {
 
 test("OAuth return path cannot escape the application origin", () => {
   const origin = "https://puls.example.com";
-  assert.equal(safeSameOriginPath("/settings?google=1#calendar", origin), "/settings?google=1#calendar");
+  assert.equal(
+    safeSameOriginPath("/settings?google=1#calendar", origin),
+    "/settings?google=1#calendar",
+  );
   assert.equal(safeSameOriginPath("https://attacker.example/", origin), "/");
   assert.equal(safeSameOriginPath("//attacker.example/", origin), "/");
   assert.equal(safeSameOriginPath("/\\attacker.example/", origin), "/");
@@ -47,5 +50,8 @@ test("verifying against a dummy hash costs the same as a real one (timing-attack
   const withDummyHash = await time(dummyHash);
   const slower = Math.max(withRealHash, withDummyHash);
   const faster = Math.min(withRealHash, withDummyHash);
-  assert.ok(slower / faster < 5, "verifyPassword must do equivalent-cost work for both a real and a dummy hash");
+  assert.ok(
+    slower / faster < 5,
+    "verifyPassword must do equivalent-cost work for both a real and a dummy hash",
+  );
 });

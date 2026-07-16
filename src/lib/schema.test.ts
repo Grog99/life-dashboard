@@ -31,15 +31,15 @@ describe("lifeDataSchema", () => {
       data: createSampleData(),
     };
     expect(backupEnvelopeSchema.safeParse(backup).success).toBe(true);
-    expect(
-      backupEnvelopeSchema.safeParse({ ...backup, schemaVersion: 99 }).success,
-    ).toBe(false);
+    expect(backupEnvelopeSchema.safeParse({ ...backup, schemaVersion: 99 }).success).toBe(false);
   });
 
   it("waliduje wszystkie moduły zaawansowane, w tym zdrowie", () => {
     const data = createAdvancedData();
     expect(advancedDataSchema.safeParse(data).success).toBe(true);
-    expect(advancedDataSchema.safeParse({ ...data, medications: [{ id: "bad" }] }).success).toBe(false);
+    expect(advancedDataSchema.safeParse({ ...data, medications: [{ id: "bad" }] }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -77,10 +77,20 @@ describe("recurrence (powtarzalność serii)", () => {
   it("przyjmuje poprawną regułę i pola serii na zadaniu oraz wydarzeniu", () => {
     expect(recurrenceSchema.safeParse(validRecurrence).success).toBe(true);
     expect(
-      taskSchema.safeParse({ ...baseTask, seriesId: "s1", seriesIndex: 0, recurrence: validRecurrence }).success,
+      taskSchema.safeParse({
+        ...baseTask,
+        seriesId: "s1",
+        seriesIndex: 0,
+        recurrence: validRecurrence,
+      }).success,
     ).toBe(true);
     expect(
-      eventSchema.safeParse({ ...baseEvent, seriesId: "s1", seriesIndex: 3, recurrence: validRecurrence }).success,
+      eventSchema.safeParse({
+        ...baseEvent,
+        seriesId: "s1",
+        seriesIndex: 3,
+        recurrence: validRecurrence,
+      }).success,
     ).toBe(true);
   });
 
@@ -92,7 +102,8 @@ describe("recurrence (powtarzalność serii)", () => {
   it("odrzuca interval < 1", () => {
     expect(recurrenceSchema.safeParse({ ...validRecurrence, interval: 0 }).success).toBe(false);
     expect(
-      taskSchema.safeParse({ ...baseTask, recurrence: { ...validRecurrence, interval: 0 } }).success,
+      taskSchema.safeParse({ ...baseTask, recurrence: { ...validRecurrence, interval: 0 } })
+        .success,
     ).toBe(false);
   });
 
@@ -103,6 +114,8 @@ describe("recurrence (powtarzalność serii)", () => {
 
   it("odrzuca count < 1 i niepoprawną datę kotwicy", () => {
     expect(recurrenceSchema.safeParse({ ...validRecurrence, count: 0 }).success).toBe(false);
-    expect(recurrenceSchema.safeParse({ ...validRecurrence, anchorDate: "2026-13-40" }).success).toBe(false);
+    expect(
+      recurrenceSchema.safeParse({ ...validRecurrence, anchorDate: "2026-13-40" }).success,
+    ).toBe(false);
   });
 });

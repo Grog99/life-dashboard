@@ -5,11 +5,12 @@ const isObject = (value: unknown): value is JsonRecord =>
 
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
-const clone = <T,>(value: T): T =>
-  value === undefined ? value : structuredClone(value);
+const clone = <T>(value: T): T => (value === undefined ? value : structuredClone(value));
 
 function isEntityArray(value: unknown): value is Array<JsonRecord & { id: string }> {
-  return Array.isArray(value) && value.every((item) => isObject(item) && typeof item.id === "string");
+  return (
+    Array.isArray(value) && value.every((item) => isObject(item) && typeof item.id === "string")
+  );
 }
 
 function timestampOf(value: unknown): number | undefined {
@@ -36,9 +37,15 @@ export function mergeWorkspaceChanges(
 
   const arrays = [base, local, remote];
   if (arrays.every((value) => value === undefined || isEntityArray(value))) {
-    const baseMap = new Map((base as Array<JsonRecord & { id: string }> | undefined)?.map((item) => [item.id, item]));
-    const localMap = new Map((local as Array<JsonRecord & { id: string }> | undefined)?.map((item) => [item.id, item]));
-    const remoteMap = new Map((remote as Array<JsonRecord & { id: string }> | undefined)?.map((item) => [item.id, item]));
+    const baseMap = new Map(
+      (base as Array<JsonRecord & { id: string }> | undefined)?.map((item) => [item.id, item]),
+    );
+    const localMap = new Map(
+      (local as Array<JsonRecord & { id: string }> | undefined)?.map((item) => [item.id, item]),
+    );
+    const remoteMap = new Map(
+      (remote as Array<JsonRecord & { id: string }> | undefined)?.map((item) => [item.id, item]),
+    );
     const order = [
       ...((remote as Array<JsonRecord & { id: string }> | undefined) ?? []).map((item) => item.id),
       ...((local as Array<JsonRecord & { id: string }> | undefined) ?? []).map((item) => item.id),
@@ -57,20 +64,34 @@ export function mergeWorkspaceChanges(
 
   if (isObject(local) && isObject(remote)) {
     const baseObject = isObject(base) ? base : {};
-    const keys = new Set([...Object.keys(baseObject), ...Object.keys(remote), ...Object.keys(local)]);
+    const keys = new Set([
+      ...Object.keys(baseObject),
+      ...Object.keys(remote),
+      ...Object.keys(local),
+    ]);
     const nextContext: MergeContext = {
       localUpdatedAt: timestampOf(local) ?? context.localUpdatedAt,
       remoteUpdatedAt: timestampOf(remote) ?? context.remoteUpdatedAt,
     };
     return Object.fromEntries(
       [...keys]
-        .map((key) => [key, mergeWorkspaceChanges(baseObject[key], local[key], remote[key], nextContext)] as const)
+        .map(
+          (key) =>
+            [
+              key,
+              mergeWorkspaceChanges(baseObject[key], local[key], remote[key], nextContext),
+            ] as const,
+        )
         .filter(([, value]) => value !== undefined),
     );
   }
 
   const { localUpdatedAt, remoteUpdatedAt } = context;
-  if (localUpdatedAt !== undefined && remoteUpdatedAt !== undefined && remoteUpdatedAt !== localUpdatedAt) {
+  if (
+    localUpdatedAt !== undefined &&
+    remoteUpdatedAt !== undefined &&
+    remoteUpdatedAt !== localUpdatedAt
+  ) {
     return clone(remoteUpdatedAt > localUpdatedAt ? remote : local);
   }
 

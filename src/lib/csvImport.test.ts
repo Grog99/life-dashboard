@@ -42,8 +42,10 @@ describe("CSV finance import", () => {
   });
 
   it("keeps all rows for import while the UI can limit only its preview", () => {
-    const rows = Array.from({ length: 75 }, (_, index) =>
-      `2026-07-${String((index % 28) + 1).padStart(2, "0")};-${index + 1},00;Operacja ${index + 1}`,
+    const rows = Array.from(
+      { length: 75 },
+      (_, index) =>
+        `2026-07-${String((index % 28) + 1).padStart(2, "0")};-${index + 1},00;Operacja ${index + 1}`,
     );
     const parsed = previewCsv(["Data;Kwota;Opis", ...rows].join("\n"));
 
@@ -51,8 +53,15 @@ describe("CSV finance import", () => {
   });
 
   it("rozróżnia dwie identyczne płatności, ale zachowuje fingerprint przy ponownym imporcie", () => {
-    const parsed = previewCsv(["Data;Kwota;Opis", "2026-07-10;-20,00;Bilet", "2026-07-10;-20,00;Bilet"].join("\n"));
-    const context = { accountId: "account-1", currency: "PLN" as const, ownerId: "me", visibility: "private" as const };
+    const parsed = previewCsv(
+      ["Data;Kwota;Opis", "2026-07-10;-20,00;Bilet", "2026-07-10;-20,00;Bilet"].join("\n"),
+    );
+    const context = {
+      accountId: "account-1",
+      currency: "PLN" as const,
+      ownerId: "me",
+      visibility: "private" as const,
+    };
     const first = mapCsvRows(parsed, parsed.suggestedMapping, context);
     const second = mapCsvRows(parsed, parsed.suggestedMapping, context);
     expect(first[0].fingerprint).not.toBe(first[1].fingerprint);
@@ -60,7 +69,10 @@ describe("CSV finance import", () => {
   });
 
   it("wykrywa i dekoduje wyciąg zapisany w Windows-1250", () => {
-    const csvText = ["Data;Kwota;Kontrahent;Tytuł", "10.07.2026;-12,50;Żabka;Zakupy spożywcze"].join("\n");
+    const csvText = [
+      "Data;Kwota;Kontrahent;Tytuł",
+      "10.07.2026;-12,50;Żabka;Zakupy spożywcze",
+    ].join("\n");
     const bytes = encodeWindows1250(csvText);
     const decoded = decodeCsvBytes(bytes.buffer as ArrayBuffer);
 

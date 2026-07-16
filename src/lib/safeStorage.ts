@@ -15,7 +15,9 @@ export function safeGetStorageItem(name: string): string | null {
   try {
     return localStorage.getItem(name);
   } catch {
-    reportStorageWarning("Lokalny cache jest niedostępny. Puls będzie działać w pamięci i spróbuje synchronizacji z serwerem");
+    reportStorageWarning(
+      "Lokalny cache jest niedostępny. Puls będzie działać w pamięci i spróbuje synchronizacji z serwerem",
+    );
     return null;
   }
 }
@@ -25,7 +27,9 @@ export function safeSetStorageItem(name: string, value: string): boolean {
     localStorage.setItem(name, value);
     return true;
   } catch {
-    reportStorageWarning("Brak miejsca na lokalny cache. Dane serwerowe nadal będą synchronizowane; wykonaj też kopię w Ustawieniach");
+    reportStorageWarning(
+      "Brak miejsca na lokalny cache. Dane serwerowe nadal będą synchronizowane; wykonaj też kopię w Ustawieniach",
+    );
     return false;
   }
 }
@@ -71,7 +75,9 @@ export const safeLocalStorage: StateStorage = {
       } catch {
         // Best-effort quarantine only.
       }
-      reportStorageWarning("Nie udało się odczytać zapisanych danych — uruchomiono bezpieczny zestaw startowy");
+      reportStorageWarning(
+        "Nie udało się odczytać zapisanych danych — uruchomiono bezpieczny zestaw startowy",
+      );
       return null;
     }
   },
@@ -79,7 +85,9 @@ export const safeLocalStorage: StateStorage = {
     try {
       localStorage.setItem(name, value);
     } catch {
-      reportStorageWarning("Brak miejsca na lokalny cache. Dane serwerowe nadal będą synchronizowane; wykonaj też kopię w Ustawieniach");
+      reportStorageWarning(
+        "Brak miejsca na lokalny cache. Dane serwerowe nadal będą synchronizowane; wykonaj też kopię w Ustawieniach",
+      );
     }
   },
   removeItem: (name) => {

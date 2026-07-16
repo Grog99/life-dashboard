@@ -19,14 +19,7 @@ import { parseSmartCapture } from "../lib/smartCapture";
 import { useLifeStore } from "../store/useLifeStore";
 import { useServerAuth } from "../server/AuthGate";
 import type { Visibility } from "../advancedTypes";
-import type {
-  Energy,
-  EventKind,
-  NoteColor,
-  Priority,
-  QuickAddType,
-  Recurrence,
-} from "../types";
+import type { Energy, EventKind, NoteColor, Priority, QuickAddType, Recurrence } from "../types";
 
 interface QuickAddModalProps {
   open: boolean;
@@ -99,6 +92,7 @@ export function QuickAddModal({
     setTimeEditedManually(false);
     setRepeatEnabled(false);
     repeat.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `repeat` (z useRecurrenceForm) jest nowym obiektem co render; efekt ma resetować formularz tylko przy otwarciu/zmianie typu, nie przy każdym renderze.
   }, [initialType, open]);
 
   useEffect(() => {
@@ -139,7 +133,10 @@ export function QuickAddModal({
       const hasDate = detailsOpen || Boolean(parsed.date);
       const hasTime = detailsOpen || Boolean(parsed.time);
       if (repeatEnabled) {
-        const recurrence = buildRecurrence((hasDate && date) || dateKey(), hasTime && time ? time : undefined);
+        const recurrence = buildRecurrence(
+          (hasDate && date) || dateKey(),
+          hasTime && time ? time : undefined,
+        );
         addRecurringTask(
           {
             title: parsed.title,
@@ -274,16 +271,32 @@ export function QuickAddModal({
           <div className="form-grid form-grid--3">
             <label className="field">
               <span>Data</span>
-              <input required type="date" value={date} onChange={(event) => handleDateChange(event.target.value)} />
+              <input
+                required
+                type="date"
+                value={date}
+                onChange={(event) => handleDateChange(event.target.value)}
+              />
             </label>
             <label className="field">
               <span>{type === "event" ? "Od" : "Godzina"}</span>
-              <input required type="time" value={time} onChange={(event) => handleTimeChange(event.target.value)} />
+              <input
+                required
+                type="time"
+                value={time}
+                onChange={(event) => handleTimeChange(event.target.value)}
+              />
             </label>
             {type === "event" && (
               <label className="field">
                 <span>Do</span>
-                <input required min={time} type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+                <input
+                  required
+                  min={time}
+                  type="time"
+                  value={endTime}
+                  onChange={(event) => setEndTime(event.target.value)}
+                />
               </label>
             )}
           </div>
@@ -301,7 +314,11 @@ export function QuickAddModal({
             </label>
             <label className="field">
               <span>Miejsce / link</span>
-              <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Opcjonalnie" />
+              <input
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                placeholder="Opcjonalnie"
+              />
             </label>
           </div>
         )}
@@ -331,11 +348,19 @@ export function QuickAddModal({
               <div className="form-grid form-grid--2 quick-add-details">
                 <label className="field">
                   <span>Termin</span>
-                  <input type="date" value={date} onChange={(event) => handleDateChange(event.target.value)} />
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(event) => handleDateChange(event.target.value)}
+                  />
                 </label>
                 <label className="field">
                   <span>Godzina</span>
-                  <input type="time" value={time} onChange={(event) => handleTimeChange(event.target.value)} />
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(event) => handleTimeChange(event.target.value)}
+                  />
                 </label>
                 <label className="field">
                   <span>Obszar</span>
@@ -349,7 +374,10 @@ export function QuickAddModal({
                 </label>
                 <label className="field">
                   <span>Ważność</span>
-                  <select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>
+                  <select
+                    value={priority}
+                    onChange={(event) => setPriority(event.target.value as Priority)}
+                  >
                     <option value="high">Ważne</option>
                     <option value="medium">Normalne</option>
                     <option value="low">Może poczekać</option>
@@ -367,7 +395,10 @@ export function QuickAddModal({
                 </label>
                 <label className="field">
                   <span>Potrzebna energia</span>
-                  <select value={energy} onChange={(event) => setEnergy(event.target.value as Energy)}>
+                  <select
+                    value={energy}
+                    onChange={(event) => setEnergy(event.target.value as Energy)}
+                  >
                     <option value="low">Mała</option>
                     <option value="medium">Średnia</option>
                     <option value="high">Duża</option>
@@ -434,21 +465,32 @@ export function QuickAddModal({
 
         <label className="field">
           <span>Widoczność</span>
-          <select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}>
+          <select
+            value={visibility}
+            onChange={(event) => setVisibility(event.target.value as Visibility)}
+          >
             <option value="private">Tylko ja</option>
             <option value="household">Cały dom</option>
           </select>
         </label>
 
         <footer className="modal-actions">
-          <span className="keyboard-hint"><Lightbulb size={14} /> Enter zapisuje</span>
+          <span className="keyboard-hint">
+            <Lightbulb size={14} /> Enter zapisuje
+          </span>
           <div>
-            <button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button>
+            <button className="button button--ghost" type="button" onClick={onClose}>
+              Anuluj
+            </button>
             <button className="button button--primary" type="submit">
               {type === "task"
-                ? repeatEnabled ? "Utwórz serię zadań" : "Dodaj zadanie"
+                ? repeatEnabled
+                  ? "Utwórz serię zadań"
+                  : "Dodaj zadanie"
                 : type === "event"
-                  ? repeatEnabled ? "Utwórz serię wydarzeń" : "Dodaj do kalendarza"
+                  ? repeatEnabled
+                    ? "Utwórz serię wydarzeń"
+                    : "Dodaj do kalendarza"
                   : type === "reminder"
                     ? "Ustaw przypomnienie"
                     : "Utwórz notatkę"}

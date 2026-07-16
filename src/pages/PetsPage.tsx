@@ -176,21 +176,26 @@ export function PetsPage({ onToast }: PetsPageProps) {
   const isAquarium = selectedPet?.kind === "aquarium";
 
   const selectedExpenses = useMemo(
-    () => petExpenses
-      .filter((expense) => expense.petId === selectedPet?.id)
-      .sort((a, b) => b.date.localeCompare(a.date)),
+    () =>
+      petExpenses
+        .filter((expense) => expense.petId === selectedPet?.id)
+        .sort((a, b) => b.date.localeCompare(a.date)),
     [petExpenses, selectedPet?.id],
   );
   const visibleExpenses = selectedExpenses.filter(
     (expense) => expenseFilter === "all" || expense.type === expenseFilter,
   );
   const selectedVisits = useMemo(
-    () => petVisits
-      .filter((visit) => visit.petId === selectedPet?.id)
-      .sort((a, b) => {
-        const statusOrder = { scheduled: 0, completed: 1, cancelled: 2 };
-        return statusOrder[a.status] - statusOrder[b.status] || `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`);
-      }),
+    () =>
+      petVisits
+        .filter((visit) => visit.petId === selectedPet?.id)
+        .sort((a, b) => {
+          const statusOrder = { scheduled: 0, completed: 1, cancelled: 2 };
+          return (
+            statusOrder[a.status] - statusOrder[b.status] ||
+            `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)
+          );
+        }),
     [petVisits, selectedPet?.id],
   );
   const nextVisit = selectedVisits.find((visit) => visit.status === "scheduled");
@@ -389,9 +394,15 @@ export function PetsPage({ onToast }: PetsPageProps) {
         <div>
           <span className="page-eyebrow">Zwierzęta pod jednym dachem</span>
           <h1>Zwierzęta</h1>
-          <p>Profile, wydatki i wizyty u weterynarza — jedno miejsce zamiast rozproszonych notatek.</p>
+          <p>
+            Profile, wydatki i wizyty u weterynarza — jedno miejsce zamiast rozproszonych notatek.
+          </p>
         </div>
-        <button className="button button--primary" type="button" onClick={() => openExpenseCreate("food")}>
+        <button
+          className="button button--primary"
+          type="button"
+          onClick={() => openExpenseCreate("food")}
+        >
           <Plus size={17} /> Dodaj wydatek
         </button>
       </header>
@@ -407,43 +418,77 @@ export function PetsPage({ onToast }: PetsPageProps) {
               onClick={() => setSelectedPetId(pet.id)}
               style={{ "--pet-color": pet.color } as React.CSSProperties}
             >
-              <span className="pet-card__icon"><KindIcon size={22} /></span>
+              <span className="pet-card__icon">
+                <KindIcon size={22} />
+              </span>
               <div>
                 <strong>{pet.name}</strong>
                 <span>{kindLabels[pet.kind]}</span>
-                <small>{pet.kind === "aquarium" ? `${fishStockCount(pet.fishStock)} ryb` : petAgeLabel(pet.birthDate)}</small>
+                <small>
+                  {pet.kind === "aquarium"
+                    ? `${fishStockCount(pet.fishStock)} ryb`
+                    : petAgeLabel(pet.birthDate)}
+                </small>
               </div>
             </button>
           );
         })}
-        <button className="pet-add" type="button" onClick={openPetCreate}><Plus size={20} /><span>Dodaj zwierzę</span></button>
+        <button className="pet-add" type="button" onClick={openPetCreate}>
+          <Plus size={20} />
+          <span>Dodaj zwierzę</span>
+        </button>
       </section>
 
       {selectedPet ? (
         <>
-          <section className="module-stat-grid module-stat-grid--three" aria-label="Podsumowanie zwierzęcia">
+          <section
+            className="module-stat-grid module-stat-grid--three"
+            aria-label="Podsumowanie zwierzęcia"
+          >
             <article className="module-stat-card module-stat-card--accent">
-              <span className="module-stat-card__icon">{isAquarium ? <Fish size={19} /> : <PawPrint size={19} />}</span>
+              <span className="module-stat-card__icon">
+                {isAquarium ? <Fish size={19} /> : <PawPrint size={19} />}
+              </span>
               <div>
                 <span>{isAquarium ? "Obsada akwarium" : "Wiek"}</span>
-                <strong>{isAquarium ? `${fishStockCount(selectedPet.fishStock)} ryb` : petAgeLabel(selectedPet.birthDate)}</strong>
-                <small>{isAquarium ? `${(selectedPet.fishStock ?? []).length} gatunków` : (selectedPet.species || kindLabels[selectedPet.kind])}</small>
+                <strong>
+                  {isAquarium
+                    ? `${fishStockCount(selectedPet.fishStock)} ryb`
+                    : petAgeLabel(selectedPet.birthDate)}
+                </strong>
+                <small>
+                  {isAquarium
+                    ? `${(selectedPet.fishStock ?? []).length} gatunków`
+                    : selectedPet.species || kindLabels[selectedPet.kind]}
+                </small>
               </div>
             </article>
             <article className="module-stat-card">
-              <span className="module-stat-card__icon module-stat-card__icon--amber"><CircleDollarSign size={19} /></span>
+              <span className="module-stat-card__icon module-stat-card__icon--amber">
+                <CircleDollarSign size={19} />
+              </span>
               <div>
                 <span>Koszty w tym miesiącu</span>
                 <strong>{formatMoney(monthlyCost, "PLN", hideAmounts)}</strong>
-                <small>{selectedExpenses.filter((expense) => expense.date.startsWith(monthPrefix)).length} wpisów</small>
+                <small>
+                  {
+                    selectedExpenses.filter((expense) => expense.date.startsWith(monthPrefix))
+                      .length
+                  }{" "}
+                  wpisów
+                </small>
               </div>
             </article>
             <article className="module-stat-card">
-              <span className="module-stat-card__icon module-stat-card__icon--violet"><CalendarClock size={19} /></span>
+              <span className="module-stat-card__icon module-stat-card__icon--violet">
+                <CalendarClock size={19} />
+              </span>
               <div>
                 <span>Najbliższa wizyta</span>
                 <strong>{nextVisit ? relativeDay(nextVisit.date) : "Brak"}</strong>
-                <small>{nextVisit ? `${nextVisit.title} · ${nextVisit.time}` : "Wszystko spokojnie"}</small>
+                <small>
+                  {nextVisit ? `${nextVisit.title} · ${nextVisit.time}` : "Wszystko spokojnie"}
+                </small>
               </div>
             </article>
           </section>
@@ -452,16 +497,57 @@ export function PetsPage({ onToast }: PetsPageProps) {
             <div className="car-dashboard-main">
               <section className="panel module-panel">
                 <header className="module-panel__header">
-                  <div><span className="section-kicker"><ReceiptText size={14} /> Historia</span><h2>Wydatki</h2></div>
+                  <div>
+                    <span className="section-kicker">
+                      <ReceiptText size={14} /> Historia
+                    </span>
+                    <h2>Wydatki</h2>
+                  </div>
                   <div className="module-toolbar-actions">
                     <div className="module-segmented">
-                      <button className={expenseFilter === "all" ? "active" : ""} type="button" onClick={() => setExpenseFilter("all")}>Wszystkie</button>
-                      <button className={expenseFilter === "food" ? "active" : ""} type="button" onClick={() => setExpenseFilter("food")}>Jedzenie</button>
-                      <button className={expenseFilter === "vet" ? "active" : ""} type="button" onClick={() => setExpenseFilter("vet")}>Weterynarz</button>
-                      <button className={expenseFilter === "accessories" ? "active" : ""} type="button" onClick={() => setExpenseFilter("accessories")}>Akcesoria</button>
-                      <button className={expenseFilter === "grooming" ? "active" : ""} type="button" onClick={() => setExpenseFilter("grooming")}>Pielęgnacja</button>
+                      <button
+                        className={expenseFilter === "all" ? "active" : ""}
+                        type="button"
+                        onClick={() => setExpenseFilter("all")}
+                      >
+                        Wszystkie
+                      </button>
+                      <button
+                        className={expenseFilter === "food" ? "active" : ""}
+                        type="button"
+                        onClick={() => setExpenseFilter("food")}
+                      >
+                        Jedzenie
+                      </button>
+                      <button
+                        className={expenseFilter === "vet" ? "active" : ""}
+                        type="button"
+                        onClick={() => setExpenseFilter("vet")}
+                      >
+                        Weterynarz
+                      </button>
+                      <button
+                        className={expenseFilter === "accessories" ? "active" : ""}
+                        type="button"
+                        onClick={() => setExpenseFilter("accessories")}
+                      >
+                        Akcesoria
+                      </button>
+                      <button
+                        className={expenseFilter === "grooming" ? "active" : ""}
+                        type="button"
+                        onClick={() => setExpenseFilter("grooming")}
+                      >
+                        Pielęgnacja
+                      </button>
                     </div>
-                    <button className="button button--soft button--small" type="button" onClick={() => openExpenseCreate("other")}><Plus size={15} /> Dodaj koszt</button>
+                    <button
+                      className="button button--soft button--small"
+                      type="button"
+                      onClick={() => openExpenseCreate("other")}
+                    >
+                      <Plus size={15} /> Dodaj koszt
+                    </button>
                   </div>
                 </header>
                 {visibleExpenses.length ? (
@@ -470,59 +556,173 @@ export function PetsPage({ onToast }: PetsPageProps) {
                       const ExpenseIcon = expenseIcons[expense.type];
                       return (
                         <article className="car-expense-row" key={expense.id}>
-                          <span className={`car-expense-icon car-expense-icon--${expense.type}`}><ExpenseIcon size={18} /></span>
-                          <div className="car-expense-row__main"><strong>{expense.title}</strong><span>{expenseLabels[expense.type]} · {formatShortDate(expense.date)}</span></div>
+                          <span className={`car-expense-icon car-expense-icon--${expense.type}`}>
+                            <ExpenseIcon size={18} />
+                          </span>
+                          <div className="car-expense-row__main">
+                            <strong>{expense.title}</strong>
+                            <span>
+                              {expenseLabels[expense.type]} · {formatShortDate(expense.date)}
+                            </span>
+                          </div>
                           <div className="car-expense-row__details" />
-                          <strong className="car-expense-row__amount">{formatMoney(expense.amountMinor, "PLN", hideAmounts)}</strong>
-                          <button className="icon-button module-danger-icon" type="button" onClick={() => removeExpense(expense)} aria-label={`Usuń wpis ${expense.title}`}><Trash2 size={15} /></button>
+                          <strong className="car-expense-row__amount">
+                            {formatMoney(expense.amountMinor, "PLN", hideAmounts)}
+                          </strong>
+                          <button
+                            className="icon-button module-danger-icon"
+                            type="button"
+                            onClick={() => removeExpense(expense)}
+                            aria-label={`Usuń wpis ${expense.title}`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </article>
                       );
                     })}
                   </div>
-                ) : <div className="module-empty"><ReceiptText size={24} /><strong>Brak wydatków w tym widoku</strong><span>Dodaj jedzenie, wizytę u weterynarza albo inny koszt.</span></div>}
+                ) : (
+                  <div className="module-empty">
+                    <ReceiptText size={24} />
+                    <strong>Brak wydatków w tym widoku</strong>
+                    <span>Dodaj jedzenie, wizytę u weterynarza albo inny koszt.</span>
+                  </div>
+                )}
               </section>
             </div>
 
             <aside className="car-dashboard-side">
               <section className="panel module-panel pet-overview-card">
                 <header>
-                  <span className="pet-overview-icon" style={{ background: selectedPet.color }}>{isAquarium ? <Fish size={24} /> : <PawPrint size={24} />}</span>
-                  <div><span>{kindLabels[selectedPet.kind]}</span><h2>{selectedPet.name}</h2><p>{isAquarium ? `${fishStockCount(selectedPet.fishStock)} ryb w obsadzie` : (selectedPet.species || "Bez podanego gatunku")}</p></div>
-                  <button className="icon-button" type="button" onClick={() => openPetEdit(selectedPet)} aria-label="Edytuj profil zwierzęcia"><Pencil size={17} /></button>
+                  <span className="pet-overview-icon" style={{ background: selectedPet.color }}>
+                    {isAquarium ? <Fish size={24} /> : <PawPrint size={24} />}
+                  </span>
+                  <div>
+                    <span>{kindLabels[selectedPet.kind]}</span>
+                    <h2>{selectedPet.name}</h2>
+                    <p>
+                      {isAquarium
+                        ? `${fishStockCount(selectedPet.fishStock)} ryb w obsadzie`
+                        : selectedPet.species || "Bez podanego gatunku"}
+                    </p>
+                  </div>
+                  <button
+                    className="icon-button"
+                    type="button"
+                    onClick={() => openPetEdit(selectedPet)}
+                    aria-label="Edytuj profil zwierzęcia"
+                  >
+                    <Pencil size={17} />
+                  </button>
                 </header>
 
                 {isAquarium ? (
                   <div className="pet-fish-list">
                     {(selectedPet.fishStock ?? []).map((entry) => (
-                      <div className="pet-fish-row" key={entry.id}><Fish size={14} /><span>{entry.species}</span><strong>{entry.count} szt.</strong></div>
+                      <div className="pet-fish-row" key={entry.id}>
+                        <Fish size={14} />
+                        <span>{entry.species}</span>
+                        <strong>{entry.count} szt.</strong>
+                      </div>
                     ))}
-                    {!(selectedPet.fishStock ?? []).length && <p className="pet-empty-note">Dodaj gatunki ryb w edycji profilu.</p>}
+                    {!(selectedPet.fishStock ?? []).length && (
+                      <p className="pet-empty-note">Dodaj gatunki ryb w edycji profilu.</p>
+                    )}
                   </div>
                 ) : (
                   <div className="pet-date-grid">
-                    <div><Cake size={16} /><span>Data urodzenia</span><strong>{selectedPet.birthDate ? formatShortDate(selectedPet.birthDate) : "Nieznana"}</strong></div>
-                    <div><PawPrint size={16} /><span>Wiek</span><strong>{petAgeLabel(selectedPet.birthDate)}</strong></div>
+                    <div>
+                      <Cake size={16} />
+                      <span>Data urodzenia</span>
+                      <strong>
+                        {selectedPet.birthDate
+                          ? formatShortDate(selectedPet.birthDate)
+                          : "Nieznana"}
+                      </strong>
+                    </div>
+                    <div>
+                      <PawPrint size={16} />
+                      <span>Wiek</span>
+                      <strong>{petAgeLabel(selectedPet.birthDate)}</strong>
+                    </div>
                   </div>
                 )}
                 {selectedPet.notes && <p className="pet-notes">{selectedPet.notes}</p>}
-                <button className="text-button pet-remove-link" type="button" onClick={() => removePet(selectedPet)}><Trash2 size={14} /> Usuń profil</button>
+                <button
+                  className="text-button pet-remove-link"
+                  type="button"
+                  onClick={() => removePet(selectedPet)}
+                >
+                  <Trash2 size={14} /> Usuń profil
+                </button>
               </section>
 
               <section className="panel module-panel deadlines-panel">
-                <header className="module-panel__header"><div><span className="section-kicker"><Stethoscope size={14} /> Opieka</span><h2>Wizyty u weterynarza</h2></div><button className="icon-button" type="button" onClick={openVisitCreate} aria-label="Dodaj wizytę"><Plus size={18} /></button></header>
+                <header className="module-panel__header">
+                  <div>
+                    <span className="section-kicker">
+                      <Stethoscope size={14} /> Opieka
+                    </span>
+                    <h2>Wizyty u weterynarza</h2>
+                  </div>
+                  <button
+                    className="icon-button"
+                    type="button"
+                    onClick={openVisitCreate}
+                    aria-label="Dodaj wizytę"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </header>
                 <div className="deadline-list">
                   {selectedVisits.map((visit) => (
-                    <article className={`deadline-row ${visit.status !== "scheduled" ? "deadline-row--done" : ""}`} key={visit.id}>
-                      <button type="button" onClick={() => togglePetVisitCompleted(visit.id)} aria-label={visit.status === "completed" ? `Przywróć ${visit.title}` : `Oznacz odbytą ${visit.title}`} aria-pressed={visit.status === "completed"}><Check size={13} /></button>
+                    <article
+                      className={`deadline-row ${visit.status !== "scheduled" ? "deadline-row--done" : ""}`}
+                      key={visit.id}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => togglePetVisitCompleted(visit.id)}
+                        aria-label={
+                          visit.status === "completed"
+                            ? `Przywróć ${visit.title}`
+                            : `Oznacz odbytą ${visit.title}`
+                        }
+                        aria-pressed={visit.status === "completed"}
+                      >
+                        <Check size={13} />
+                      </button>
                       <div>
                         <strong>{visit.title}</strong>
-                        <span>{relativeDay(visit.date)} · {visit.time} · {visit.clinician}{visit.location ? ` · ${visit.location}` : ""}</span>
+                        <span>
+                          {relativeDay(visit.date)} · {visit.time} · {visit.clinician}
+                          {visit.location ? ` · ${visit.location}` : ""}
+                        </span>
                       </div>
-                      <button className="icon-button" type="button" onClick={() => openVisitEdit(visit)} aria-label={`Edytuj wizytę ${visit.title}`}><Pencil size={13} /></button>
-                      <button className="icon-button module-danger-icon" type="button" onClick={() => removeVisit(visit)} aria-label={`Usuń wizytę ${visit.title}`}><Trash2 size={14} /></button>
+                      <button
+                        className="icon-button"
+                        type="button"
+                        onClick={() => openVisitEdit(visit)}
+                        aria-label={`Edytuj wizytę ${visit.title}`}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        className="icon-button module-danger-icon"
+                        type="button"
+                        onClick={() => removeVisit(visit)}
+                        aria-label={`Usuń wizytę ${visit.title}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </article>
                   ))}
-                  {!selectedVisits.length && <div className="module-mini-empty"><Check size={16} /><span>Brak zaplanowanych wizyt.</span></div>}
+                  {!selectedVisits.length && (
+                    <div className="module-mini-empty">
+                      <Check size={16} />
+                      <span>Brak zaplanowanych wizyt.</span>
+                    </div>
+                  )}
                 </div>
               </section>
             </aside>
@@ -533,65 +733,360 @@ export function PetsPage({ onToast }: PetsPageProps) {
           <PawPrint size={29} />
           <strong>Brak profili zwierząt</strong>
           <span>Dodaj pierwsze zwierzę albo akwarium, aby zacząć śledzić koszty i wizyty.</span>
-          <button className="button button--primary" type="button" onClick={openPetCreate}><Plus size={16} /> Dodaj zwierzę</button>
+          <button className="button button--primary" type="button" onClick={openPetCreate}>
+            <Plus size={16} /> Dodaj zwierzę
+          </button>
         </section>
       )}
 
-      <Modal open={petModalOpen} onClose={() => setPetModalOpen(false)} title={editingPet ? "Edytuj profil" : "Nowe zwierzę"} eyebrow="Zwierzęta" size="large">
+      <Modal
+        open={petModalOpen}
+        onClose={() => setPetModalOpen(false)}
+        title={editingPet ? "Edytuj profil" : "Nowe zwierzę"}
+        eyebrow="Zwierzęta"
+        size="large"
+      >
         <form className="form-grid" onSubmit={savePet}>
-          <label className="field field--prominent"><span>Imię lub nazwa</span><input autoFocus required value={petDraft.name} onChange={(event) => setPetDraft({ ...petDraft, name: event.target.value })} placeholder="np. Fistaszek" /></label>
+          <label className="field field--prominent">
+            <span>Imię lub nazwa</span>
+            <input
+              autoFocus
+              required
+              value={petDraft.name}
+              onChange={(event) => setPetDraft({ ...petDraft, name: event.target.value })}
+              placeholder="np. Fistaszek"
+            />
+          </label>
           <div className="form-grid form-grid--2">
-            <label className="field"><span>Rodzaj profilu</span><select value={petDraft.kind} onChange={(event) => setPetDraft({ ...petDraft, kind: event.target.value as PetKind })}><option value="rabbit">Królik</option><option value="dog">Pies</option><option value="cat">Kot</option><option value="guinea_pig">Świnka morska</option><option value="aquarium">Akwarium</option><option value="other">Inne</option></select></label>
-            <label className="field"><span>Kolor karty</span><input className="module-color-input" type="color" value={petDraft.color} onChange={(event) => setPetDraft({ ...petDraft, color: event.target.value })} /></label>
+            <label className="field">
+              <span>Rodzaj profilu</span>
+              <select
+                value={petDraft.kind}
+                onChange={(event) =>
+                  setPetDraft({ ...petDraft, kind: event.target.value as PetKind })
+                }
+              >
+                <option value="rabbit">Królik</option>
+                <option value="dog">Pies</option>
+                <option value="cat">Kot</option>
+                <option value="guinea_pig">Świnka morska</option>
+                <option value="aquarium">Akwarium</option>
+                <option value="other">Inne</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Kolor karty</span>
+              <input
+                className="module-color-input"
+                type="color"
+                value={petDraft.color}
+                onChange={(event) => setPetDraft({ ...petDraft, color: event.target.value })}
+              />
+            </label>
           </div>
 
           {petDraft.kind === "aquarium" ? (
             <div className="pet-fish-editor">
-              <div className="module-choice-divider"><span>Obsada akwarium</span></div>
+              <div className="module-choice-divider">
+                <span>Obsada akwarium</span>
+              </div>
               {petDraft.fishStock.map((row) => (
                 <div className="pet-fish-editor__row" key={row.id}>
-                  <input value={row.species} onChange={(event) => updateFishRow(row.id, { species: event.target.value })} placeholder="Gatunek ryby, np. Neonek innesa" />
-                  <input inputMode="numeric" value={row.count} onChange={(event) => updateFishRow(row.id, { count: event.target.value })} placeholder="Liczba" />
-                  <button type="button" className="icon-button module-danger-icon" onClick={() => removeFishRow(row.id)} aria-label="Usuń gatunek"><Trash2 size={15} /></button>
+                  <input
+                    value={row.species}
+                    onChange={(event) => updateFishRow(row.id, { species: event.target.value })}
+                    placeholder="Gatunek ryby, np. Neonek innesa"
+                  />
+                  <input
+                    inputMode="numeric"
+                    value={row.count}
+                    onChange={(event) => updateFishRow(row.id, { count: event.target.value })}
+                    placeholder="Liczba"
+                  />
+                  <button
+                    type="button"
+                    className="icon-button module-danger-icon"
+                    onClick={() => removeFishRow(row.id)}
+                    aria-label="Usuń gatunek"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               ))}
-              <button type="button" className="button button--soft button--small" onClick={addFishRow}><Plus size={14} /> Dodaj gatunek</button>
+              <button
+                type="button"
+                className="button button--soft button--small"
+                onClick={addFishRow}
+              >
+                <Plus size={14} /> Dodaj gatunek
+              </button>
             </div>
           ) : (
             <div className="form-grid form-grid--2">
-              <label className="field"><span>Gatunek / rasa</span><input value={petDraft.species} onChange={(event) => setPetDraft({ ...petDraft, species: event.target.value })} placeholder="np. Królik miniaturka" /></label>
-              <label className="field"><span>Data urodzenia</span><input type="date" value={petDraft.birthDate} onChange={(event) => setPetDraft({ ...petDraft, birthDate: event.target.value })} /></label>
+              <label className="field">
+                <span>Gatunek / rasa</span>
+                <input
+                  value={petDraft.species}
+                  onChange={(event) => setPetDraft({ ...petDraft, species: event.target.value })}
+                  placeholder="np. Królik miniaturka"
+                />
+              </label>
+              <label className="field">
+                <span>Data urodzenia</span>
+                <input
+                  type="date"
+                  value={petDraft.birthDate}
+                  onChange={(event) => setPetDraft({ ...petDraft, birthDate: event.target.value })}
+                />
+              </label>
             </div>
           )}
 
-          <label className="field"><span>Notatki</span><input value={petDraft.notes} onChange={(event) => setPetDraft({ ...petDraft, notes: event.target.value })} placeholder="Opcjonalne informacje" /></label>
-          <label className="field"><span>Widoczność</span><select value={petDraft.visibility} onChange={(event) => setPetDraft({ ...petDraft, visibility: event.target.value as Visibility })}><option value="household">Domownicy</option><option value="private">Tylko ja</option></select></label>
-          <div className="modal-actions"><button className="button button--ghost" type="button" onClick={() => setPetModalOpen(false)}>Anuluj</button><button className="button button--primary" type="submit">{editingPet ? "Zapisz zmiany" : "Dodaj zwierzę"}</button></div>
+          <label className="field">
+            <span>Notatki</span>
+            <input
+              value={petDraft.notes}
+              onChange={(event) => setPetDraft({ ...petDraft, notes: event.target.value })}
+              placeholder="Opcjonalne informacje"
+            />
+          </label>
+          <label className="field">
+            <span>Widoczność</span>
+            <select
+              value={petDraft.visibility}
+              onChange={(event) =>
+                setPetDraft({ ...petDraft, visibility: event.target.value as Visibility })
+              }
+            >
+              <option value="household">Domownicy</option>
+              <option value="private">Tylko ja</option>
+            </select>
+          </label>
+          <div className="modal-actions">
+            <button
+              className="button button--ghost"
+              type="button"
+              onClick={() => setPetModalOpen(false)}
+            >
+              Anuluj
+            </button>
+            <button className="button button--primary" type="submit">
+              {editingPet ? "Zapisz zmiany" : "Dodaj zwierzę"}
+            </button>
+          </div>
         </form>
       </Modal>
 
-      <Modal open={expenseModalOpen} onClose={() => setExpenseModalOpen(false)} title="Dodaj wydatek" eyebrow={selectedPet?.name ?? "Zwierzęta"}>
+      <Modal
+        open={expenseModalOpen}
+        onClose={() => setExpenseModalOpen(false)}
+        title="Dodaj wydatek"
+        eyebrow={selectedPet?.name ?? "Zwierzęta"}
+      >
         <form className="form-grid" onSubmit={saveExpense}>
           <div className="form-grid form-grid--2">
-            <label className="field"><span>Kategoria</span><select value={expenseDraft.type} onChange={(event) => { const type = event.target.value as PetExpense["type"]; setExpenseDraft((prev) => { const isGenericTitle = !prev.title.trim() || prev.title === expenseLabels[prev.type]; return { ...prev, type, title: isGenericTitle ? expenseLabels[type] : prev.title }; }); }}><option value="food">Jedzenie</option><option value="vet">Weterynarz</option><option value="accessories">Akcesoria/zabawki</option><option value="grooming">Pielęgnacja</option><option value="other">Inne</option></select></label>
-            <label className="field"><span>Data</span><input required type="date" value={expenseDraft.date} onChange={(event) => setExpenseDraft({ ...expenseDraft, date: event.target.value })} /></label>
+            <label className="field">
+              <span>Kategoria</span>
+              <select
+                value={expenseDraft.type}
+                onChange={(event) => {
+                  const type = event.target.value as PetExpense["type"];
+                  setExpenseDraft((prev) => {
+                    const isGenericTitle =
+                      !prev.title.trim() || prev.title === expenseLabels[prev.type];
+                    return {
+                      ...prev,
+                      type,
+                      title: isGenericTitle ? expenseLabels[type] : prev.title,
+                    };
+                  });
+                }}
+              >
+                <option value="food">Jedzenie</option>
+                <option value="vet">Weterynarz</option>
+                <option value="accessories">Akcesoria/zabawki</option>
+                <option value="grooming">Pielęgnacja</option>
+                <option value="other">Inne</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Data</span>
+              <input
+                required
+                type="date"
+                value={expenseDraft.date}
+                onChange={(event) => setExpenseDraft({ ...expenseDraft, date: event.target.value })}
+              />
+            </label>
           </div>
-          <label className="field field--prominent"><span>Opis</span><input autoFocus required value={expenseDraft.title} onChange={(event) => setExpenseDraft({ ...expenseDraft, title: event.target.value })} placeholder="np. Siano i granulat" /></label>
-          <label className="field"><span>Kwota (PLN)</span><input inputMode="decimal" required value={expenseDraft.amount} onChange={(event) => setExpenseDraft({ ...expenseDraft, amount: event.target.value })} placeholder="42,00" /></label>
-          <label className="field"><span>Widoczność</span><select value={expenseDraft.visibility} onChange={(event) => setExpenseDraft({ ...expenseDraft, visibility: event.target.value as Visibility })}><option value="household">Domownicy</option><option value="private">Tylko ja</option></select></label>
-          <div className="modal-actions"><button className="button button--ghost" type="button" onClick={() => setExpenseModalOpen(false)}>Anuluj</button><button className="button button--primary" type="submit">Zapisz wpis</button></div>
+          <label className="field field--prominent">
+            <span>Opis</span>
+            <input
+              autoFocus
+              required
+              value={expenseDraft.title}
+              onChange={(event) => setExpenseDraft({ ...expenseDraft, title: event.target.value })}
+              placeholder="np. Siano i granulat"
+            />
+          </label>
+          <label className="field">
+            <span>Kwota (PLN)</span>
+            <input
+              inputMode="decimal"
+              required
+              value={expenseDraft.amount}
+              onChange={(event) => setExpenseDraft({ ...expenseDraft, amount: event.target.value })}
+              placeholder="42,00"
+            />
+          </label>
+          <label className="field">
+            <span>Widoczność</span>
+            <select
+              value={expenseDraft.visibility}
+              onChange={(event) =>
+                setExpenseDraft({ ...expenseDraft, visibility: event.target.value as Visibility })
+              }
+            >
+              <option value="household">Domownicy</option>
+              <option value="private">Tylko ja</option>
+            </select>
+          </label>
+          <div className="modal-actions">
+            <button
+              className="button button--ghost"
+              type="button"
+              onClick={() => setExpenseModalOpen(false)}
+            >
+              Anuluj
+            </button>
+            <button className="button button--primary" type="submit">
+              Zapisz wpis
+            </button>
+          </div>
         </form>
       </Modal>
 
-      <Modal open={visitModalOpen} onClose={() => setVisitModalOpen(false)} title={editingVisit ? "Edytuj wizytę" : "Nowa wizyta"} eyebrow={selectedPet?.name ?? "Zwierzęta"} size="large">
+      <Modal
+        open={visitModalOpen}
+        onClose={() => setVisitModalOpen(false)}
+        title={editingVisit ? "Edytuj wizytę" : "Nowa wizyta"}
+        eyebrow={selectedPet?.name ?? "Zwierzęta"}
+        size="large"
+      >
         <form className="form-grid" onSubmit={saveVisit}>
-          <label className="field field--prominent"><span>Nazwa wizyty</span><input autoFocus required value={visitDraft.title} onChange={(event) => setVisitDraft({ ...visitDraft, title: event.target.value })} placeholder="np. Szczepienie" /></label>
-          <div className="form-grid form-grid--2"><label className="field"><span>Weterynarz / placówka</span><input required value={visitDraft.clinician} onChange={(event) => setVisitDraft({ ...visitDraft, clinician: event.target.value })} placeholder="Nazwisko albo nazwa placówki" /></label><label className="field"><span>Specjalizacja</span><input value={visitDraft.specialty} onChange={(event) => setVisitDraft({ ...visitDraft, specialty: event.target.value })} placeholder="Opcjonalnie" /></label></div>
-          <div className="form-grid form-grid--2"><label className="field"><span>Data</span><input required type="date" value={visitDraft.date} onChange={(event) => setVisitDraft({ ...visitDraft, date: event.target.value })} /></label><label className="field"><span>Godzina</span><input required type="time" value={visitDraft.time} onChange={(event) => setVisitDraft({ ...visitDraft, time: event.target.value })} /></label></div>
-          <label className="field"><span>Miejsce</span><input value={visitDraft.location} onChange={(event) => setVisitDraft({ ...visitDraft, location: event.target.value })} placeholder="Adres lub nazwa gabinetu" /></label>
-          {editingVisit && <label className="field"><span>Status</span><select value={visitDraft.status} onChange={(event) => setVisitDraft({ ...visitDraft, status: event.target.value as PetVisit["status"] })}><option value="scheduled">Zaplanowana</option><option value="completed">Odbyta</option><option value="cancelled">Anulowana</option></select></label>}
-          <div className="form-grid form-grid--2"><label className="field"><span>Widoczność</span><select value={visitDraft.visibility} onChange={(event) => setVisitDraft({ ...visitDraft, visibility: event.target.value as Visibility })}><option value="household">Domownicy</option><option value="private">Tylko ja</option></select></label><label className="field"><span>Notatka</span><input value={visitDraft.notes} onChange={(event) => setVisitDraft({ ...visitDraft, notes: event.target.value })} placeholder="np. zabrać książeczkę zdrowia" /></label></div>
-          <div className="modal-actions"><span /><div><button className="button button--ghost" type="button" onClick={() => setVisitModalOpen(false)}>Anuluj</button><button className="button button--primary" type="submit">{editingVisit ? "Zapisz zmiany" : "Zapisz wizytę"}</button></div></div>
+          <label className="field field--prominent">
+            <span>Nazwa wizyty</span>
+            <input
+              autoFocus
+              required
+              value={visitDraft.title}
+              onChange={(event) => setVisitDraft({ ...visitDraft, title: event.target.value })}
+              placeholder="np. Szczepienie"
+            />
+          </label>
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Weterynarz / placówka</span>
+              <input
+                required
+                value={visitDraft.clinician}
+                onChange={(event) =>
+                  setVisitDraft({ ...visitDraft, clinician: event.target.value })
+                }
+                placeholder="Nazwisko albo nazwa placówki"
+              />
+            </label>
+            <label className="field">
+              <span>Specjalizacja</span>
+              <input
+                value={visitDraft.specialty}
+                onChange={(event) =>
+                  setVisitDraft({ ...visitDraft, specialty: event.target.value })
+                }
+                placeholder="Opcjonalnie"
+              />
+            </label>
+          </div>
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Data</span>
+              <input
+                required
+                type="date"
+                value={visitDraft.date}
+                onChange={(event) => setVisitDraft({ ...visitDraft, date: event.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span>Godzina</span>
+              <input
+                required
+                type="time"
+                value={visitDraft.time}
+                onChange={(event) => setVisitDraft({ ...visitDraft, time: event.target.value })}
+              />
+            </label>
+          </div>
+          <label className="field">
+            <span>Miejsce</span>
+            <input
+              value={visitDraft.location}
+              onChange={(event) => setVisitDraft({ ...visitDraft, location: event.target.value })}
+              placeholder="Adres lub nazwa gabinetu"
+            />
+          </label>
+          {editingVisit && (
+            <label className="field">
+              <span>Status</span>
+              <select
+                value={visitDraft.status}
+                onChange={(event) =>
+                  setVisitDraft({ ...visitDraft, status: event.target.value as PetVisit["status"] })
+                }
+              >
+                <option value="scheduled">Zaplanowana</option>
+                <option value="completed">Odbyta</option>
+                <option value="cancelled">Anulowana</option>
+              </select>
+            </label>
+          )}
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Widoczność</span>
+              <select
+                value={visitDraft.visibility}
+                onChange={(event) =>
+                  setVisitDraft({ ...visitDraft, visibility: event.target.value as Visibility })
+                }
+              >
+                <option value="household">Domownicy</option>
+                <option value="private">Tylko ja</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Notatka</span>
+              <input
+                value={visitDraft.notes}
+                onChange={(event) => setVisitDraft({ ...visitDraft, notes: event.target.value })}
+                placeholder="np. zabrać książeczkę zdrowia"
+              />
+            </label>
+          </div>
+          <div className="modal-actions">
+            <span />
+            <div>
+              <button
+                className="button button--ghost"
+                type="button"
+                onClick={() => setVisitModalOpen(false)}
+              >
+                Anuluj
+              </button>
+              <button className="button button--primary" type="submit">
+                {editingVisit ? "Zapisz zmiany" : "Zapisz wizytę"}
+              </button>
+            </div>
+          </div>
         </form>
       </Modal>
     </div>

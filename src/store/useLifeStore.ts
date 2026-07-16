@@ -43,7 +43,11 @@ function parseArrayField<T>(value: unknown, schema: z.ZodType<T>): { items: T[];
   return { items, dropped };
 }
 
-function parseScalarField<T>(value: unknown, schema: z.ZodType<T>, fallback: T): { value: T; dropped: number } {
+function parseScalarField<T>(
+  value: unknown,
+  schema: z.ZodType<T>,
+  fallback: T,
+): { value: T; dropped: number } {
   if (value === undefined) return { value: fallback, dropped: 0 };
   const result = schema.safeParse(value);
   return result.success ? { value: result.data, dropped: 0 } : { value: fallback, dropped: 1 };
@@ -56,13 +60,19 @@ interface LifeActions {
   toggleFocus: (taskId: string) => boolean;
   deleteTask: (taskId: string) => void;
   moveTaskToTomorrow: (taskId: string) => void;
-  addRecurringTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "status">, recurrence: Recurrence) => string;
+  addRecurringTask: (
+    task: Omit<Task, "id" | "createdAt" | "updatedAt" | "status">,
+    recurrence: Recurrence,
+  ) => string;
   updateSeries: (seriesId: string, changes: Partial<Task>) => void;
   deleteSeries: (seriesId: string) => void;
   addEvent: (event: Omit<CalendarEvent, "id" | "updatedAt">) => string;
   updateEvent: (eventId: string, changes: Partial<CalendarEvent>) => void;
   deleteEvent: (eventId: string) => void;
-  addRecurringEvent: (event: Omit<CalendarEvent, "id" | "updatedAt">, recurrence: Recurrence) => string;
+  addRecurringEvent: (
+    event: Omit<CalendarEvent, "id" | "updatedAt">,
+    recurrence: Recurrence,
+  ) => string;
   updateEventSeries: (seriesId: string, changes: Partial<CalendarEvent>) => void;
   deleteEventSeries: (seriesId: string) => void;
   expandRecurringSeries: () => void;
@@ -115,7 +125,9 @@ export const useLifeStore = create<LifeStore>()(
       updateTask: (taskId, changes) =>
         set((state) => ({
           tasks: state.tasks.map((task) =>
-            task.id === taskId ? { ...task, ...changes, updatedAt: new Date().toISOString() } : task,
+            task.id === taskId
+              ? { ...task, ...changes, updatedAt: new Date().toISOString() }
+              : task,
           ),
         })),
       toggleTask: (taskId) =>
@@ -153,7 +165,9 @@ export const useLifeStore = create<LifeStore>()(
         if (!task.isFocus && focusCount >= 3) return false;
         set((state) => ({
           tasks: state.tasks.map((item) =>
-            item.id === taskId ? { ...item, isFocus: !item.isFocus, updatedAt: new Date().toISOString() } : item,
+            item.id === taskId
+              ? { ...item, isFocus: !item.isFocus, updatedAt: new Date().toISOString() }
+              : item,
           ),
         }));
         return true;
@@ -164,14 +178,21 @@ export const useLifeStore = create<LifeStore>()(
         set((state) => ({
           tasks: state.tasks.map((task) =>
             task.id === taskId
-              ? { ...task, date: format(addDays(new Date(), 1), "yyyy-MM-dd"), updatedAt: new Date().toISOString() }
+              ? {
+                  ...task,
+                  date: format(addDays(new Date(), 1), "yyyy-MM-dd"),
+                  updatedAt: new Date().toISOString(),
+                }
               : task,
           ),
         })),
       addRecurringTask: (task, recurrence) => {
         const seriesId = id();
         const timestamp = new Date().toISOString();
-        const windowCount = recurrence.count !== undefined ? Math.min(SERIES_WINDOW, recurrence.count) : SERIES_WINDOW;
+        const windowCount =
+          recurrence.count !== undefined
+            ? Math.min(SERIES_WINDOW, recurrence.count)
+            : SERIES_WINDOW;
         const occurrences: Task[] = [];
         for (let index = 0; index < windowCount; index += 1) {
           const occurrence = occurrenceDate(recurrence, index);
@@ -255,7 +276,9 @@ export const useLifeStore = create<LifeStore>()(
       updateEvent: (eventId, changes) =>
         set((state) => ({
           events: state.events.map((event) =>
-            event.id === eventId ? { ...event, ...changes, updatedAt: new Date().toISOString() } : event,
+            event.id === eventId
+              ? { ...event, ...changes, updatedAt: new Date().toISOString() }
+              : event,
           ),
         })),
       deleteEvent: (eventId) =>
@@ -266,7 +289,10 @@ export const useLifeStore = create<LifeStore>()(
         const seriesId = id();
         const timestamp = new Date().toISOString();
         const duration = durationMinutes(event.startTime, event.endTime);
-        const windowCount = recurrence.count !== undefined ? Math.min(SERIES_WINDOW, recurrence.count) : SERIES_WINDOW;
+        const windowCount =
+          recurrence.count !== undefined
+            ? Math.min(SERIES_WINDOW, recurrence.count)
+            : SERIES_WINDOW;
         const occurrences: CalendarEvent[] = [];
         for (let index = 0; index < windowCount; index += 1) {
           const occurrence = occurrenceDate(recurrence, index);
@@ -382,7 +408,11 @@ export const useLifeStore = create<LifeStore>()(
         set((state) => ({
           reminders: state.reminders.map((reminder) =>
             reminder.id === reminderId
-              ? { ...reminder, notifiedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+              ? {
+                  ...reminder,
+                  notifiedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                }
               : reminder,
           ),
         })),
@@ -469,7 +499,9 @@ export const useLifeStore = create<LifeStore>()(
       storage: createJSONStorage(() => safeLocalStorage),
       merge: (persistedState, currentState) => {
         if (!persistedState || typeof persistedState !== "object") {
-          reportStorageWarning("Zapisane dane miały niezgodny format — zachowano bezpieczne dane startowe");
+          reportStorageWarning(
+            "Zapisane dane miały niezgodny format — zachowano bezpieczne dane startowe",
+          );
           return currentState;
         }
         const state = persistedState as Record<string, unknown>;
@@ -482,14 +514,27 @@ export const useLifeStore = create<LifeStore>()(
         const scratchpad = parseScalarField(state.scratchpad, z.string(), currentState.scratchpad);
         const intention = parseScalarField(state.intention, z.string(), currentState.intention);
         const energy = parseScalarField(state.energy, energySchema, currentState.energy);
-        const preferences = parseScalarField(state.preferences, preferencesSchema, currentState.preferences);
+        const preferences = parseScalarField(
+          state.preferences,
+          preferencesSchema,
+          currentState.preferences,
+        );
 
         const droppedCount =
-          tasks.dropped + events.dropped + reminders.dropped + notes.dropped + habits.dropped +
-          scratchpad.dropped + intention.dropped + energy.dropped + preferences.dropped;
+          tasks.dropped +
+          events.dropped +
+          reminders.dropped +
+          notes.dropped +
+          habits.dropped +
+          scratchpad.dropped +
+          intention.dropped +
+          energy.dropped +
+          preferences.dropped;
 
         if (droppedCount > 0) {
-          reportStorageWarning("Część zapisanych danych była uszkodzona i została pominięta — pozostałe pozycje zostały zachowane");
+          reportStorageWarning(
+            "Część zapisanych danych była uszkodzona i została pominięta — pozostałe pozycje zostały zachowane",
+          );
           quarantineRawValue(STORAGE_NAME, JSON.stringify(persistedState));
         }
 

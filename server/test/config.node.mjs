@@ -16,10 +16,12 @@ const validBase = {
 
 test("optional Google Calendar can be completely disabled", () => {
   assert.doesNotThrow(() => validateConfiguration(validBase));
-  assert.doesNotThrow(() => validateConfiguration({
-    ...validBase,
-    googleRedirectUri: "https://puls.example.com/api/v1/integrations/google/callback",
-  }));
+  assert.doesNotThrow(() =>
+    validateConfiguration({
+      ...validBase,
+      googleRedirectUri: "https://puls.example.com/api/v1/integrations/google/callback",
+    }),
+  );
 });
 
 test("partial Google credentials are rejected", () => {
@@ -28,7 +30,12 @@ test("partial Google credentials are rejected", () => {
     /configuration is incomplete/,
   );
   assert.throws(
-    () => validateConfiguration({ ...validBase, googleClientId: "client", googleClientSecret: "secret" }),
+    () =>
+      validateConfiguration({
+        ...validBase,
+        googleClientId: "client",
+        googleClientSecret: "secret",
+      }),
     /configuration is incomplete/,
   );
 });
@@ -38,23 +45,28 @@ test("BOOTSTRAP_TOKEN minimum length is enforced even outside production", () =>
     () => validateConfiguration({ ...validBase, production: false, bootstrapToken: "too-short" }),
     /BOOTSTRAP_TOKEN must contain at least 24 characters/,
   );
-  assert.doesNotThrow(() => validateConfiguration({ ...validBase, production: false, bootstrapToken: "a".repeat(24) }));
+  assert.doesNotThrow(() =>
+    validateConfiguration({ ...validBase, production: false, bootstrapToken: "a".repeat(24) }),
+  );
 });
 
 test("Google redirect must use the public application origin", () => {
-  assert.doesNotThrow(() => validateConfiguration({
-    ...validBase,
-    googleClientId: "client",
-    googleClientSecret: "secret",
-    googleRedirectUri: "https://puls.example.com/api/v1/integrations/google/callback",
-  }));
-  assert.throws(
-    () => validateConfiguration({
+  assert.doesNotThrow(() =>
+    validateConfiguration({
       ...validBase,
       googleClientId: "client",
       googleClientSecret: "secret",
-      googleRedirectUri: "https://attacker.example/api/v1/integrations/google/callback",
+      googleRedirectUri: "https://puls.example.com/api/v1/integrations/google/callback",
     }),
+  );
+  assert.throws(
+    () =>
+      validateConfiguration({
+        ...validBase,
+        googleClientId: "client",
+        googleClientSecret: "secret",
+        googleRedirectUri: "https://attacker.example/api/v1/integrations/google/callback",
+      }),
     /must use APP_ORIGIN/,
   );
 });

@@ -21,7 +21,9 @@ describe("QuickAddModal", () => {
     await user.click(screen.getByRole("checkbox", { name: /Zadanie priorytetowe/i }));
     await user.click(screen.getByRole("button", { name: "Dodaj zadanie" }));
 
-    const created = useLifeStore.getState().tasks.find((task) => task.title === "Przygotować raport");
+    const created = useLifeStore
+      .getState()
+      .tasks.find((task) => task.title === "Przygotować raport");
     expect(created?.isFocus).toBe(true);
   });
 
@@ -38,6 +40,8 @@ describe("QuickAddModal", () => {
 
   it("nie pokazuje checkboxa priorytetu dla innych typów", () => {
     render(<QuickAddModal open onClose={vi.fn()} initialType="event" />);
-    expect(screen.queryByRole("checkbox", { name: /Zadanie priorytetowe/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: /Zadanie priorytetowe/i }),
+    ).not.toBeInTheDocument();
   });
 });

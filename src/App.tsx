@@ -15,15 +15,43 @@ import { useLifeStore } from "./store/useLifeStore";
 import { useAdvancedStore } from "./store/useAdvancedStore";
 import type { QuickAddType, ViewId } from "./types";
 
-const FinancePage = lazy(() => import("./pages/FinancePage").then((module) => ({ default: module.FinancePage })));
-const TripsPage = lazy(() => import("./pages/TripsPage").then((module) => ({ default: module.TripsPage })));
-const SubscriptionsPage = lazy(() => import("./pages/SubscriptionsPage").then((module) => ({ default: module.SubscriptionsPage })));
-const MealsPage = lazy(() => import("./pages/MealsPage").then((module) => ({ default: module.MealsPage })));
-const CarPage = lazy(() => import("./pages/CarPage").then((module) => ({ default: module.CarPage })));
-const PetsPage = lazy(() => import("./pages/PetsPage").then((module) => ({ default: module.PetsPage })));
-const HealthPage = lazy(() => import("./pages/HealthPage").then((module) => ({ default: module.HealthPage })));
+const FinancePage = lazy(() =>
+  import("./pages/FinancePage").then((module) => ({ default: module.FinancePage })),
+);
+const TripsPage = lazy(() =>
+  import("./pages/TripsPage").then((module) => ({ default: module.TripsPage })),
+);
+const SubscriptionsPage = lazy(() =>
+  import("./pages/SubscriptionsPage").then((module) => ({ default: module.SubscriptionsPage })),
+);
+const MealsPage = lazy(() =>
+  import("./pages/MealsPage").then((module) => ({ default: module.MealsPage })),
+);
+const CarPage = lazy(() =>
+  import("./pages/CarPage").then((module) => ({ default: module.CarPage })),
+);
+const PetsPage = lazy(() =>
+  import("./pages/PetsPage").then((module) => ({ default: module.PetsPage })),
+);
+const HealthPage = lazy(() =>
+  import("./pages/HealthPage").then((module) => ({ default: module.HealthPage })),
+);
 
-const viewIds: ViewId[] = ["today", "tasks", "calendar", "notes", "habits", "finance", "trips", "subscriptions", "meals", "car", "pets", "health", "settings"];
+const viewIds: ViewId[] = [
+  "today",
+  "tasks",
+  "calendar",
+  "notes",
+  "habits",
+  "finance",
+  "trips",
+  "subscriptions",
+  "meals",
+  "car",
+  "pets",
+  "health",
+  "settings",
+];
 
 function viewFromUrl(): ViewId {
   const value = new URL(window.location.href).searchParams.get("view") as ViewId | null;
@@ -70,7 +98,11 @@ export default function App() {
     if (url.searchParams.get("quickAdd") === "1") {
       openQuickAdd();
       url.searchParams.delete("quickAdd");
-      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
     }
     const handlePopState = () => setView(viewFromUrl());
     window.addEventListener("popstate", handlePopState);
@@ -93,7 +125,8 @@ export default function App() {
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      const typing =
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setCommandOpen((value) => !value);
@@ -157,34 +190,73 @@ export default function App() {
 
   return (
     <>
-      <Layout view={view} onViewChange={navigate} onQuickAdd={() => openQuickAdd()} onCommand={() => setCommandOpen(true)}>
+      <Layout
+        view={view}
+        onViewChange={navigate}
+        onQuickAdd={() => openQuickAdd()}
+        onCommand={() => setCommandOpen(true)}
+      >
         <ModuleErrorBoundary key={view}>
-        <Suspense fallback={<div className="module-loading"><LoaderCircle size={22} className="spin" /><span>Otwieram moduł…</span></div>}>
-        {view === "today" && <TodayPage onQuickAdd={openQuickAdd} onNavigate={navigate} onToast={showToast} />}
-        {view === "tasks" && <TasksPage onQuickAdd={() => openQuickAdd("task")} onToast={showToast} />}
-        {view === "calendar" && <CalendarPage onQuickAdd={() => openQuickAdd("event")} onToast={showToast} />}
-        {view === "notes" && <NotesPage onQuickAdd={() => openQuickAdd("note")} onToast={showToast} />}
-        {view === "habits" && <HabitsPage onToast={showToast} />}
-        {view === "finance" && <FinancePage onToast={showToast} />}
-        {view === "trips" && <TripsPage onToast={showToast} />}
-        {view === "subscriptions" && <SubscriptionsPage onToast={showToast} />}
-        {view === "meals" && <MealsPage onToast={showToast} />}
-        {view === "car" && <CarPage onToast={showToast} />}
-        {view === "pets" && <PetsPage onToast={showToast} />}
-        {view === "health" && <HealthPage onToast={showToast} />}
-        {view === "settings" && <SettingsPage onToast={showToast} />}
-        </Suspense>
+          <Suspense
+            fallback={
+              <div className="module-loading">
+                <LoaderCircle size={22} className="spin" />
+                <span>Otwieram moduł…</span>
+              </div>
+            }
+          >
+            {view === "today" && (
+              <TodayPage onQuickAdd={openQuickAdd} onNavigate={navigate} onToast={showToast} />
+            )}
+            {view === "tasks" && (
+              <TasksPage onQuickAdd={() => openQuickAdd("task")} onToast={showToast} />
+            )}
+            {view === "calendar" && (
+              <CalendarPage onQuickAdd={() => openQuickAdd("event")} onToast={showToast} />
+            )}
+            {view === "notes" && (
+              <NotesPage onQuickAdd={() => openQuickAdd("note")} onToast={showToast} />
+            )}
+            {view === "habits" && <HabitsPage onToast={showToast} />}
+            {view === "finance" && <FinancePage onToast={showToast} />}
+            {view === "trips" && <TripsPage onToast={showToast} />}
+            {view === "subscriptions" && <SubscriptionsPage onToast={showToast} />}
+            {view === "meals" && <MealsPage onToast={showToast} />}
+            {view === "car" && <CarPage onToast={showToast} />}
+            {view === "pets" && <PetsPage onToast={showToast} />}
+            {view === "health" && <HealthPage onToast={showToast} />}
+            {view === "settings" && <SettingsPage onToast={showToast} />}
+          </Suspense>
         </ModuleErrorBoundary>
       </Layout>
 
-      <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} initialType={quickAddType} onAdded={showToast} />
-      <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} onNavigate={navigate} onQuickAdd={() => openQuickAdd()} />
+      <QuickAddModal
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        initialType={quickAddType}
+        onAdded={showToast}
+      />
+      <CommandPalette
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        onNavigate={navigate}
+        onQuickAdd={() => openQuickAdd()}
+      />
 
       {toast && (
         <div className="toast" role="status">
-          <span><CheckCircle2 size={18} /></span>
+          <span>
+            <CheckCircle2 size={18} />
+          </span>
           <strong>{toast}</strong>
-          <button className="icon-button" type="button" onClick={() => setToast(null)} aria-label="Zamknij komunikat"><X size={16} /></button>
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => setToast(null)}
+            aria-label="Zamknij komunikat"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
     </>

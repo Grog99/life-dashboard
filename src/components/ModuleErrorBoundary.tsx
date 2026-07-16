@@ -1,10 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { CircleAlert, RotateCcw } from "lucide-react";
 
-export class ModuleErrorBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
+export class ModuleErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -22,7 +19,11 @@ export class ModuleErrorBoundary extends Component<
           <CircleAlert size={22} />
           <strong>Nie udało się otworzyć modułu</strong>
           <span>Po aktualizacji PWA może potrzebować odświeżenia plików.</span>
-          <button className="button button--soft" type="button" onClick={() => window.location.reload()}>
+          <button
+            className="button button--soft"
+            type="button"
+            onClick={() => window.location.reload()}
+          >
             <RotateCcw size={16} /> Odśwież aplikację
           </button>
         </div>
@@ -31,4 +32,3 @@ export class ModuleErrorBoundary extends Component<
     return this.props.children;
   }
 }
-

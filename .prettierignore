@@ -1,0 +1,7 @@
+dist
+coverage
+package-lock.json
+server/package-lock.json
+public/sw.js
+.claude
+*.md
