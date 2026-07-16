@@ -153,6 +153,12 @@ function derivedReminders(data, nowKey) {
       reminders.push({ id: `health-appointment:${appointment.id}`, title: `Nadchodzi wizyta: ${appointment.title}`, date: appointment.date, time: appointment.time });
     }
   }
+  for (const visit of Array.isArray(advanced.petVisits) ? advanced.petVisits : []) {
+    const dueKey = shiftLocalDateTime(visit?.date, visit?.time, -24 * 60);
+    if (visit?.id && visit.status === "scheduled" && withinDeliveryWindow(dueKey, nowKey, 2)) {
+      reminders.push({ id: `pet-visit:${visit.id}`, title: `Wizyta u weterynarza: ${visit.title}`, date: visit.date, time: visit.time });
+    }
+  }
   for (const medication of Array.isArray(advanced.medications) ? advanced.medications : []) {
     const reminderTime = medication?.reminderTime;
     const today = nowKey.slice(0, 10);

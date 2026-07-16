@@ -90,6 +90,23 @@ export function createAdvancedData(): AdvancedDataWithHealth {
       { id: "deadline-oil", vehicleId: "vehicle-corolla", title: "Wymiana oleju", dueMileage: 75000, completed: false },
       { id: "deadline-insurance", vehicleId: "vehicle-corolla", title: "Odnowienie OC/AC", dueDate: day(74), completed: false },
     ],
+    pets: [
+      { id: "pet-fistaszek", name: "Fistaszek", kind: "rabbit", color: "#b17a42", species: "Królik miniaturka", birthDate: day(-540), notes: "Lubi marchewkę i suszone zioła.", ownerId: "me", visibility: "household" },
+      { id: "pet-akwarium", name: "Akwarium w salonie", kind: "aquarium", color: "#397763", fishStock: [
+        { id: "fish-neon", species: "Neonek innesa", count: 12 },
+        { id: "fish-corydoras", species: "Kirysek panda", count: 6 },
+      ], notes: "60 l, wymiana wody co 2 tygodnie.", ownerId: "me", visibility: "household" },
+    ],
+    petExpenses: [
+      { id: "pet-expense-food-1", petId: "pet-fistaszek", date: day(-3), type: "food", amountMinor: 4200, title: "Siano i granulat", ownerId: "me", visibility: "household" },
+      { id: "pet-expense-vet-1", petId: "pet-fistaszek", date: day(-40), type: "vet", amountMinor: 15000, title: "Szczepienie", ownerId: "me", visibility: "household" },
+      { id: "pet-expense-accessories-1", petId: "pet-akwarium", date: day(-10), type: "accessories", amountMinor: 8900, title: "Filtr do akwarium", ownerId: "me", visibility: "household" },
+      { id: "pet-expense-grooming-1", petId: "pet-fistaszek", date: day(-15), type: "grooming", amountMinor: 6000, title: "Strzyżenie pazurków", ownerId: "me", visibility: "household" },
+    ],
+    petVisits: [
+      { id: "pet-visit-vet", petId: "pet-fistaszek", title: "Kontrola weterynaryjna", clinician: "dr Piotr Nowak", specialty: "Egzotyki", date: day(6), time: "12:00", location: "Vetlandia, ul. Polna 5", status: "scheduled", notes: "Zabrać książeczkę zdrowia.", ownerId: "me", visibility: "household" },
+      { id: "pet-visit-service", petId: "pet-akwarium", title: "Serwis filtra", clinician: "AquaSerwis", date: day(-20), time: "10:00", status: "completed", ownerId: "me", visibility: "household" },
+    ],
     healthAppointments: [
       { id: "health-appointment-dentist", title: "Kontrola stomatologiczna", clinician: "dr Anna Kowalska", specialty: "Stomatologia", date: day(9), time: "16:30", location: "Dentica, ul. Dobra 12", status: "scheduled", notes: "Zabrać ostatnie zdjęcie RTG.", ownerId: "me", visibility: "private" },
       { id: "health-appointment-checkup", title: "Badania profilaktyczne", clinician: "Laboratorium", specialty: "Morfologia i lipidogram", date: day(-28), time: "08:00", location: "Punkt pobrań", status: "completed", ownerId: "me", visibility: "private" },

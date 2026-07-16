@@ -111,6 +111,7 @@ test("server rejects malformed workspace documents", () => {
     "financeAccounts", "financeTransactions", "financeBudgets", "savingsGoals", "trips", "tripItinerary",
     "tripBookings", "packingItems", "subscriptions", "recipes", "mealSlots", "shoppingItems", "vehicles",
     "carExpenses", "vehicleDeadlines", "healthAppointments", "medications", "healthMeasurements", "householdMembers",
+    "pets", "petExpenses", "petVisits",
   ];
   assert.equal(workspaceDocumentIsValid({
     schemaVersion: 2,

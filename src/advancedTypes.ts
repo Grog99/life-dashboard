@@ -183,6 +183,50 @@ export interface VehicleDeadline {
   completed: boolean;
 }
 
+export type PetKind = "rabbit" | "dog" | "cat" | "guinea_pig" | "aquarium" | "other";
+
+export interface FishStockEntry {
+  id: string;
+  species: string; // gatunek ryby, np. "Neonek innesa"
+  count: number; // liczba sztuk
+}
+
+export interface Pet extends SharedMeta {
+  id: string;
+  name: string; // imię, np. "Fistaszek"
+  kind: PetKind; // typ profilu (steruje wariantem pól)
+  color: string; // kolor karty w selektorze (jak Vehicle.color)
+  // Pola zwierzęcia standardowego (kind !== "aquarium"):
+  species?: string; // gatunek/rasa, np. "Królik miniaturka"
+  birthDate?: string; // isoDate — wiek liczony w UI
+  // Pole wariantowe akwarium (kind === "aquarium"):
+  fishStock?: FishStockEntry[]; // obsada: lista {gatunek, liczba}
+  notes?: string;
+}
+
+export interface PetExpense extends SharedMeta {
+  id: string;
+  petId: string;
+  date: string; // isoDate
+  type: "food" | "vet" | "accessories" | "grooming" | "other";
+  amountMinor: number;
+  title: string;
+  notes?: string;
+}
+
+export interface PetVisit extends SharedMeta {
+  id: string;
+  petId: string;
+  title: string; // np. "Szczepienie", "Serwis filtra"
+  clinician: string; // weterynarz / placówka / serwis
+  specialty?: string;
+  date: string; // isoDate
+  time: string; // clockTime — potrzebne dla push -24 h
+  location?: string;
+  status: "scheduled" | "completed" | "cancelled";
+  notes?: string;
+}
+
 export interface HealthAppointment extends SharedMeta {
   id: string;
   title: string;
@@ -245,6 +289,9 @@ export interface AdvancedData {
   vehicles: Vehicle[];
   carExpenses: CarExpense[];
   vehicleDeadlines: VehicleDeadline[];
+  pets: Pet[];
+  petExpenses: PetExpense[];
+  petVisits: PetVisit[];
   healthAppointments: HealthAppointment[];
   medications: Medication[];
   healthMeasurements: HealthMeasurement[];

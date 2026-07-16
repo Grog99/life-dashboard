@@ -11,6 +11,7 @@ import {
   Menu,
   Moon,
   NotebookPen,
+  PawPrint,
   Plus,
   Plane,
   Repeat2,
@@ -49,6 +50,7 @@ const navigation: Array<{
   { id: "subscriptions", label: "Subskrypcje", icon: Repeat2 },
   { id: "meals", label: "Posiłki", icon: Utensils },
   { id: "car", label: "Samochód", icon: CarFront },
+  { id: "pets", label: "Zwierzęta", icon: PawPrint },
   { id: "health", label: "Zdrowie", icon: HeartPulse },
 ];
 
@@ -63,6 +65,7 @@ const titles: Record<ViewId, string> = {
   subscriptions: "Subskrypcje",
   meals: "Posiłki",
   car: "Samochód",
+  pets: "Zwierzęta",
   health: "Zdrowie",
   settings: "Ustawienia",
 };

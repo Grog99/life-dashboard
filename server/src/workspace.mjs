@@ -10,6 +10,9 @@ const META_COLLECTIONS = [
   "healthAppointments",
   "medications",
   "healthMeasurements",
+  "pets",
+  "petExpenses",
+  "petVisits",
 ];
 
 const CHILD_RELATIONS = {
@@ -21,6 +24,8 @@ const CHILD_RELATIONS = {
   shoppingItems: ["sourceRecipeId", "recipes"],
   carExpenses: ["vehicleId", "vehicles"],
   vehicleDeadlines: ["vehicleId", "vehicles"],
+  petExpenses: ["petId", "pets"],
+  petVisits: ["petId", "pets"],
 };
 
 const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
@@ -29,7 +34,7 @@ const ADVANCED_COLLECTIONS = [
   "financeAccounts", "financeTransactions", "financeBudgets", "savingsGoals", "trips",
   "tripItinerary", "tripBookings", "packingItems", "subscriptions", "recipes", "mealSlots",
   "shoppingItems", "vehicles", "carExpenses", "vehicleDeadlines", "healthAppointments",
-  "medications", "healthMeasurements", "householdMembers",
+  "medications", "healthMeasurements", "householdMembers", "pets", "petExpenses", "petVisits",
 ];
 
 const asObject = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
