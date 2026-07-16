@@ -1,5 +1,7 @@
 import {
   addDays,
+  addMinutes,
+  differenceInMinutes,
   endOfWeek,
   format,
   formatDistanceToNowStrict,
@@ -83,4 +85,16 @@ export function formatMinutes(minutes?: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+/** Różnica w minutach między dwiema godzinami "HH:mm" (używane przy przeliczaniu wystąpień serii wydarzeń). */
+export function durationMinutes(startTime: string, endTime: string): number {
+  const base = new Date(2000, 0, 1);
+  return differenceInMinutes(parse(endTime, "HH:mm", base), parse(startTime, "HH:mm", base));
+}
+
+/** Dodaje minuty do godziny "HH:mm", zwraca "HH:mm" (zachowanie czasu trwania przy generowaniu wystąpień). */
+export function addMinutesToTime(time: string, minutes: number): string {
+  const base = new Date(2000, 0, 1);
+  return format(addMinutes(parse(time, "HH:mm", base), minutes), "HH:mm");
 }

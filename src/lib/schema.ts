@@ -30,6 +30,17 @@ const timestamp = z.string().refine((value) => !Number.isNaN(Date.parse(value)),
 const idSchema = z.string().min(1).max(200);
 const visibilitySchema = z.enum(["private", "household"]);
 
+// Powtarzalność zadań/wydarzeń (patrz docs/plans/zadania-wydarzenia-powtarzalne.md).
+// Reużywa istniejących helperów `isoDate`/`clockTime` zamiast duplikować walidację dat/godzin.
+export const recurrenceSchema = z.object({
+  freq: z.enum(["daily", "weekly", "monthly"]),
+  interval: z.number().int().min(1),
+  weekdays: z.array(z.number().int().min(1).max(7)).min(1).optional(),
+  count: z.number().int().min(1).optional(),
+  anchorDate: isoDate,
+  anchorTime: clockTime.optional(),
+});
+
 export const taskSchema = z.object({
   id: z.string(),
   title: nonEmptyText,
@@ -47,6 +58,9 @@ export const taskSchema = z.object({
   completedAt: timestamp.optional(),
   ownerId: idSchema.optional(),
   visibility: visibilitySchema.optional(),
+  seriesId: idSchema.optional(),
+  seriesIndex: z.number().int().min(0).optional(),
+  recurrence: recurrenceSchema.optional(),
 });
 
 export const eventSchema = z.object({
@@ -64,6 +78,9 @@ export const eventSchema = z.object({
   updatedAt: timestamp,
   ownerId: idSchema.optional(),
   visibility: visibilitySchema.optional(),
+  seriesId: idSchema.optional(),
+  seriesIndex: z.number().int().min(0).optional(),
+  recurrence: recurrenceSchema.optional(),
 });
 
 export const reminderSchema = z.object({

@@ -138,6 +138,22 @@ export default function App() {
     return () => window.removeEventListener("storage", syncOtherTabs);
   }, []);
 
+  // Dosuwa okno przyszłych wystąpień serii powtarzalnych zadań/wydarzeń — przy montażu
+  // i przy powrocie do aplikacji (zmiana dnia w tle). Sama akcja jest no-op, gdy okno
+  // jest już pełne (patrz src/store/useLifeStore.ts, docs/plans/zadania-wydarzenia-powtarzalne.md).
+  useEffect(() => {
+    useLifeStore.getState().expandRecurringSeries();
+    const handleVisible = () => {
+      if (document.visibilityState === "visible") useLifeStore.getState().expandRecurringSeries();
+    };
+    window.addEventListener("focus", handleVisible);
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => {
+      window.removeEventListener("focus", handleVisible);
+      document.removeEventListener("visibilitychange", handleVisible);
+    };
+  }, []);
+
   return (
     <>
       <Layout view={view} onViewChange={navigate} onQuickAdd={() => openQuickAdd()} onCommand={() => setCommandOpen(true)}>

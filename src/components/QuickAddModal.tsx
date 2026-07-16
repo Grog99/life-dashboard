@@ -5,13 +5,15 @@ import {
   Clock3,
   Lightbulb,
   NotebookPen,
+  Repeat,
   Sparkles,
   Star,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { addHours, format } from "date-fns";
+import { addHours, format, getISODay, parseISO } from "date-fns";
 import { Modal } from "./Modal";
-import { dateKey } from "../lib/date";
+import { dateKey, formatShortDate } from "../lib/date";
+import { alignWeeklyAnchor, nextOccurrences, WEEKDAY_LABELS } from "../lib/recurrence";
 import { parseSmartCapture } from "../lib/smartCapture";
 import { useLifeStore } from "../store/useLifeStore";
 import { useServerAuth } from "../server/AuthGate";
@@ -22,6 +24,8 @@ import type {
   NoteColor,
   Priority,
   QuickAddType,
+  Recurrence,
+  RecurrenceFreq,
 } from "../types";
 
 interface QuickAddModalProps {
@@ -48,6 +52,8 @@ export function QuickAddModal({
   const addEvent = useLifeStore((state) => state.addEvent);
   const addReminder = useLifeStore((state) => state.addReminder);
   const addNote = useLifeStore((state) => state.addNote);
+  const addRecurringTask = useLifeStore((state) => state.addRecurringTask);
+  const addRecurringEvent = useLifeStore((state) => state.addRecurringEvent);
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
 
@@ -68,6 +74,11 @@ export function QuickAddModal({
   const [isFocus, setIsFocus] = useState(false);
   const [dateEditedManually, setDateEditedManually] = useState(false);
   const [timeEditedManually, setTimeEditedManually] = useState(false);
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [repeatFreq, setRepeatFreq] = useState<RecurrenceFreq>("weekly");
+  const [repeatInterval, setRepeatInterval] = useState("1");
+  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
+  const [repeatCount, setRepeatCount] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -89,6 +100,11 @@ export function QuickAddModal({
     setIsFocus(false);
     setDateEditedManually(false);
     setTimeEditedManually(false);
+    setRepeatEnabled(false);
+    setRepeatFreq("weekly");
+    setRepeatInterval("1");
+    setRepeatWeekdays([]);
+    setRepeatCount("");
   }, [initialType, open]);
 
   useEffect(() => {
@@ -107,6 +123,32 @@ export function QuickAddModal({
     setTimeEditedManually(true);
   };
 
+  const toggleRepeatWeekday = (iso: number) => {
+    setRepeatWeekdays((current) =>
+      current.includes(iso)
+        ? current.filter((value) => value !== iso)
+        : [...current, iso].sort((a, b) => a - b),
+    );
+  };
+
+  const buildRecurrence = (anchorDateRaw: string, anchorTime?: string): Recurrence => {
+    const weekdays = repeatFreq === "weekly" && repeatWeekdays.length ? repeatWeekdays : undefined;
+    const anchorDate = weekdays ? alignWeeklyAnchor(anchorDateRaw, weekdays) : anchorDateRaw;
+    return {
+      freq: repeatFreq,
+      interval: Math.max(1, Number(repeatInterval) || 1),
+      weekdays,
+      count: repeatCount ? Math.max(1, Number(repeatCount) || 1) : undefined,
+      anchorDate,
+      anchorTime,
+    };
+  };
+
+  const repeatPreview =
+    repeatEnabled && (type === "task" || type === "event")
+      ? nextOccurrences(buildRecurrence(date || dateKey()), 4)
+      : [];
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim()) return;
@@ -116,35 +158,71 @@ export function QuickAddModal({
     if (type === "task") {
       const hasDate = detailsOpen || Boolean(parsed.date);
       const hasTime = detailsOpen || Boolean(parsed.time);
-      addTask({
-        title: parsed.title,
-        priority,
-        date: hasDate && date ? date : undefined,
-        time: hasTime && time ? time : undefined,
-        estimatedMinutes: detailsOpen ? Number(duration) || undefined : undefined,
-        category,
-        isFocus,
-        energy,
-        visibility,
-        ownerId: currentOwnerId,
-      });
-      onAdded?.("Zadanie trafiło na listę");
+      if (repeatEnabled) {
+        const recurrence = buildRecurrence((hasDate && date) || dateKey(), hasTime && time ? time : undefined);
+        addRecurringTask(
+          {
+            title: parsed.title,
+            priority,
+            category,
+            isFocus,
+            energy,
+            estimatedMinutes: detailsOpen ? Number(duration) || undefined : undefined,
+            visibility,
+            ownerId: currentOwnerId,
+          },
+          recurrence,
+        );
+        onAdded?.("Seria zadań utworzona");
+      } else {
+        addTask({
+          title: parsed.title,
+          priority,
+          date: hasDate && date ? date : undefined,
+          time: hasTime && time ? time : undefined,
+          estimatedMinutes: detailsOpen ? Number(duration) || undefined : undefined,
+          category,
+          isFocus,
+          energy,
+          visibility,
+          ownerId: currentOwnerId,
+        });
+        onAdded?.("Zadanie trafiło na listę");
+      }
     } else if (type === "event") {
       if (!date || !time || !endTime || endTime <= time) {
         onAdded?.("Sprawdź datę i kolejność godzin wydarzenia");
         return;
       }
-      addEvent({
-        title: parsed.title,
-        date,
-        startTime: time,
-        endTime,
-        kind,
-        location: location.trim() || undefined,
-        visibility,
-        ownerId: currentOwnerId,
-      });
-      onAdded?.("Wydarzenie dodane do kalendarza");
+      if (repeatEnabled) {
+        const recurrence = buildRecurrence(date, time);
+        addRecurringEvent(
+          {
+            title: parsed.title,
+            date,
+            startTime: time,
+            endTime,
+            kind,
+            location: location.trim() || undefined,
+            visibility,
+            ownerId: currentOwnerId,
+          },
+          recurrence,
+        );
+        onAdded?.("Seria wydarzeń utworzona");
+      } else {
+        addEvent({
+          title: parsed.title,
+          date,
+          startTime: time,
+          endTime,
+          kind,
+          location: location.trim() || undefined,
+          visibility,
+          ownerId: currentOwnerId,
+        });
+        onAdded?.("Wydarzenie dodane do kalendarza");
+      }
     } else if (type === "reminder") {
       if (!date || !time) {
         onAdded?.("Uzupełnij datę i godzinę przypomnienia");
@@ -320,6 +398,90 @@ export function QuickAddModal({
           </>
         )}
 
+        {(type === "task" || type === "event") && (
+          <>
+            <label className="check-field">
+              <input
+                type="checkbox"
+                checked={repeatEnabled}
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  setRepeatEnabled(checked);
+                  if (checked) {
+                    if (type === "task") setDetailsOpen(true);
+                    if (repeatWeekdays.length === 0) {
+                      const anchor = date || dateKey();
+                      setRepeatWeekdays([getISODay(parseISO(anchor))]);
+                    }
+                  }
+                }}
+              />
+              <span>
+                <Repeat size={16} />
+                <strong>Powtarzaj</strong>
+                <small>Utworzy serię kolejnych wystąpień.</small>
+              </span>
+            </label>
+
+            {repeatEnabled && (
+              <div className="quick-add-details repeat-panel">
+                <div className="form-grid form-grid--3">
+                  <label className="field">
+                    <span>Co ile</span>
+                    <select value={repeatFreq} onChange={(event) => setRepeatFreq(event.target.value as RecurrenceFreq)}>
+                      <option value="daily">Dni</option>
+                      <option value="weekly">Tygodni</option>
+                      <option value="monthly">Miesięcy</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Co ile jednostek</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={repeatInterval}
+                      onChange={(event) => setRepeatInterval(event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Zakończ po (opcjonalnie)</span>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Bez limitu"
+                      value={repeatCount}
+                      onChange={(event) => setRepeatCount(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                {repeatFreq === "weekly" && (
+                  <fieldset className="weekday-picker">
+                    <legend>Dni tygodnia</legend>
+                    {WEEKDAY_LABELS.map(({ iso, label }) => (
+                      <button
+                        type="button"
+                        key={iso}
+                        className={repeatWeekdays.includes(iso) ? "active" : ""}
+                        aria-pressed={repeatWeekdays.includes(iso)}
+                        onClick={() => toggleRepeatWeekday(iso)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </fieldset>
+                )}
+
+                {repeatPreview.length > 0 && (
+                  <p className="repeat-preview">
+                    Najbliższe: {repeatPreview.map((value) => formatShortDate(value)).join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
         {type === "note" && (
           <fieldset className="color-picker">
             <legend>Kolor notatki</legend>
@@ -349,7 +511,13 @@ export function QuickAddModal({
           <div>
             <button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button>
             <button className="button button--primary" type="submit">
-              {type === "task" ? "Dodaj zadanie" : type === "event" ? "Dodaj do kalendarza" : type === "reminder" ? "Ustaw przypomnienie" : "Utwórz notatkę"}
+              {type === "task"
+                ? repeatEnabled ? "Utwórz serię zadań" : "Dodaj zadanie"
+                : type === "event"
+                  ? repeatEnabled ? "Utwórz serię wydarzeń" : "Dodaj do kalendarza"
+                  : type === "reminder"
+                    ? "Ustaw przypomnienie"
+                    : "Utwórz notatkę"}
             </button>
           </div>
         </footer>

@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { addDays } from "date-fns";
 import { createSampleData } from "../data/sampleData";
+import { dateKey } from "../lib/date";
+import { SERIES_WINDOW } from "../lib/recurrence";
 import { useLifeStore } from "./useLifeStore";
 
 describe("life store", () => {
@@ -127,5 +130,91 @@ describe("life store", () => {
     expect(merged.tasks[0].id).toBe(sample.tasks[0].id);
     expect(merged.events).toEqual(sample.events);
     expect(merged.notes).toEqual(sample.notes);
+  });
+});
+
+describe("serie powtarzalne w store", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useLifeStore.setState(createSampleData());
+  });
+
+  it("addRecurringTask materializuje okno wystąpień z deterministycznymi id", () => {
+    const seriesId = useLifeStore.getState().addRecurringTask(
+      { title: "Sprzątanie", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+      { freq: "weekly", interval: 1, anchorDate: dateKey() },
+    );
+    const occ = useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId);
+    expect(occ).toHaveLength(SERIES_WINDOW);
+    expect(occ.every((task) => task.status === "todo")).toBe(true);
+    expect(new Set(occ.map((task) => task.id)).size).toBe(SERIES_WINDOW); // unikalne
+    expect(occ.some((task) => task.id === `${seriesId}#0`)).toBe(true);
+  });
+
+  it("addRecurringTask respektuje limit count", () => {
+    const seriesId = useLifeStore.getState().addRecurringTask(
+      { title: "Trzy razy", priority: "low", category: "Dom", isFocus: false, energy: "low" },
+      { freq: "daily", interval: 1, count: 3, anchorDate: dateKey() },
+    );
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(3);
+  });
+
+  it("addRecurringEvent zachowuje czas trwania wydarzenia w każdym wystąpieniu", () => {
+    const seriesId = useLifeStore.getState().addRecurringEvent(
+      { title: "Trening", date: dateKey(), startTime: "18:00", endTime: "19:30", kind: "personal" },
+      { freq: "weekly", interval: 1, anchorDate: dateKey() },
+    );
+    const occ = useLifeStore.getState().events.filter((event) => event.seriesId === seriesId);
+    expect(occ).toHaveLength(SERIES_WINDOW);
+    expect(occ.every((event) => event.startTime === "18:00" && event.endTime === "19:30")).toBe(true);
+  });
+
+  it("deleteSeries kasuje wszystkie wystąpienia serii", () => {
+    const seriesId = useLifeStore.getState().addRecurringTask(
+      { title: "Do usunięcia", priority: "low", category: "Dom", isFocus: false, energy: "low" },
+      { freq: "daily", interval: 1, anchorDate: dateKey() },
+    );
+    useLifeStore.getState().deleteSeries(seriesId);
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(0);
+  });
+
+  it("updateSeries zmienia tylko przyszłe/dzisiejsze wystąpienia, nie rusza przeszłych", () => {
+    const past = dateKey(addDays(new Date(), -3));
+    const future = dateKey(addDays(new Date(), 3));
+    const recurrence = { freq: "daily" as const, interval: 1, anchorDate: past };
+    const timestamp = new Date().toISOString();
+    const shared = {
+      title: "Stary tytuł",
+      status: "todo" as const,
+      priority: "medium" as const,
+      category: "Dom",
+      isFocus: false,
+      energy: "low" as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      seriesId: "s-hist",
+      recurrence,
+    };
+    useLifeStore.setState({
+      tasks: [
+        { ...shared, id: "s-hist#0", date: past, seriesIndex: 0 },
+        { ...shared, id: "s-hist#5", date: future, seriesIndex: 5 },
+      ],
+    });
+
+    useLifeStore.getState().updateSeries("s-hist", { title: "Nowy tytuł" });
+    const tasks = useLifeStore.getState().tasks;
+    expect(tasks.find((task) => task.id === "s-hist#0")?.title).toBe("Stary tytuł"); // przeszłe nietknięte
+    expect(tasks.find((task) => task.id === "s-hist#5")?.title).toBe("Nowy tytuł"); // przyszłe zmienione
+  });
+
+  it("expandRecurringSeries jest no-op, gdy okno jest pełne (bez zbędnego zapisu)", () => {
+    useLifeStore.getState().addRecurringTask(
+      { title: "Pełne okno", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+      { freq: "daily", interval: 1, anchorDate: dateKey() },
+    );
+    const before = useLifeStore.getState().tasks;
+    useLifeStore.getState().expandRecurringSeries();
+    expect(useLifeStore.getState().tasks).toBe(before); // ta sama referencja = brak zapisu
   });
 });

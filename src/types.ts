@@ -19,6 +19,20 @@ export type TaskStatus = "todo" | "done";
 export type Theme = "light" | "dark" | "system";
 export type Energy = "low" | "medium" | "high";
 
+// Powtarzalność zadań/wydarzeń (patrz docs/plans/zadania-wydarzenia-powtarzalne.md).
+// Wariant A: reguła jest replikowana na każdym zmaterializowanym wystąpieniu
+// (self-describing), obok stabilnego `seriesId` i porządkowego `seriesIndex`.
+export type RecurrenceFreq = "daily" | "weekly" | "monthly";
+
+export interface Recurrence {
+  freq: RecurrenceFreq;
+  interval: number; // co ile jednostek (dni/tygodni/miesięcy), liczba całkowita >= 1
+  weekdays?: number[]; // TYLKO dla freq="weekly"; ISO 1=pon … 7=niedz, posortowane, unikalne, min. 1
+  count?: number; // limit liczby wystąpień (>= 1), liczony od kotwicy; brak = bezterminowo
+  anchorDate: string; // "yyyy-MM-dd" — data wystąpienia seriesIndex=0 (start serii)
+  anchorTime?: string; // "HH:mm" — dla eventów startTime kotwicy; task może nie mieć godziny
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -36,6 +50,9 @@ export interface Task {
   completedAt?: string;
   ownerId?: string;
   visibility?: Visibility;
+  seriesId?: string;
+  seriesIndex?: number;
+  recurrence?: Recurrence;
 }
 
 export type EventKind = "meeting" | "focus" | "personal";
@@ -55,6 +72,9 @@ export interface CalendarEvent {
   updatedAt: string;
   ownerId?: string;
   visibility?: Visibility;
+  seriesId?: string;
+  seriesIndex?: number;
+  recurrence?: Recurrence;
 }
 
 export interface Reminder {

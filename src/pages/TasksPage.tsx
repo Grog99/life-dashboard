@@ -9,6 +9,7 @@ import {
   Layers3,
   ListFilter,
   Plus,
+  Repeat,
   Search,
   Sparkles,
   Star,
@@ -20,9 +21,10 @@ import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { TaskItem } from "../components/TaskItem";
 import { dateKey, formatShortDate, isOverdue } from "../lib/date";
+import { WEEKDAY_LABELS } from "../lib/recurrence";
 import { useLifeStore } from "../store/useLifeStore";
 import type { Visibility } from "../advancedTypes";
-import type { Energy, Priority, Task } from "../types";
+import type { Energy, Priority, RecurrenceFreq, Task } from "../types";
 
 type TaskFilter = "today" | "inbox" | "upcoming" | "all" | "done";
 
@@ -43,6 +45,8 @@ export function TasksPage({ onQuickAdd, onToast }: TasksPageProps) {
   const tasks = useLifeStore((state) => state.tasks);
   const updateTask = useLifeStore((state) => state.updateTask);
   const deleteTask = useLifeStore((state) => state.deleteTask);
+  const updateSeries = useLifeStore((state) => state.updateSeries);
+  const deleteSeries = useLifeStore((state) => state.deleteSeries);
   const [filter, setFilter] = useState<TaskFilter>("today");
   const [query, setQuery] = useState("");
   const [energyFilter, setEnergyFilter] = useState<Energy | "all">("all");
@@ -201,6 +205,18 @@ export function TasksPage({ onQuickAdd, onToast }: TasksPageProps) {
           setEditingTask(null);
           onToast("Zadanie usunięte");
         }}
+        onSaveSeries={(changes) => {
+          if (!editingTask?.seriesId) return;
+          updateSeries(editingTask.seriesId, changes);
+          setEditingTask(null);
+          onToast("Zmiany zapisane dla całej serii");
+        }}
+        onDeleteSeries={() => {
+          if (!editingTask?.seriesId) return;
+          deleteSeries(editingTask.seriesId);
+          setEditingTask(null);
+          onToast("Cała seria zadań usunięta");
+        }}
       />
     </div>
   );
@@ -211,9 +227,11 @@ interface TaskEditModalProps {
   onClose: () => void;
   onSave: (changes: Partial<Task>) => void;
   onDelete: () => void;
+  onSaveSeries: (changes: Partial<Task>) => void;
+  onDeleteSeries: () => void;
 }
 
-function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) {
+function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDeleteSeries }: TaskEditModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -223,6 +241,10 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
   const [energy, setEnergy] = useState<Energy>("medium");
   const [estimatedMinutes, setEstimatedMinutes] = useState("30");
   const [visibility, setVisibility] = useState<Visibility>("household");
+  const [repeatFreq, setRepeatFreq] = useState<RecurrenceFreq>("weekly");
+  const [repeatInterval, setRepeatInterval] = useState("1");
+  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
+  const [repeatCount, setRepeatCount] = useState("");
 
   useEffect(() => {
     if (!task) return;
@@ -235,21 +257,47 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
     setEnergy(task.energy);
     setEstimatedMinutes(String(task.estimatedMinutes ?? 30));
     setVisibility(task.visibility ?? "household");
+    setRepeatFreq(task.recurrence?.freq ?? "weekly");
+    setRepeatInterval(String(task.recurrence?.interval ?? 1));
+    setRepeatWeekdays(task.recurrence?.weekdays ?? []);
+    setRepeatCount(task.recurrence?.count ? String(task.recurrence.count) : "");
   }, [task]);
+
+  const buildChanges = (): Partial<Task> => ({
+    title: title.trim(),
+    description: description.trim() || undefined,
+    date: date || undefined,
+    time: date ? time || undefined : undefined,
+    category,
+    priority,
+    energy,
+    estimatedMinutes: Number(estimatedMinutes) || undefined,
+    visibility,
+  });
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    onSave({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      date: date || undefined,
-      time: date ? time || undefined : undefined,
-      category,
-      priority,
-      energy,
-      estimatedMinutes: Number(estimatedMinutes) || undefined,
-      visibility,
+    onSave(buildChanges());
+  };
+
+  const submitSeries = () => {
+    if (!task?.recurrence) return;
+    onSaveSeries({
+      ...buildChanges(),
+      recurrence: {
+        ...task.recurrence,
+        freq: repeatFreq,
+        interval: Math.max(1, Number(repeatInterval) || 1),
+        weekdays: repeatFreq === "weekly" && repeatWeekdays.length ? repeatWeekdays : undefined,
+        count: repeatCount ? Math.max(1, Number(repeatCount) || 1) : undefined,
+      },
     });
+  };
+
+  const toggleRepeatWeekday = (iso: number) => {
+    setRepeatWeekdays((current) =>
+      current.includes(iso) ? current.filter((value) => value !== iso) : [...current, iso].sort((a, b) => a - b),
+    );
   };
 
   const hasUnsavedChanges = () =>
@@ -270,6 +318,11 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
   return (
     <Modal open={Boolean(task)} onClose={onClose} confirmClose={confirmDiscardChanges} title="Szczegóły zadania" eyebrow={task?.date ? `Termin: ${formatShortDate(task.date)}` : "Bez terminu"}>
       <form className="edit-form" onSubmit={submit}>
+        {task?.seriesId && (
+          <p className="series-edit-note">
+            <Repeat size={13} role="img" aria-label="Zadanie powtarzalne" /> To zadanie jest częścią serii. „Zapisz zmiany” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”, aby zmienić przyszłe wystąpienia.
+          </p>
+        )}
         <label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={title} onChange={(event) => setTitle(event.target.value)} /></label>
         <label className="field"><span>Notatka</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Opcjonalny kontekst…" /></label>
         <div className="form-grid form-grid--2">
@@ -281,9 +334,60 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
           <label className="field"><span>Energia</span><select value={energy} onChange={(event) => setEnergy(event.target.value as Energy)}><option value="low">Mała</option><option value="medium">Średnia</option><option value="high">Duża</option></select></label>
           <label className="field"><span>Widoczność</span><select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
         </div>
+
+        {task?.seriesId && (
+          <div className="quick-add-details repeat-panel">
+            <div className="form-grid form-grid--3">
+              <label className="field">
+                <span>Co ile</span>
+                <select value={repeatFreq} onChange={(event) => setRepeatFreq(event.target.value as RecurrenceFreq)}>
+                  <option value="daily">Dni</option>
+                  <option value="weekly">Tygodni</option>
+                  <option value="monthly">Miesięcy</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Co ile jednostek</span>
+                <input type="number" min={1} value={repeatInterval} onChange={(event) => setRepeatInterval(event.target.value)} />
+              </label>
+              <label className="field">
+                <span>Zakończ po (opcjonalnie)</span>
+                <input type="number" min={1} placeholder="Bez limitu" value={repeatCount} onChange={(event) => setRepeatCount(event.target.value)} />
+              </label>
+            </div>
+            {repeatFreq === "weekly" && (
+              <fieldset className="weekday-picker">
+                <legend>Dni tygodnia</legend>
+                {WEEKDAY_LABELS.map(({ iso, label }) => (
+                  <button
+                    type="button"
+                    key={iso}
+                    className={repeatWeekdays.includes(iso) ? "active" : ""}
+                    aria-pressed={repeatWeekdays.includes(iso)}
+                    onClick={() => toggleRepeatWeekday(iso)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </fieldset>
+            )}
+          </div>
+        )}
+
         <footer className="modal-actions modal-actions--spread">
-          <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm(`Usunąć zadanie „${task?.title ?? ""}”?`)) onDelete(); }}><Trash2 size={15} /> Usuń</button>
-          <div><button className="button button--ghost" type="button" onClick={() => { if (confirmDiscardChanges()) onClose(); }}>Anuluj</button><button className="button button--primary" type="submit">Zapisz zmiany</button></div>
+          <div>
+            <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm(`Usunąć zadanie „${task?.title ?? ""}”?`)) onDelete(); }}><Trash2 size={15} /> Usuń</button>
+            {task?.seriesId && (
+              <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm("Usunąć całą serię zadań, wraz z przyszłymi wystąpieniami?")) onDeleteSeries(); }}><Trash2 size={15} /> Usuń serię</button>
+            )}
+          </div>
+          <div>
+            <button className="button button--ghost" type="button" onClick={() => { if (confirmDiscardChanges()) onClose(); }}>Anuluj</button>
+            <button className="button button--primary" type="submit">Zapisz zmiany</button>
+            {task?.seriesId && (
+              <button className="button button--soft" type="button" onClick={submitSeries}><Repeat size={14} /> Zapisz dla całej serii</button>
+            )}
+          </div>
         </footer>
       </form>
     </Modal>
