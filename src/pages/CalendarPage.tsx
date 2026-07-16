@@ -8,6 +8,7 @@ import {
   Lock,
   MapPin,
   Plus,
+  Repeat,
   Trash2,
   RefreshCw,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { pl } from "date-fns/locale";
 import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { dateKey, formatDayName, formatShortDate, relativeDay, weekDays } from "../lib/date";
+import { RecurrenceFields, useRecurrenceForm } from "../components/RecurrenceFields";
 import { useLifeStore } from "../store/useLifeStore";
 import { useServerAuth } from "../server/AuthGate";
 import type { Visibility } from "../advancedTypes";
@@ -35,8 +37,12 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
   const updateEvent = useLifeStore((state) => state.updateEvent);
   const deleteEvent = useLifeStore((state) => state.deleteEvent);
   const addEvent = useLifeStore((state) => state.addEvent);
+  const updateEventSeries = useLifeStore((state) => state.updateEventSeries);
+  const deleteEventSeries = useLifeStore((state) => state.deleteEventSeries);
   const updateTask = useLifeStore((state) => state.updateTask);
   const deleteTask = useLifeStore((state) => state.deleteTask);
+  const updateSeries = useLifeStore((state) => state.updateSeries);
+  const deleteSeries = useLifeStore((state) => state.deleteSeries);
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
   const [googleSyncing, setGoogleSyncing] = useState(false);
@@ -145,6 +151,7 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                     startTime: task.time!,
                     endTime: "",
                     kind: "task" as const,
+                    seriesId: task.seriesId,
                   }))]
                     .sort((a, b) => a.startTime.localeCompare(b.startTime))
                     .map((item) => (
@@ -152,7 +159,7 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                         type="button"
                         key={`${item.kind}-${item.id}`}
                         className={`week-event week-event--${item.kind}`}
-                        aria-label={`${item.startTime} ${item.title}, ${item.kind === "meeting" ? "spotkanie" : item.kind === "focus" ? "blok skupienia" : item.kind === "task" ? "zadanie" : "prywatne"}`}
+                        aria-label={`${item.startTime} ${item.title}, ${item.kind === "meeting" ? "spotkanie" : item.kind === "focus" ? "blok skupienia" : item.kind === "task" ? "zadanie" : "prywatne"}${item.seriesId ? ", powtarzalne" : ""}`}
                         onClick={() => {
                           setSelectedDate(dayKey);
                           if (item.kind === "task") {
@@ -165,6 +172,7 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                       >
                         <time>{item.startTime}</time>
                         <strong>{item.title}</strong>
+                        {item.seriesId && <Repeat size={11} className="series-icon" aria-hidden="true" />}
                         {"visibility" in item && item.visibility === "private" && (
                           <span className="private-badge"><Lock size={10} /> Prywatne</span>
                         )}
@@ -191,6 +199,7 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                 <span className="agenda-event__line" />
                 <span className="agenda-event__content">
                   <strong>{event.title}</strong>
+                  {event.seriesId && <Repeat size={12} className="series-icon" role="img" aria-label="Wydarzenie powtarzalne" />}
                   {event.visibility === "private" && <small className="private-badge"><Lock size={11} /> Prywatne</small>}
                   {event.location && <small><MapPin size={13} /> {event.location}</small>}
                 </span>
@@ -201,7 +210,11 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
               <div className="agenda-event agenda-event--task" key={task.id}>
                 <span className="agenda-event__time">{task.time}</span>
                 <span className="agenda-event__line" />
-                <span className="agenda-event__content"><strong>{task.title}</strong><small>Zadanie · {task.category}</small></span>
+                <span className="agenda-event__content">
+                  <strong>{task.title}</strong>
+                  {task.seriesId && <Repeat size={12} className="series-icon" role="img" aria-label="Zadanie powtarzalne" />}
+                  <small>Zadanie · {task.category}</small>
+                </span>
               </div>
             ))}
             {!selectedEvents.length && !selectedTasks.length && (
@@ -234,6 +247,18 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
           setEditingEvent(null);
           onToast("Wydarzenie usunięte");
         }}
+        onSaveSeries={(changes) => {
+          if (!editingEvent?.seriesId) return;
+          updateEventSeries(editingEvent.seriesId, changes);
+          setEditingEvent(null);
+          onToast("Zmiany zapisane dla całej serii");
+        }}
+        onDeleteSeries={() => {
+          if (!editingEvent?.seriesId) return;
+          deleteEventSeries(editingEvent.seriesId);
+          setEditingEvent(null);
+          onToast("Cała seria wydarzeń usunięta");
+        }}
         onToast={onToast}
       />
 
@@ -252,6 +277,18 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
           setEditingTask(null);
           onToast("Zadanie usunięte");
         }}
+        onSaveSeries={(changes) => {
+          if (!editingTask?.seriesId) return;
+          updateSeries(editingTask.seriesId, changes);
+          setEditingTask(null);
+          onToast("Zmiany zapisane dla całej serii");
+        }}
+        onDeleteSeries={() => {
+          if (!editingTask?.seriesId) return;
+          deleteSeries(editingTask.seriesId);
+          setEditingTask(null);
+          onToast("Cała seria zadań usunięta");
+        }}
       />
     </div>
   );
@@ -262,10 +299,12 @@ interface EventEditModalProps {
   onClose: () => void;
   onSave: (changes: Partial<CalendarEvent>) => void;
   onDelete: () => void;
+  onSaveSeries: (changes: Partial<CalendarEvent>) => void;
+  onDeleteSeries: () => void;
   onToast: (message: string) => void;
 }
 
-function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEditModalProps) {
+function EventEditModal({ event, onClose, onSave, onDelete, onSaveSeries, onDeleteSeries, onToast }: EventEditModalProps) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -274,6 +313,7 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
   const [kind, setKind] = useState<EventKind>("personal");
   const [notes, setNotes] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("household");
+  const repeat = useRecurrenceForm(event?.recurrence);
 
   useEffect(() => {
     if (!event) return;
@@ -285,7 +325,20 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
     setKind(event.kind);
     setNotes(event.notes ?? "");
     setVisibility(event.visibility ?? "household");
+    repeat.reset(event.recurrence);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event]);
+
+  const buildChanges = (): Partial<CalendarEvent> => ({
+    title: title.trim(),
+    date,
+    startTime,
+    endTime,
+    kind,
+    location: location.trim() || undefined,
+    notes: notes.trim() || undefined,
+    visibility,
+  });
 
   const submit = (submitEvent: FormEvent) => {
     submitEvent.preventDefault();
@@ -293,21 +346,35 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
       onToast("Sprawdź datę i kolejność godzin wydarzenia");
       return;
     }
-    onSave({
-      title: title.trim(),
-      date,
-      startTime,
-      endTime,
-      kind,
-      location: location.trim() || undefined,
-      notes: notes.trim() || undefined,
-      visibility,
+    onSave(buildChanges());
+  };
+
+  const submitSeries = () => {
+    if (!event?.recurrence) return;
+    if (!title.trim()) {
+      onToast("Podaj nazwę wydarzenia");
+      return;
+    }
+    if (!date || !startTime || !endTime || endTime <= startTime) {
+      onToast("Sprawdź datę i kolejność godzin wydarzenia");
+      return;
+    }
+    // Zachowujemy anchorDate serii, ale anchorTime bierzemy z aktualnego pola „Od",
+    // aby edycja godziny serii faktycznie się zapisała (fix z code review).
+    onSaveSeries({
+      ...buildChanges(),
+      recurrence: repeat.build(event.recurrence.anchorDate, startTime),
     });
   };
 
   return (
     <Modal open={Boolean(event)} onClose={onClose} title="Edytuj wydarzenie" eyebrow="Kalendarz">
       <form className="edit-form" onSubmit={submit}>
+        {event?.seriesId && (
+          <p className="series-edit-note">
+            <Repeat size={13} role="img" aria-label="Wydarzenie powtarzalne" /> To wydarzenie jest częścią serii. „Zapisz” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”, aby zmienić przyszłe wystąpienia.
+          </p>
+        )}
         <label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={title} onChange={(input) => setTitle(input.target.value)} /></label>
         <div className="form-grid form-grid--3">
           <label className="field"><span>Data</span><input required type="date" value={date} onChange={(input) => setDate(input.target.value)} /></label>
@@ -320,7 +387,24 @@ function EventEditModal({ event, onClose, onSave, onDelete, onToast }: EventEdit
         </div>
         <label className="field"><span>Widoczność</span><select value={visibility} onChange={(input) => setVisibility(input.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
         <label className="field"><span>Notatka</span><textarea value={notes} onChange={(input) => setNotes(input.target.value)} placeholder="Szczegóły, link, przygotowanie…" /></label>
-        <footer className="modal-actions modal-actions--spread"><button className="button button--danger-ghost" type="button" onClick={onDelete}><Trash2 size={15} /> Usuń</button><div><button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button><button className="button button--primary" type="submit">Zapisz</button></div></footer>
+
+        {event?.seriesId && <RecurrenceFields form={repeat} />}
+
+        <footer className="modal-actions modal-actions--spread">
+          <div>
+            <button className="button button--danger-ghost" type="button" onClick={onDelete}><Trash2 size={15} /> Usuń</button>
+            {event?.seriesId && (
+              <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm("Usunąć całą serię wydarzeń, wraz z przyszłymi wystąpieniami?")) onDeleteSeries(); }}><Trash2 size={15} /> Usuń serię</button>
+            )}
+          </div>
+          <div>
+            <button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button>
+            <button className="button button--primary" type="submit">Zapisz</button>
+            {event?.seriesId && (
+              <button className="button button--soft" type="button" onClick={submitSeries}><Repeat size={14} /> Zapisz dla całej serii</button>
+            )}
+          </div>
+        </footer>
       </form>
     </Modal>
   );
@@ -331,9 +415,11 @@ interface TaskEditModalProps {
   onClose: () => void;
   onSave: (changes: Partial<Task>) => void;
   onDelete: () => void;
+  onSaveSeries: (changes: Partial<Task>) => void;
+  onDeleteSeries: () => void;
 }
 
-function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) {
+function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDeleteSeries }: TaskEditModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -342,6 +428,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
   const [priority, setPriority] = useState<Priority>("medium");
   const [energy, setEnergy] = useState<Energy>("medium");
   const [estimatedMinutes, setEstimatedMinutes] = useState("30");
+  const repeat = useRecurrenceForm(task?.recurrence);
 
   useEffect(() => {
     if (!task) return;
@@ -353,25 +440,44 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
     setPriority(task.priority);
     setEnergy(task.energy);
     setEstimatedMinutes(String(task.estimatedMinutes ?? 30));
+    repeat.reset(task.recurrence);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task]);
+
+  const buildChanges = (): Partial<Task> => ({
+    title: title.trim(),
+    description: description.trim() || undefined,
+    date: date || undefined,
+    time: time || undefined,
+    category,
+    priority,
+    energy,
+    estimatedMinutes: Number(estimatedMinutes) || undefined,
+  });
 
   const submit = (submitEvent: FormEvent) => {
     submitEvent.preventDefault();
-    onSave({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      date: date || undefined,
-      time: time || undefined,
-      category,
-      priority,
-      energy,
-      estimatedMinutes: Number(estimatedMinutes) || undefined,
+    onSave(buildChanges());
+  };
+
+  const submitSeries = () => {
+    if (!task?.recurrence) return;
+    if (!title.trim()) return; // przycisk poza formularzem — pilnujemy wymaganej nazwy sami
+    // anchorDate serii zachowany, anchorTime z aktualnego pola „Godzina" (fix z code review).
+    onSaveSeries({
+      ...buildChanges(),
+      recurrence: repeat.build(task.recurrence.anchorDate, time || undefined),
     });
   };
 
   return (
     <Modal open={Boolean(task)} onClose={onClose} title="Szczegóły zadania" eyebrow={task?.date ? `Termin: ${formatShortDate(task.date)}` : "Bez terminu"}>
       <form className="edit-form" onSubmit={submit}>
+        {task?.seriesId && (
+          <p className="series-edit-note">
+            <Repeat size={13} role="img" aria-label="Zadanie powtarzalne" /> To zadanie jest częścią serii. „Zapisz zmiany” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”, aby zmienić przyszłe wystąpienia.
+          </p>
+        )}
         <label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={title} onChange={(input) => setTitle(input.target.value)} /></label>
         <label className="field"><span>Notatka</span><textarea value={description} onChange={(input) => setDescription(input.target.value)} placeholder="Opcjonalny kontekst…" /></label>
         <div className="form-grid form-grid--2">
@@ -382,9 +488,23 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
           <label className="field"><span>Czas</span><select value={estimatedMinutes} onChange={(input) => setEstimatedMinutes(input.target.value)}><option value="10">10 minut</option><option value="15">15 minut</option><option value="30">30 minut</option><option value="60">1 godzina</option><option value="90">1,5 godziny</option></select></label>
           <label className="field"><span>Energia</span><select value={energy} onChange={(input) => setEnergy(input.target.value as Energy)}><option value="low">Mała</option><option value="medium">Średnia</option><option value="high">Duża</option></select></label>
         </div>
+
+        {task?.seriesId && <RecurrenceFields form={repeat} />}
+
         <footer className="modal-actions modal-actions--spread">
-          <button className="button button--danger-ghost" type="button" onClick={onDelete}><Trash2 size={15} /> Usuń</button>
-          <div><button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button><button className="button button--primary" type="submit">Zapisz zmiany</button></div>
+          <div>
+            <button className="button button--danger-ghost" type="button" onClick={onDelete}><Trash2 size={15} /> Usuń</button>
+            {task?.seriesId && (
+              <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm("Usunąć całą serię zadań, wraz z przyszłymi wystąpieniami?")) onDeleteSeries(); }}><Trash2 size={15} /> Usuń serię</button>
+            )}
+          </div>
+          <div>
+            <button className="button button--ghost" type="button" onClick={onClose}>Anuluj</button>
+            <button className="button button--primary" type="submit">Zapisz zmiany</button>
+            {task?.seriesId && (
+              <button className="button button--soft" type="button" onClick={submitSeries}><Repeat size={14} /> Zapisz dla całej serii</button>
+            )}
+          </div>
         </footer>
       </form>
     </Modal>

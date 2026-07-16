@@ -55,4 +55,32 @@ describe("workspace three-way merge", () => {
     expect(mergeWorkspaceChanges(base, deleted, edited)).toEqual({ tasks: [] });
     expect(mergeWorkspaceChanges(base, edited, deleted)).toEqual({ tasks: [] });
   });
+
+  it("dwa urządzenia rozwijające tę samą serię nie tworzą duplikatów (deterministyczne id seriesId#index)", () => {
+    // Wspólny przodek: jedno wystąpienie serii (index 0).
+    const base = { tasks: [{ id: "s1#0", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 0 }] };
+    // Urządzenie A rozwinęło okno do 3 wystąpień.
+    const deviceA = {
+      tasks: [
+        { id: "s1#0", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 0 },
+        { id: "s1#1", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 1 },
+        { id: "s1#2", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 2 },
+      ],
+    };
+    // Urządzenie B niezależnie rozwinęło okno o jedno wystąpienie dalej.
+    const deviceB = {
+      tasks: [
+        { id: "s1#0", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 0 },
+        { id: "s1#1", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 1 },
+        { id: "s1#2", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 2 },
+        { id: "s1#3", title: "Sprzątanie", status: "todo", seriesId: "s1", seriesIndex: 3 },
+      ],
+    };
+
+    const merged = mergeWorkspaceChanges(base, deviceA, deviceB) as { tasks: Array<{ id: string }> };
+    const ids = merged.tasks.map((task) => task.id);
+    // Brak duplikatów — te same logiczne wystąpienia mają te same id.
+    expect(ids).toEqual([...new Set(ids)]);
+    expect([...ids].sort()).toEqual(["s1#0", "s1#1", "s1#2", "s1#3"]);
+  });
 });

@@ -4,6 +4,7 @@ import {
   Clock3,
   Lock,
   MoreHorizontal,
+  Repeat,
   Sparkles,
   Star,
   Trash2,
@@ -109,6 +110,9 @@ export function TaskItem({
           )}
           {task.isFocus && task.status !== "done" && (
             <span className="focus-label"><Star size={11} fill="currentColor" /> Priorytet</span>
+          )}
+          {task.seriesId && (
+            <Repeat size={13} className="series-icon" role="img" aria-label="Zadanie powtarzalne" />
           )}
         </div>
         {!compact && task.description && <p>{task.description}</p>}

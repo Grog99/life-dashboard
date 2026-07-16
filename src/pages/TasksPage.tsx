@@ -9,6 +9,7 @@ import {
   Layers3,
   ListFilter,
   Plus,
+  Repeat,
   Search,
   Sparkles,
   Star,
@@ -20,6 +21,7 @@ import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { TaskItem } from "../components/TaskItem";
 import { dateKey, formatShortDate, isOverdue } from "../lib/date";
+import { RecurrenceFields, useRecurrenceForm } from "../components/RecurrenceFields";
 import { useLifeStore } from "../store/useLifeStore";
 import type { Visibility } from "../advancedTypes";
 import type { Energy, Priority, Task } from "../types";
@@ -43,6 +45,8 @@ export function TasksPage({ onQuickAdd, onToast }: TasksPageProps) {
   const tasks = useLifeStore((state) => state.tasks);
   const updateTask = useLifeStore((state) => state.updateTask);
   const deleteTask = useLifeStore((state) => state.deleteTask);
+  const updateSeries = useLifeStore((state) => state.updateSeries);
+  const deleteSeries = useLifeStore((state) => state.deleteSeries);
   const [filter, setFilter] = useState<TaskFilter>("today");
   const [query, setQuery] = useState("");
   const [energyFilter, setEnergyFilter] = useState<Energy | "all">("all");
@@ -201,6 +205,18 @@ export function TasksPage({ onQuickAdd, onToast }: TasksPageProps) {
           setEditingTask(null);
           onToast("Zadanie usunięte");
         }}
+        onSaveSeries={(changes) => {
+          if (!editingTask?.seriesId) return;
+          updateSeries(editingTask.seriesId, changes);
+          setEditingTask(null);
+          onToast("Zmiany zapisane dla całej serii");
+        }}
+        onDeleteSeries={() => {
+          if (!editingTask?.seriesId) return;
+          deleteSeries(editingTask.seriesId);
+          setEditingTask(null);
+          onToast("Cała seria zadań usunięta");
+        }}
       />
     </div>
   );
@@ -211,9 +227,11 @@ interface TaskEditModalProps {
   onClose: () => void;
   onSave: (changes: Partial<Task>) => void;
   onDelete: () => void;
+  onSaveSeries: (changes: Partial<Task>) => void;
+  onDeleteSeries: () => void;
 }
 
-function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) {
+function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDeleteSeries }: TaskEditModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -223,6 +241,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
   const [energy, setEnergy] = useState<Energy>("medium");
   const [estimatedMinutes, setEstimatedMinutes] = useState("30");
   const [visibility, setVisibility] = useState<Visibility>("household");
+  const repeat = useRecurrenceForm(task?.recurrence);
 
   useEffect(() => {
     if (!task) return;
@@ -235,20 +254,35 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
     setEnergy(task.energy);
     setEstimatedMinutes(String(task.estimatedMinutes ?? 30));
     setVisibility(task.visibility ?? "household");
+    repeat.reset(task.recurrence);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task]);
+
+  const buildChanges = (): Partial<Task> => ({
+    title: title.trim(),
+    description: description.trim() || undefined,
+    date: date || undefined,
+    time: date ? time || undefined : undefined,
+    category,
+    priority,
+    energy,
+    estimatedMinutes: Number(estimatedMinutes) || undefined,
+    visibility,
+  });
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    onSave({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      date: date || undefined,
-      time: date ? time || undefined : undefined,
-      category,
-      priority,
-      energy,
-      estimatedMinutes: Number(estimatedMinutes) || undefined,
-      visibility,
+    onSave(buildChanges());
+  };
+
+  const submitSeries = () => {
+    if (!task?.recurrence) return;
+    if (!title.trim()) return; // przycisk poza formularzem — pilnujemy wymaganej nazwy sami (inaczej pusty tytuł zepsułby serię)
+    // Zachowujemy anchorDate serii (stabilny seriesIndex), ale bierzemy AKTUALNĄ godzinę
+    // z formularza jako anchorTime — inaczej edycja godziny serii byłaby cofana.
+    onSaveSeries({
+      ...buildChanges(),
+      recurrence: repeat.build(task.recurrence.anchorDate, date ? time || undefined : undefined),
     });
   };
 
@@ -262,7 +296,8 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
       priority !== task!.priority ||
       energy !== task!.energy ||
       estimatedMinutes !== String(task!.estimatedMinutes ?? 30) ||
-      visibility !== (task!.visibility ?? "household")
+      visibility !== (task!.visibility ?? "household") ||
+      repeat.differsFrom(task!.recurrence)
     );
   const confirmDiscardChanges = () =>
     !hasUnsavedChanges() || window.confirm("Masz niezapisane zmiany w zadaniu. Czy na pewno chcesz je odrzucić?");
@@ -270,6 +305,11 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
   return (
     <Modal open={Boolean(task)} onClose={onClose} confirmClose={confirmDiscardChanges} title="Szczegóły zadania" eyebrow={task?.date ? `Termin: ${formatShortDate(task.date)}` : "Bez terminu"}>
       <form className="edit-form" onSubmit={submit}>
+        {task?.seriesId && (
+          <p className="series-edit-note">
+            <Repeat size={13} role="img" aria-label="Zadanie powtarzalne" /> To zadanie jest częścią serii. „Zapisz zmiany” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”, aby zmienić przyszłe wystąpienia.
+          </p>
+        )}
         <label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={title} onChange={(event) => setTitle(event.target.value)} /></label>
         <label className="field"><span>Notatka</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Opcjonalny kontekst…" /></label>
         <div className="form-grid form-grid--2">
@@ -281,9 +321,23 @@ function TaskEditModal({ task, onClose, onSave, onDelete }: TaskEditModalProps) 
           <label className="field"><span>Energia</span><select value={energy} onChange={(event) => setEnergy(event.target.value as Energy)}><option value="low">Mała</option><option value="medium">Średnia</option><option value="high">Duża</option></select></label>
           <label className="field"><span>Widoczność</span><select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
         </div>
+
+        {task?.seriesId && <RecurrenceFields form={repeat} />}
+
         <footer className="modal-actions modal-actions--spread">
-          <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm(`Usunąć zadanie „${task?.title ?? ""}”?`)) onDelete(); }}><Trash2 size={15} /> Usuń</button>
-          <div><button className="button button--ghost" type="button" onClick={() => { if (confirmDiscardChanges()) onClose(); }}>Anuluj</button><button className="button button--primary" type="submit">Zapisz zmiany</button></div>
+          <div>
+            <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm(`Usunąć zadanie „${task?.title ?? ""}”?`)) onDelete(); }}><Trash2 size={15} /> Usuń</button>
+            {task?.seriesId && (
+              <button className="button button--danger-ghost" type="button" onClick={() => { if (window.confirm("Usunąć całą serię zadań, wraz z przyszłymi wystąpieniami?")) onDeleteSeries(); }}><Trash2 size={15} /> Usuń serię</button>
+            )}
+          </div>
+          <div>
+            <button className="button button--ghost" type="button" onClick={() => { if (confirmDiscardChanges()) onClose(); }}>Anuluj</button>
+            <button className="button button--primary" type="submit">Zapisz zmiany</button>
+            {task?.seriesId && (
+              <button className="button button--soft" type="button" onClick={submitSeries}><Repeat size={14} /> Zapisz dla całej serii</button>
+            )}
+          </div>
         </footer>
       </form>
     </Modal>

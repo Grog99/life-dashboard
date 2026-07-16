@@ -14,6 +14,8 @@ import {
 } from "../lib/schema";
 import { quarantineRawValue, reportStorageWarning, safeLocalStorage } from "../lib/safeStorage";
 import { generateId as id } from "../lib/id";
+import { addMinutesToTime, dateKey, durationMinutes } from "../lib/date";
+import { expandSeries, occurrenceDate, SERIES_WINDOW } from "../lib/recurrence";
 import type {
   CalendarEvent,
   Energy,
@@ -21,6 +23,7 @@ import type {
   LifeData,
   Note,
   Preferences,
+  Recurrence,
   Reminder,
   Task,
 } from "../types";
@@ -53,9 +56,16 @@ interface LifeActions {
   toggleFocus: (taskId: string) => boolean;
   deleteTask: (taskId: string) => void;
   moveTaskToTomorrow: (taskId: string) => void;
+  addRecurringTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "status">, recurrence: Recurrence) => string;
+  updateSeries: (seriesId: string, changes: Partial<Task>) => void;
+  deleteSeries: (seriesId: string) => void;
   addEvent: (event: Omit<CalendarEvent, "id" | "updatedAt">) => string;
   updateEvent: (eventId: string, changes: Partial<CalendarEvent>) => void;
   deleteEvent: (eventId: string) => void;
+  addRecurringEvent: (event: Omit<CalendarEvent, "id" | "updatedAt">, recurrence: Recurrence) => string;
+  updateEventSeries: (seriesId: string, changes: Partial<CalendarEvent>) => void;
+  deleteEventSeries: (seriesId: string) => void;
+  expandRecurringSeries: () => void;
   addReminder: (reminder: Omit<Reminder, "id" | "done" | "updatedAt">) => string;
   toggleReminder: (reminderId: string) => void;
   snoozeReminder: (reminderId: string, minutes: number) => void;
@@ -158,6 +168,74 @@ export const useLifeStore = create<LifeStore>()(
               : task,
           ),
         })),
+      addRecurringTask: (task, recurrence) => {
+        const seriesId = id();
+        const timestamp = new Date().toISOString();
+        const windowCount = recurrence.count !== undefined ? Math.min(SERIES_WINDOW, recurrence.count) : SERIES_WINDOW;
+        const occurrences: Task[] = [];
+        for (let index = 0; index < windowCount; index += 1) {
+          const occurrence = occurrenceDate(recurrence, index);
+          occurrences.push({
+            ...task,
+            id: `${seriesId}#${index}`,
+            status: "todo",
+            date: occurrence.date,
+            time: occurrence.time ?? task.time,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            visibility: task.visibility ?? "private",
+            ownerId: task.ownerId ?? "me",
+            seriesId,
+            seriesIndex: index,
+            recurrence,
+          });
+        }
+        set((state) => ({ tasks: [...occurrences, ...state.tasks] }));
+        return seriesId;
+      },
+      // Edytuje przyszłe/dzisiejsze wystąpienia serii (przeszłe/ukończone pozostają nietknięte).
+      // Jeśli `changes.recurrence` zmienia regułę, daty przyszłych wystąpień są przeliczane
+      // (ten sam seriesIndex, nowa data), po czym okno jest dosuwane przez expandSeries.
+      updateSeries: (seriesId, changes) => {
+        const today = dateKey();
+        const now = new Date().toISOString();
+        set((state) => {
+          const nextRecurrence = changes.recurrence;
+          const limit = nextRecurrence?.count;
+          const updated = state.tasks.map((task) => {
+            if (task.seriesId !== seriesId) return task;
+            if (task.date && task.date < today) {
+              // Przeszłe/ukończone wystąpienia zostają nietknięte, ale zmianę widoczności
+              // propagujemy na całą serię — inaczej split po `visibility` rozdzieliłby ją
+              // między dokument wspólny i prywatny przy synchronizacji.
+              return changes.visibility && changes.visibility !== task.visibility
+                ? { ...task, visibility: changes.visibility, updatedAt: now }
+                : task;
+            }
+            const merged: Task = { ...task, ...changes, updatedAt: now };
+            if (nextRecurrence && task.seriesIndex !== undefined) {
+              const occurrence = occurrenceDate(nextRecurrence, task.seriesIndex);
+              merged.date = occurrence.date;
+              merged.time = occurrence.time ?? task.time;
+            }
+            return merged;
+          });
+          // Zmniejszenie limitu `count` usuwa przyszłe wystąpienia ponad nowy limit;
+          // przeszłe (historia) zostają.
+          const trimmed =
+            limit === undefined
+              ? updated
+              : updated.filter(
+                  (task) =>
+                    task.seriesId !== seriesId ||
+                    (task.seriesIndex ?? 0) < limit ||
+                    Boolean(task.date && task.date < today),
+                );
+          return { tasks: expandSeries(trimmed, today) };
+        });
+      },
+      deleteSeries: (seriesId) =>
+        set((state) => ({ tasks: state.tasks.filter((task) => task.seriesId !== seriesId) })),
       addEvent: (event) => {
         const eventId = id();
         set((state) => ({
@@ -184,6 +262,77 @@ export const useLifeStore = create<LifeStore>()(
         set((state) => ({
           events: state.events.filter((event) => event.id !== eventId),
         })),
+      addRecurringEvent: (event, recurrence) => {
+        const seriesId = id();
+        const timestamp = new Date().toISOString();
+        const duration = durationMinutes(event.startTime, event.endTime);
+        const windowCount = recurrence.count !== undefined ? Math.min(SERIES_WINDOW, recurrence.count) : SERIES_WINDOW;
+        const occurrences: CalendarEvent[] = [];
+        for (let index = 0; index < windowCount; index += 1) {
+          const occurrence = occurrenceDate(recurrence, index);
+          const startTime = occurrence.time ?? event.startTime;
+          occurrences.push({
+            ...event,
+            id: `${seriesId}#${index}`,
+            date: occurrence.date,
+            startTime,
+            endTime: addMinutesToTime(startTime, duration),
+            updatedAt: timestamp,
+            visibility: event.visibility ?? "private",
+            ownerId: event.ownerId ?? "me",
+            seriesId,
+            seriesIndex: index,
+            recurrence,
+          });
+        }
+        set((state) => ({ events: [...state.events, ...occurrences] }));
+        return seriesId;
+      },
+      // Analogicznie do `updateSeries`, ale dla wydarzeń: zachowuje czas trwania (endTime - startTime)
+      // przy przeliczaniu godziny startu z nowej reguły.
+      updateEventSeries: (seriesId, changes) => {
+        const today = dateKey();
+        const now = new Date().toISOString();
+        set((state) => {
+          const nextRecurrence = changes.recurrence;
+          const limit = nextRecurrence?.count;
+          const updated = state.events.map((event) => {
+            if (event.seriesId !== seriesId) return event;
+            if (event.date < today) {
+              // Jak w updateSeries: przeszłe wystąpienia bez zmian, ale widoczność
+              // propagujemy na całą serię, by nie rozszczepić jej między dokumenty.
+              return changes.visibility && changes.visibility !== event.visibility
+                ? { ...event, visibility: changes.visibility, updatedAt: now }
+                : event;
+            }
+            const merged: CalendarEvent = { ...event, ...changes, updatedAt: now };
+            if (nextRecurrence && event.seriesIndex !== undefined) {
+              // Czas trwania liczony z wartości PO scaleniu `changes` (nie z oryginalnego
+              // wystąpienia), żeby edycja godzin w formularzu serii dotyczyła jednolicie
+              // wszystkich przyszłych wystąpień.
+              const occurrence = occurrenceDate(nextRecurrence, event.seriesIndex);
+              const duration = durationMinutes(merged.startTime, merged.endTime);
+              const startTime = occurrence.time ?? merged.startTime;
+              merged.date = occurrence.date;
+              merged.startTime = startTime;
+              merged.endTime = addMinutesToTime(startTime, duration);
+            }
+            return merged;
+          });
+          const trimmed =
+            limit === undefined
+              ? updated
+              : updated.filter(
+                  (event) =>
+                    event.seriesId !== seriesId ||
+                    (event.seriesIndex ?? 0) < limit ||
+                    event.date < today,
+                );
+          return { events: expandSeries(trimmed, today) };
+        });
+      },
+      deleteEventSeries: (seriesId) =>
+        set((state) => ({ events: state.events.filter((event) => event.seriesId !== seriesId) })),
       addReminder: (reminder) => {
         const reminderId = id();
         set((state) => ({
@@ -302,6 +451,17 @@ export const useLifeStore = create<LifeStore>()(
         set((state) => ({ preferences: { ...state.preferences, ...changes } })),
       replaceData: (data) => set(data),
       resetData: () => set(createSampleData()),
+      // Dosuwa okno przyszłych wystąpień serii (wołane przy montażu appki i powrocie do niej).
+      // No-op (bez `set`), gdy okna są już pełne — unika zbędnych zapisów/synchronizacji
+      // (patrz „Ryzyka — pętla zapisu przy rozwijaniu" w planie).
+      expandRecurringSeries: () => {
+        const state = get();
+        const today = dateKey();
+        const tasks = expandSeries(state.tasks, today);
+        const events = expandSeries(state.events, today);
+        if (tasks === state.tasks && events === state.events) return;
+        set({ tasks, events });
+      },
     }),
     {
       name: STORAGE_NAME,
