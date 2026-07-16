@@ -75,13 +75,7 @@ function nextTheme(theme: Theme): Theme {
   return theme === "light" ? "dark" : "system";
 }
 
-export function Layout({
-  view,
-  onViewChange,
-  onQuickAdd,
-  onCommand,
-  children,
-}: LayoutProps) {
+export function Layout({ view, onViewChange, onQuickAdd, onCommand, children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -117,7 +111,9 @@ export function Layout({
       }
       if (event.key !== "Tab" || !sidebarRef.current) return;
       const focusable = Array.from(
-        sidebarRef.current.querySelectorAll<HTMLElement>("button:not([disabled]), [tabindex]:not([tabindex='-1'])"),
+        sidebarRef.current.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), [tabindex]:not([tabindex='-1'])",
+        ),
       ).filter((element) => element.offsetParent !== null);
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -144,10 +140,21 @@ export function Layout({
 
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#main-content">Przejdź do treści</a>
-      <aside ref={sidebarRef} id="app-sidebar" className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`}>
+      <a className="skip-link" href="#main-content">
+        Przejdź do treści
+      </a>
+      <aside
+        ref={sidebarRef}
+        id="app-sidebar"
+        className={`sidebar ${mobileMenuOpen ? "sidebar--open" : ""}`}
+      >
         <div className="brand-row">
-          <button className="brand" type="button" onClick={() => changeView("today")} aria-label="Puls — przejdź do widoku Dzisiaj">
+          <button
+            className="brand"
+            type="button"
+            onClick={() => changeView("today")}
+            aria-label="Puls — przejdź do widoku Dzisiaj"
+          >
             <span className="brand__mark">P</span>
             <span>
               <strong>Puls</strong>
@@ -167,13 +174,25 @@ export function Layout({
 
         <div className="household-switch" title={householdName}>
           <span className="household-switch__icon">D</span>
-          <div><small>Przestrzeń</small><strong>{householdName}</strong></div>
+          <div>
+            <small>Przestrzeń</small>
+            <strong>{householdName}</strong>
+          </div>
           <div className="household-avatars">
-            {householdMembers.slice(0, 3).map((member) => <span key={member.id} style={{ background: member.color }}>{member.name.charAt(0)}</span>)}
+            {householdMembers.slice(0, 3).map((member) => (
+              <span key={member.id} style={{ background: member.color }}>
+                {member.name.charAt(0)}
+              </span>
+            ))}
           </div>
         </div>
 
-        <button className="quick-add-button" type="button" onClick={onQuickAdd} aria-label="Dodaj nową rzecz">
+        <button
+          className="quick-add-button"
+          type="button"
+          onClick={onQuickAdd}
+          aria-label="Dodaj nową rzecz"
+        >
           <Plus size={18} />
           <span>Dodaj nową rzecz</span>
           <kbd>N</kbd>
@@ -202,7 +221,9 @@ export function Layout({
 
         <div className="sidebar__bottom">
           <div className="sidebar-insight">
-            <span className="sidebar-insight__icon"><Leaf size={17} /></span>
+            <span className="sidebar-insight__icon">
+              <Leaf size={17} />
+            </span>
             <div>
               <strong>Mały krok</strong>
               <p>Wybierz 3 priorytety. Reszta może poczekać.</p>
@@ -275,31 +296,40 @@ export function Layout({
               <Bell size={19} />
               {pendingReminders > 0 && <span>{pendingReminders}</span>}
             </button>
-            <button className="avatar" type="button" onClick={() => changeView("settings")} aria-label="Otwórz ustawienia profilu">
+            <button
+              className="avatar"
+              type="button"
+              onClick={() => changeView("settings")}
+              aria-label="Otwórz ustawienia profilu"
+            >
               {profileName.trim().charAt(0).toUpperCase() || "T"}
             </button>
           </div>
         </header>
 
-        <main ref={mainRef} id="main-content" className="workspace" tabIndex={-1}>{children}</main>
+        <main ref={mainRef} id="main-content" className="workspace" tabIndex={-1}>
+          {children}
+        </main>
       </div>
 
       <nav className="mobile-nav" aria-label="Nawigacja mobilna">
-        {navigation.filter((item) => ["today", "tasks", "calendar", "notes"].includes(item.id)).map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={view === item.id ? "active" : ""}
-              onClick={() => changeView(item.id)}
-              aria-current={view === item.id ? "page" : undefined}
-            >
-              <Icon size={21} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+        {navigation
+          .filter((item) => ["today", "tasks", "calendar", "notes"].includes(item.id))
+          .map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={view === item.id ? "active" : ""}
+                onClick={() => changeView(item.id)}
+                aria-current={view === item.id ? "page" : undefined}
+              >
+                <Icon size={21} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
       </nav>
 
       <button className="mobile-fab" type="button" onClick={onQuickAdd} aria-label="Dodaj">

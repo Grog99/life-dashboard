@@ -22,9 +22,16 @@ export function parseMoneyToMinor(value: string): number {
   const separatorIndex = Math.max(comma, dot);
   const fractionLength = separatorIndex >= 0 ? unsigned.length - separatorIndex - 1 : 0;
   const hasDecimal = separatorIndex >= 0 && fractionLength > 0 && fractionLength <= 2;
-  const integerDigits = (hasDecimal ? unsigned.slice(0, separatorIndex) : unsigned).replace(/\D/g, "");
+  const integerDigits = (hasDecimal ? unsigned.slice(0, separatorIndex) : unsigned).replace(
+    /\D/g,
+    "",
+  );
   const fractionDigits = hasDecimal
-    ? unsigned.slice(separatorIndex + 1).replace(/\D/g, "").padEnd(2, "0").slice(0, 2)
+    ? unsigned
+        .slice(separatorIndex + 1)
+        .replace(/\D/g, "")
+        .padEnd(2, "0")
+        .slice(0, 2)
     : "00";
   if (!integerDigits && fractionDigits === "00") return 0;
   const minor = Number(integerDigits || "0") * 100 + Number(fractionDigits);

@@ -59,10 +59,18 @@ async function deliverReminder(workspace, reminder, targetUserId = null) {
     try {
       await webpush.sendNotification(
         { endpoint: member.endpoint, keys: { p256dh: member.p256dh, auth: member.auth_secret } },
-        JSON.stringify({ title: "Puls — przypomnienie", body: reminder.title, tag: `reminder-${reminder.id}-${occurrence}`, url: "/" }),
+        JSON.stringify({
+          title: "Puls — przypomnienie",
+          body: reminder.title,
+          tag: `reminder-${reminder.id}-${occurrence}`,
+          url: "/",
+        }),
         { TTL: 3600, urgency: "normal", timeout: 15_000 },
       );
-      await query("UPDATE notification_deliveries SET status = 'delivered', delivered_at = now() WHERE id = $1", [claim.rows[0].id]);
+      await query(
+        "UPDATE notification_deliveries SET status = 'delivered', delivered_at = now() WHERE id = $1",
+        [claim.rows[0].id],
+      );
     } catch (error) {
       const statusCode = Number(error?.statusCode ?? 0);
       await query(
@@ -83,11 +91,18 @@ async function deliverReminder(workspace, reminder, targetUserId = null) {
        FROM notification_deliveries
       WHERE household_id = $1 AND reminder_id = $2 AND occurrence = $3
         AND subscription_id = ANY($4::uuid[])`,
-    [workspace.household_id, reminder.id, occurrence, members.rows.map((member) => member.subscription_id)],
+    [
+      workspace.household_id,
+      reminder.id,
+      occurrence,
+      members.rows.map((member) => member.subscription_id),
+    ],
   );
   return members.rows.every((member) => {
     const state = states.rows.find((item) => item.subscription_id === member.subscription_id);
-    return state?.status === "delivered" || (state?.status === "failed" && state.attempt_count >= 5);
+    return (
+      state?.status === "delivered" || (state?.status === "failed" && state.attempt_count >= 5)
+    );
   });
 }
 
@@ -95,7 +110,9 @@ function dueReminders(reminders, nowKey) {
   if (!Array.isArray(reminders)) return [];
   return reminders.filter(
     (reminder) =>
-      typeof reminder?.id === "string" && reminder.id.length > 0 && reminder.id.length <= 200 &&
+      typeof reminder?.id === "string" &&
+      reminder.id.length > 0 &&
+      reminder.id.length <= 200 &&
       !reminder.done &&
       !reminder.notifiedAt &&
       /^\d{4}-\d{2}-\d{2}$/.test(reminder.date ?? "") &&
@@ -124,46 +141,101 @@ function derivedReminders(data, nowKey) {
   for (const event of Array.isArray(life.events) ? life.events : []) {
     const dueKey = shiftLocalDateTime(event?.date, event?.startTime, -30);
     if (event?.id && withinDeliveryWindow(dueKey, nowKey, 1)) {
-      reminders.push({ id: `event:${event.id}`, title: `Za 30 min: ${event.title}`, date: event.date, time: event.startTime });
+      reminders.push({
+        id: `event:${event.id}`,
+        title: `Za 30 min: ${event.title}`,
+        date: event.date,
+        time: event.startTime,
+      });
     }
   }
   for (const subscription of Array.isArray(advanced.subscriptions) ? advanced.subscriptions : []) {
-    const days = Number.isFinite(subscription?.reminderDays) ? Math.max(0, subscription.reminderDays) : 1;
+    const days = Number.isFinite(subscription?.reminderDays)
+      ? Math.max(0, subscription.reminderDays)
+      : 1;
     const dueKey = shiftLocalDateTime(subscription?.nextPayment, "09:00", -days * 24 * 60);
-    if (subscription?.id && subscription.status !== "cancelled" && withinDeliveryWindow(dueKey, nowKey)) {
-      reminders.push({ id: `subscription:${subscription.id}`, title: `Nadchodzi płatność: ${subscription.name}`, date: subscription.nextPayment, time: "09:00" });
+    if (
+      subscription?.id &&
+      subscription.status !== "cancelled" &&
+      withinDeliveryWindow(dueKey, nowKey)
+    ) {
+      reminders.push({
+        id: `subscription:${subscription.id}`,
+        title: `Nadchodzi płatność: ${subscription.name}`,
+        date: subscription.nextPayment,
+        time: "09:00",
+      });
     }
   }
   for (const trip of Array.isArray(advanced.trips) ? advanced.trips : []) {
     const dueKey = shiftLocalDateTime(trip?.startDate, "09:00", -7 * 24 * 60);
     if (trip?.id && trip.status !== "archived" && withinDeliveryWindow(dueKey, nowKey)) {
-      reminders.push({ id: `trip:${trip.id}`, title: `Za tydzień: ${trip.name}`, date: trip.startDate, time: "09:00" });
+      reminders.push({
+        id: `trip:${trip.id}`,
+        title: `Za tydzień: ${trip.name}`,
+        date: trip.startDate,
+        time: "09:00",
+      });
     }
   }
-  for (const deadline of Array.isArray(advanced.vehicleDeadlines) ? advanced.vehicleDeadlines : []) {
+  for (const deadline of Array.isArray(advanced.vehicleDeadlines)
+    ? advanced.vehicleDeadlines
+    : []) {
     if (!deadline?.id || deadline.completed || !deadline.dueDate) continue;
     const dueKey = shiftLocalDateTime(deadline.dueDate, "09:00", -14 * 24 * 60);
     if (withinDeliveryWindow(dueKey, nowKey, 14)) {
-      reminders.push({ id: `vehicle:${deadline.id}`, title: `Samochód: ${deadline.title}`, date: deadline.dueDate, time: "09:00" });
+      reminders.push({
+        id: `vehicle:${deadline.id}`,
+        title: `Samochód: ${deadline.title}`,
+        date: deadline.dueDate,
+        time: "09:00",
+      });
     }
   }
-  for (const appointment of Array.isArray(advanced.healthAppointments) ? advanced.healthAppointments : []) {
+  for (const appointment of Array.isArray(advanced.healthAppointments)
+    ? advanced.healthAppointments
+    : []) {
     const dueKey = shiftLocalDateTime(appointment?.date, appointment?.time, -24 * 60);
-    if (appointment?.id && appointment.status === "scheduled" && withinDeliveryWindow(dueKey, nowKey, 2)) {
-      reminders.push({ id: `health-appointment:${appointment.id}`, title: `Nadchodzi wizyta: ${appointment.title}`, date: appointment.date, time: appointment.time });
+    if (
+      appointment?.id &&
+      appointment.status === "scheduled" &&
+      withinDeliveryWindow(dueKey, nowKey, 2)
+    ) {
+      reminders.push({
+        id: `health-appointment:${appointment.id}`,
+        title: `Nadchodzi wizyta: ${appointment.title}`,
+        date: appointment.date,
+        time: appointment.time,
+      });
     }
   }
   for (const visit of Array.isArray(advanced.petVisits) ? advanced.petVisits : []) {
     const dueKey = shiftLocalDateTime(visit?.date, visit?.time, -24 * 60);
     if (visit?.id && visit.status === "scheduled" && withinDeliveryWindow(dueKey, nowKey, 2)) {
-      reminders.push({ id: `pet-visit:${visit.id}`, title: `Wizyta u weterynarza: ${visit.title}`, date: visit.date, time: visit.time });
+      reminders.push({
+        id: `pet-visit:${visit.id}`,
+        title: `Wizyta u weterynarza: ${visit.title}`,
+        date: visit.date,
+        time: visit.time,
+      });
     }
   }
   for (const medication of Array.isArray(advanced.medications) ? advanced.medications : []) {
     const reminderTime = medication?.reminderTime;
     const today = nowKey.slice(0, 10);
-    if (medication?.id && medication.active && medication.lastTakenOn !== today && /^\d{2}:\d{2}$/.test(reminderTime ?? "") && `${today} ${reminderTime}` <= nowKey) {
-      reminders.push({ id: `medication:${medication.id}`, title: `Pora przyjąć: ${medication.name} ${medication.dosage}`, date: today, time: reminderTime });
+    if (
+      medication?.id &&
+      medication.active &&
+      medication.lastTakenOn !== today &&
+      /^\d{2}:\d{2}$/.test(reminderTime ?? "") &&
+      `${today} ${reminderTime}` <= nowKey
+    ) {
+      reminders.push({
+        id: `medication:${medication.id}`,
+        title: `Pora przyjąć: ${medication.name} ${medication.dosage}`,
+        date: today,
+        time: reminderTime,
+      });
     }
   }
   return reminders;
@@ -175,7 +247,11 @@ async function deliverDerived(workspace, data, targetUserId = null) {
     try {
       await deliverReminder(workspace, reminder, targetUserId);
     } catch (error) {
-      console.error("Derived reminder failed", { householdId: workspace.household_id, reminderId: reminder.id, error });
+      console.error("Derived reminder failed", {
+        householdId: workspace.household_id,
+        reminderId: reminder.id,
+        error,
+      });
     }
   }
 }
@@ -206,7 +282,11 @@ async function tick() {
         try {
           if (await deliverReminder(workspace, reminder)) completedIds.push(reminder.id);
         } catch (error) {
-          console.error("Reminder delivery failed", { householdId: workspace.household_id, reminderId: reminder.id, error });
+          console.error("Reminder delivery failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
         }
       }
       if (!completedIds.length) continue;
@@ -221,7 +301,11 @@ async function tick() {
           WHERE household_id = $2 AND revision = $3`,
         [JSON.stringify(nextData), workspace.household_id, workspace.revision],
       );
-      if (!updated.rowCount) console.warn("Workspace changed while marking reminders; retrying next tick", workspace.household_id);
+      if (!updated.rowCount)
+        console.warn(
+          "Workspace changed while marking reminders; retrying next tick",
+          workspace.household_id,
+        );
     } catch (error) {
       console.error("Reminder workspace failed", { householdId: workspace.household_id, error });
     }
@@ -251,17 +335,25 @@ async function tick() {
       // no revision column, so writing back risks clobbering a concurrent user edit. Delivery
       // dedup is already guaranteed by the notification_deliveries unique constraint.
     } catch (error) {
-      console.error("Private workspace failed", { householdId: workspace.household_id, userId: workspace.user_id, error });
+      console.error("Private workspace failed", {
+        householdId: workspace.household_id,
+        userId: workspace.user_id,
+        error,
+      });
     }
   }
 }
 
 let stopping = false;
 let wakeWorker;
-const waitForNextTick = () => new Promise((resolve) => {
-  const timer = setTimeout(resolve, intervalMs);
-  wakeWorker = () => { clearTimeout(timer); resolve(); };
-});
+const waitForNextTick = () =>
+  new Promise((resolve) => {
+    const timer = setTimeout(resolve, intervalMs);
+    wakeWorker = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+  });
 const run = async () => {
   while (!stopping) {
     try {

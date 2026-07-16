@@ -59,7 +59,12 @@ describe("occurrenceDate — determinizm generowania dat", () => {
   });
 
   it("przenosi anchorTime do wystąpienia", () => {
-    const rec: Recurrence = { freq: "daily", interval: 1, anchorDate: "2026-03-01", anchorTime: "07:30" };
+    const rec: Recurrence = {
+      freq: "daily",
+      interval: 1,
+      anchorDate: "2026-03-01",
+      anchorTime: "07:30",
+    };
     expect(occurrenceDate(rec, 2).time).toBe("07:30");
   });
 });

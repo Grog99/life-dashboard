@@ -1,3 +1,5 @@
+![CI](https://github.com/Grog99/life-dashboard/actions/workflows/ci.yml/badge.svg)
+
 # Puls 2.0 — Life Dashboard
 
 Minimalistyczne, self-hosted centrum codziennego życia dla jednej osoby lub całego domu. Łączy plan dnia, kalendarz, szybkie notatki i przypomnienia z finansami, podróżami, subskrypcjami, posiłkami, samochodem oraz podstawowym modułem zdrowia.
@@ -46,11 +48,17 @@ W PowerShell odpowiednikiem pierwszej komendy jest `Copy-Item .env.example .env`
 ## Weryfikacja
 
 ```bash
+npm run lint
+npm run format:check
 npm run build
 npm test
 cd server
 npm test
 ```
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) uruchamia lint, sprawdzenie formatowania Prettierem, build frontendu oraz testy frontendu i backendu przy każdym push do `main` i przy każdym pull requeście. Włączenie wymaganych statusów (branch protection) dla `main` to osobny, ręczny krok w ustawieniach repo na GitHubie — musi go wykonać maintainer z uprawnieniami admina.
 
 ## Prywatność i bezpieczeństwo
 

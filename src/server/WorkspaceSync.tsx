@@ -7,11 +7,7 @@ import type { LifeData } from "../types";
 import { apiRequest, ApiError } from "./api";
 import { mergeWorkspaceChanges } from "./workspaceMerge";
 import { advancedDataSchema, lifeDataSchema } from "../lib/schema";
-import {
-  safeGetStorageItem,
-  safeRemoveStorageItem,
-  safeSetStorageItem,
-} from "../lib/safeStorage";
+import { safeGetStorageItem, safeRemoveStorageItem, safeSetStorageItem } from "../lib/safeStorage";
 
 interface WorkspaceData {
   life?: LifeData;
@@ -34,19 +30,43 @@ const localData = (): WorkspaceData => ({
 function replaceWithEmptyWorkspace() {
   const life = exportData();
   useLifeStore.getState().replaceData({
-    tasks: [], events: [], reminders: [], notes: [], habits: [], scratchpad: "", intention: "",
-    energy: "medium", preferences: life.preferences,
+    tasks: [],
+    events: [],
+    reminders: [],
+    notes: [],
+    habits: [],
+    scratchpad: "",
+    intention: "",
+    energy: "medium",
+    preferences: life.preferences,
   });
   const advanced = exportAdvancedData();
   useAdvancedStore.getState().replaceAdvancedData({
     ...advanced,
     householdName: "Dom",
     householdMembers: [],
-    financeAccounts: [], financeTransactions: [], financeBudgets: [], savingsGoals: [],
-    trips: [], tripItinerary: [], tripBookings: [], packingItems: [], subscriptions: [],
-    recipes: [], mealSlots: [], shoppingItems: [], vehicles: [], carExpenses: [], vehicleDeadlines: [],
-    pets: [], petExpenses: [], petVisits: [],
-    healthAppointments: [], medications: [], healthMeasurements: [], hideAmounts: false,
+    financeAccounts: [],
+    financeTransactions: [],
+    financeBudgets: [],
+    savingsGoals: [],
+    trips: [],
+    tripItinerary: [],
+    tripBookings: [],
+    packingItems: [],
+    subscriptions: [],
+    recipes: [],
+    mealSlots: [],
+    shoppingItems: [],
+    vehicles: [],
+    carExpenses: [],
+    vehicleDeadlines: [],
+    pets: [],
+    petExpenses: [],
+    petVisits: [],
+    healthAppointments: [],
+    medications: [],
+    healthMeasurements: [],
+    hideAmounts: false,
   });
 }
 
@@ -61,7 +81,9 @@ export function WorkspaceSync({
 }) {
   const [ready, setReady] = useState(false);
   const [migrationChoice, setMigrationChoice] = useState(false);
-  const [syncState, setSyncState] = useState<"synced" | "saving" | "offline" | "conflict">("saving");
+  const [syncState, setSyncState] = useState<"synced" | "saving" | "offline" | "conflict">(
+    "saving",
+  );
   const revision = useRef(0);
   const baseData = useRef<WorkspaceData>({});
   const applyingRemote = useRef(false);
@@ -90,8 +112,11 @@ export function WorkspaceSync({
         preferences: { ...parsed.preferences, notificationsEnabled },
       });
     }
-    if (data.advanced) useAdvancedStore.getState().replaceAdvancedData(advancedDataSchema.parse(data.advanced));
-    queueMicrotask(() => { applyingRemote.current = false; });
+    if (data.advanced)
+      useAdvancedStore.getState().replaceAdvancedData(advancedDataSchema.parse(data.advanced));
+    queueMicrotask(() => {
+      applyingRemote.current = false;
+    });
   };
 
   const markDirty = () => {
@@ -100,7 +125,8 @@ export function WorkspaceSync({
   };
 
   const sessionWasRejected = (error: unknown) => {
-    if (!(error instanceof ApiError) || (error.status !== 401 && error.status !== 403)) return false;
+    if (!(error instanceof ApiError) || (error.status !== 401 && error.status !== 403))
+      return false;
     onSessionExpired();
     return true;
   };
@@ -136,9 +162,15 @@ export function WorkspaceSync({
           if (error instanceof ApiError && error.status === 409) {
             setSyncState("conflict");
             try {
-              const latest = await apiRequest<WorkspacePayload>("/api/v1/workspace", { signal: controller?.signal });
+              const latest = await apiRequest<WorkspacePayload>("/api/v1/workspace", {
+                signal: controller?.signal,
+              });
               if (!mounted.current || controller?.signal.aborted) break;
-              const merged = mergeWorkspaceChanges(baseData.current, outgoing, latest.data) as WorkspaceData;
+              const merged = mergeWorkspaceChanges(
+                baseData.current,
+                outgoing,
+                latest.data,
+              ) as WorkspaceData;
               revision.current = Number(latest.revision);
               rememberBase(latest.data);
               applyData(merged);
@@ -181,18 +213,32 @@ export function WorkspaceSync({
     dirty.current = hasPersistedDirtyState && hasLocalCache;
     if (hasPersistedDirtyState && !hasLocalCache) safeRemoveStorageItem(dirtyKey);
     if (dirty.current) {
-      try { baseData.current = JSON.parse(safeGetStorageItem(baseKey) ?? "null") ?? {}; } catch { baseData.current = {}; }
+      try {
+        baseData.current = JSON.parse(safeGetStorageItem(baseKey) ?? "null") ?? {};
+      } catch {
+        baseData.current = {};
+      }
     }
     void (async () => {
       try {
-        const payload = await apiRequest<WorkspacePayload>("/api/v1/workspace", { signal: controller.signal });
+        const payload = await apiRequest<WorkspacePayload>("/api/v1/workspace", {
+          signal: controller.signal,
+        });
         if (controller.signal.aborted || !mounted.current) return;
         revision.current = Number(payload.revision);
         const hasRemote = Boolean(payload.data?.life || payload.data?.advanced);
         if (hasRemote && dirty.current) {
           let previousBase: WorkspaceData = payload.data;
-          try { previousBase = JSON.parse(safeGetStorageItem(baseKey) ?? "null") ?? payload.data; } catch { /* use remote base */ }
-          const merged = mergeWorkspaceChanges(previousBase, localData(), payload.data) as WorkspaceData;
+          try {
+            previousBase = JSON.parse(safeGetStorageItem(baseKey) ?? "null") ?? payload.data;
+          } catch {
+            /* use remote base */
+          }
+          const merged = mergeWorkspaceChanges(
+            previousBase,
+            localData(),
+            payload.data,
+          ) as WorkspaceData;
           rememberBase(payload.data);
           applyData(merged);
           readyRef.current = true;
@@ -215,7 +261,9 @@ export function WorkspaceSync({
           await flushRef.current();
           if (controller.signal.aborted || !mounted.current) return;
           try {
-            const enriched = await apiRequest<WorkspacePayload>("/api/v1/workspace", { signal: controller.signal });
+            const enriched = await apiRequest<WorkspacePayload>("/api/v1/workspace", {
+              signal: controller.signal,
+            });
             if (controller.signal.aborted || !mounted.current) return;
             revision.current = Number(enriched.revision);
             applyData(enriched.data);
@@ -230,7 +278,10 @@ export function WorkspaceSync({
       } catch (error) {
         if (controller.signal.aborted || !mounted.current) return;
         if (sessionWasRejected(error)) return;
-        if (!safeGetStorageItem("puls-life-dashboard") && !safeGetStorageItem("puls-advanced-dashboard")) {
+        if (
+          !safeGetStorageItem("puls-life-dashboard") &&
+          !safeGetStorageItem("puls-advanced-dashboard")
+        ) {
           replaceWithEmptyWorkspace();
         }
         readyRef.current = true;
@@ -244,6 +295,7 @@ export function WorkspaceSync({
       if (requestController.current === controller) requestController.current = null;
       window.clearTimeout(saveTimer.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markDirty/rememberBase/sessionWasRejected są nowymi funkcjami co render; efekt ma resynchronizować się tylko przy zmianie baseKey/dirtyKey.
   }, [baseKey, dirtyKey]);
 
   useEffect(() => {
@@ -257,18 +309,20 @@ export function WorkspaceSync({
         return;
       }
       const controller = requestController.current;
-      void apiRequest<WorkspacePayload>("/api/v1/workspace", { signal: controller?.signal }).then((payload) => {
-        if (!mounted.current || controller?.signal.aborted) return;
-        if (Number(payload.revision) > revision.current) {
-          revision.current = Number(payload.revision);
-          applyData(payload.data);
-          rememberBase(payload.data);
-          setSyncState("synced");
-        }
-      }).catch((error) => {
-        if (!mounted.current || controller?.signal.aborted) return;
-        if (!sessionWasRejected(error)) setSyncState("offline");
-      });
+      void apiRequest<WorkspacePayload>("/api/v1/workspace", { signal: controller?.signal })
+        .then((payload) => {
+          if (!mounted.current || controller?.signal.aborted) return;
+          if (Number(payload.revision) > revision.current) {
+            revision.current = Number(payload.revision);
+            applyData(payload.data);
+            rememberBase(payload.data);
+            setSyncState("synced");
+          }
+        })
+        .catch((error) => {
+          if (!mounted.current || controller?.signal.aborted) return;
+          if (!sessionWasRejected(error)) setSyncState("offline");
+        });
     };
     const resumeSync = () => {
       if (dirty.current) void flushRef.current();
@@ -292,6 +346,7 @@ export function WorkspaceSync({
       document.removeEventListener("visibilitychange", flushBeforeLeave);
       window.clearTimeout(saveTimer.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rememberBase/scheduleSave/sessionWasRejected są nowymi funkcjami co render; efekt ma podpiąć listenery tylko przy zmianie `ready`.
   }, [ready]);
 
   const chooseMigration = async (upload: boolean) => {
@@ -305,7 +360,9 @@ export function WorkspaceSync({
     const controller = requestController.current;
     if (!mounted.current || controller?.signal.aborted) return;
     try {
-      const enriched = await apiRequest<WorkspacePayload>("/api/v1/workspace", { signal: controller?.signal });
+      const enriched = await apiRequest<WorkspacePayload>("/api/v1/workspace", {
+        signal: controller?.signal,
+      });
       if (!mounted.current || controller?.signal.aborted) return;
       revision.current = Number(enriched.revision);
       applyData(enriched.data);
@@ -321,7 +378,42 @@ export function WorkspaceSync({
   if (migrationChoice) {
     return (
       <div className="migration-shell">
-        <div className="migration-card"><span className="migration-icon"><Database size={23} /></span><span className="page-eyebrow">Migracja Puls 1.0</span><h1>Znaleźliśmy lokalne dane</h1><p>Możesz bezpiecznie przenieść dotychczasowe zadania, kalendarz, notatki i rytuały do wspólnego domu. Lokalna kopia pozostanie w tej przeglądarce.</p><div className="migration-summary"><span>Zadania <strong>{useLifeStore.getState().tasks.length}</strong></span><span>Wydarzenia <strong>{useLifeStore.getState().events.length}</strong></span><span>Notatki <strong>{useLifeStore.getState().notes.length}</strong></span></div><button className="button button--primary" type="button" onClick={() => void chooseMigration(true)}><Upload size={17} /> Przenieś moje dane</button><button className="button button--ghost" type="button" onClick={() => void chooseMigration(false)}>Zacznij od czystego Pulsu 2.0</button></div>
+        <div className="migration-card">
+          <span className="migration-icon">
+            <Database size={23} />
+          </span>
+          <span className="page-eyebrow">Migracja Puls 1.0</span>
+          <h1>Znaleźliśmy lokalne dane</h1>
+          <p>
+            Możesz bezpiecznie przenieść dotychczasowe zadania, kalendarz, notatki i rytuały do
+            wspólnego domu. Lokalna kopia pozostanie w tej przeglądarce.
+          </p>
+          <div className="migration-summary">
+            <span>
+              Zadania <strong>{useLifeStore.getState().tasks.length}</strong>
+            </span>
+            <span>
+              Wydarzenia <strong>{useLifeStore.getState().events.length}</strong>
+            </span>
+            <span>
+              Notatki <strong>{useLifeStore.getState().notes.length}</strong>
+            </span>
+          </div>
+          <button
+            className="button button--primary"
+            type="button"
+            onClick={() => void chooseMigration(true)}
+          >
+            <Upload size={17} /> Przenieś moje dane
+          </button>
+          <button
+            className="button button--ghost"
+            type="button"
+            onClick={() => void chooseMigration(false)}
+          >
+            Zacznij od czystego Pulsu 2.0
+          </button>
+        </div>
       </div>
     );
   }
@@ -332,13 +424,32 @@ export function WorkspaceSync({
     <>
       {children}
       <div className={`sync-indicator sync-indicator--${syncState}`} role="status">
-        {syncState === "saving" ? <LoaderCircle size={13} className="spin" /> : syncState === "offline" ? <CloudOff size={13} /> : <Cloud size={13} />}
-        {syncState === "saving" ? "Zapisuję" : syncState === "offline" ? "Zmiany czekają na sieć" : syncState === "conflict" ? "Scalam zmiany" : "Zsynchronizowano"}
+        {syncState === "saving" ? (
+          <LoaderCircle size={13} className="spin" />
+        ) : syncState === "offline" ? (
+          <CloudOff size={13} />
+        ) : (
+          <Cloud size={13} />
+        )}
+        {syncState === "saving"
+          ? "Zapisuję"
+          : syncState === "offline"
+            ? "Zmiany czekają na sieć"
+            : syncState === "conflict"
+              ? "Scalam zmiany"
+              : "Zsynchronizowano"}
       </div>
     </>
   );
 }
 
 function AuthSyncLoading() {
-  return <div className="auth-shell"><div className="auth-loading"><LoaderCircle size={22} className="spin" /><span>Synchronizuję wspólny dom…</span></div></div>;
+  return (
+    <div className="auth-shell">
+      <div className="auth-loading">
+        <LoaderCircle size={22} className="spin" />
+        <span>Synchronizuję wspólny dom…</span>
+      </div>
+    </div>
+  );
 }

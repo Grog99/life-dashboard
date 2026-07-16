@@ -113,7 +113,11 @@ export function buildSeriesOccurrence<T extends SeriesItem>(
  * - idempotentne — brak zmian, gdy okno jest już pełne (zwraca to samo `items` przez referencję,
  *   żeby wywołujący mógł wykryć no-op i uniknąć zbędnego zapisu/sync).
  */
-export function expandSeries<T extends SeriesItem>(items: T[], today: string, window = SERIES_WINDOW): T[] {
+export function expandSeries<T extends SeriesItem>(
+  items: T[],
+  today: string,
+  window = SERIES_WINDOW,
+): T[] {
   const bySeries = new Map<string, T[]>();
   for (const item of items) {
     if (!item.seriesId) continue;

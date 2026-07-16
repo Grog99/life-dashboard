@@ -132,17 +132,23 @@ export function HealthPage({ onToast }: HealthPageProps) {
   const today = dateKey();
 
   const appointments = useMemo(
-    () => [...healthAppointments].sort((a, b) => {
-      const statusOrder = { scheduled: 0, completed: 1, cancelled: 2 };
-      return statusOrder[a.status] - statusOrder[b.status] || `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`);
-    }),
+    () =>
+      [...healthAppointments].sort((a, b) => {
+        const statusOrder = { scheduled: 0, completed: 1, cancelled: 2 };
+        return (
+          statusOrder[a.status] - statusOrder[b.status] ||
+          `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)
+        );
+      }),
     [healthAppointments],
   );
   const nextAppointment = appointments.find(
     (appointment) => appointment.status === "scheduled" && appointment.date >= today,
   );
   const activeMedications = medications.filter((medication) => medication.active);
-  const takenToday = activeMedications.filter((medication) => medication.lastTakenOn === today).length;
+  const takenToday = activeMedications.filter(
+    (medication) => medication.lastTakenOn === today,
+  ).length;
   const measurements = useMemo(
     () => [...healthMeasurements].sort((a, b) => b.measuredAt.localeCompare(a.measuredAt)),
     [healthMeasurements],
@@ -299,7 +305,9 @@ export function HealthPage({ onToast }: HealthPageProps) {
     <div className="health-page page-enter">
       <header className="page-header health-header">
         <div>
-          <span className="page-eyebrow"><HeartPulse size={14} /> Zdrowie — podstawy</span>
+          <span className="page-eyebrow">
+            <HeartPulse size={14} /> Zdrowie — podstawy
+          </span>
           <h1>Zdrowie</h1>
           <p>Wizyty, codzienne leki i najważniejsze pomiary w jednym prywatnym miejscu.</p>
         </div>
@@ -310,126 +318,692 @@ export function HealthPage({ onToast }: HealthPageProps) {
 
       <section className="health-summary" aria-label="Podsumowanie zdrowia">
         <article>
-          <span className="health-summary__icon health-summary__icon--appointment"><CalendarClock size={19} /></span>
-          <div><small>Następna wizyta</small><strong>{nextAppointment?.title ?? "Brak wizyt"}</strong><span>{nextAppointment ? `${relativeDay(nextAppointment.date)} · ${nextAppointment.time}` : "Spokojny kalendarz"}</span></div>
+          <span className="health-summary__icon health-summary__icon--appointment">
+            <CalendarClock size={19} />
+          </span>
+          <div>
+            <small>Następna wizyta</small>
+            <strong>{nextAppointment?.title ?? "Brak wizyt"}</strong>
+            <span>
+              {nextAppointment
+                ? `${relativeDay(nextAppointment.date)} · ${nextAppointment.time}`
+                : "Spokojny kalendarz"}
+            </span>
+          </div>
         </article>
         <article>
-          <span className="health-summary__icon health-summary__icon--medication"><Pill size={19} /></span>
-          <div><small>Leki dzisiaj</small><strong>{takenToday} z {activeMedications.length}</strong><span>{activeMedications.length && takenToday === activeMedications.length ? "Wszystko przyjęte" : "Do sprawdzenia"}</span></div>
+          <span className="health-summary__icon health-summary__icon--medication">
+            <Pill size={19} />
+          </span>
+          <div>
+            <small>Leki dzisiaj</small>
+            <strong>
+              {takenToday} z {activeMedications.length}
+            </strong>
+            <span>
+              {activeMedications.length && takenToday === activeMedications.length
+                ? "Wszystko przyjęte"
+                : "Do sprawdzenia"}
+            </span>
+          </div>
         </article>
         <article>
-          <span className="health-summary__icon health-summary__icon--measurement"><Activity size={19} /></span>
-          <div><small>Ostatni pomiar</small><strong>{measurements[0] ? `${measurements[0].value} ${measurements[0].unit}`.trim() : "Brak danych"}</strong><span>{measurements[0] ? measurementMeta[measurements[0].type].label : "Dodaj pierwszy pomiar"}</span></div>
+          <span className="health-summary__icon health-summary__icon--measurement">
+            <Activity size={19} />
+          </span>
+          <div>
+            <small>Ostatni pomiar</small>
+            <strong>
+              {measurements[0]
+                ? `${measurements[0].value} ${measurements[0].unit}`.trim()
+                : "Brak danych"}
+            </strong>
+            <span>
+              {measurements[0]
+                ? measurementMeta[measurements[0].type].label
+                : "Dodaj pierwszy pomiar"}
+            </span>
+          </div>
         </article>
       </section>
 
       <div className="health-grid">
         <section className="panel health-panel health-appointments">
           <header className="health-panel__header">
-            <div><span className="section-kicker"><Stethoscope size={14} /> Opieka</span><h2>Wizyty i badania</h2></div>
-            <button className="button button--soft button--small" type="button" onClick={openAppointment}><Plus size={15} /> Dodaj</button>
+            <div>
+              <span className="section-kicker">
+                <Stethoscope size={14} /> Opieka
+              </span>
+              <h2>Wizyty i badania</h2>
+            </div>
+            <button
+              className="button button--soft button--small"
+              type="button"
+              onClick={openAppointment}
+            >
+              <Plus size={15} /> Dodaj
+            </button>
           </header>
           <div className="health-appointment-list">
             {appointments.map((appointment) => (
-              <article className={`health-appointment health-appointment--${appointment.status}`} key={appointment.id}>
-                <div className="health-date-badge"><strong>{format(parseISO(appointment.date), "d")}</strong><span>{format(parseISO(appointment.date), "MMM", { locale: pl })}</span></div>
+              <article
+                className={`health-appointment health-appointment--${appointment.status}`}
+                key={appointment.id}
+              >
+                <div className="health-date-badge">
+                  <strong>{format(parseISO(appointment.date), "d")}</strong>
+                  <span>{format(parseISO(appointment.date), "MMM", { locale: pl })}</span>
+                </div>
                 <div className="health-appointment__main">
-                  <div><strong>{appointment.title}</strong><span className="health-visibility">{appointment.visibility === "private" ? <LockKeyhole size={11} /> : <Users size={11} />}{appointment.visibility === "private" ? "Tylko ja" : "Domownicy"}</span></div>
-                  <span>{appointment.clinician}{appointment.specialty ? ` · ${appointment.specialty}` : ""}</span>
-                  <small><Clock3 size={12} /> {appointment.time}{appointment.location && <><MapPin size={12} /> {appointment.location}</>}</small>
+                  <div>
+                    <strong>{appointment.title}</strong>
+                    <span className="health-visibility">
+                      {appointment.visibility === "private" ? (
+                        <LockKeyhole size={11} />
+                      ) : (
+                        <Users size={11} />
+                      )}
+                      {appointment.visibility === "private" ? "Tylko ja" : "Domownicy"}
+                    </span>
+                  </div>
+                  <span>
+                    {appointment.clinician}
+                    {appointment.specialty ? ` · ${appointment.specialty}` : ""}
+                  </span>
+                  <small>
+                    <Clock3 size={12} /> {appointment.time}
+                    {appointment.location && (
+                      <>
+                        <MapPin size={12} /> {appointment.location}
+                      </>
+                    )}
+                  </small>
                 </div>
                 <div className="health-appointment__actions">
-                  <button className={appointment.status === "completed" ? "health-complete active" : "health-complete"} type="button" onClick={() => toggleAppointmentCompleted(appointment)} aria-pressed={appointment.status === "completed"}><Check size={14} /> {appointment.status === "completed" ? "Odbyta" : "Oznacz odbytą"}</button>
-                  <button className="icon-button" type="button" onClick={() => openAppointmentForEdit(appointment)} aria-label={`Edytuj wizytę ${appointment.title}`}><Pencil size={15} /></button>
-                  <button className="icon-button module-danger-icon" type="button" onClick={() => removeAppointment(appointment)} aria-label={`Usuń wizytę ${appointment.title}`}><Trash2 size={15} /></button>
+                  <button
+                    className={
+                      appointment.status === "completed"
+                        ? "health-complete active"
+                        : "health-complete"
+                    }
+                    type="button"
+                    onClick={() => toggleAppointmentCompleted(appointment)}
+                    aria-pressed={appointment.status === "completed"}
+                  >
+                    <Check size={14} />{" "}
+                    {appointment.status === "completed" ? "Odbyta" : "Oznacz odbytą"}
+                  </button>
+                  <button
+                    className="icon-button"
+                    type="button"
+                    onClick={() => openAppointmentForEdit(appointment)}
+                    aria-label={`Edytuj wizytę ${appointment.title}`}
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    className="icon-button module-danger-icon"
+                    type="button"
+                    onClick={() => removeAppointment(appointment)}
+                    aria-label={`Usuń wizytę ${appointment.title}`}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </article>
             ))}
-            {!appointments.length && <div className="health-empty"><CalendarClock size={22} /><strong>Brak zaplanowanych wizyt</strong><span>Dodaj termin, aby mieć go zawsze pod ręką.</span></div>}
+            {!appointments.length && (
+              <div className="health-empty">
+                <CalendarClock size={22} />
+                <strong>Brak zaplanowanych wizyt</strong>
+                <span>Dodaj termin, aby mieć go zawsze pod ręką.</span>
+              </div>
+            )}
           </div>
         </section>
 
         <section className="panel health-panel health-medications">
-          <header className="health-panel__header"><div><span className="section-kicker"><Pill size={14} /> Rutyna</span><h2>Leki i suplementy</h2></div><button className="button button--soft button--small" type="button" onClick={() => { setEditingMedication(null); setMedicationDraft(newMedicationDraft()); setMedicationModalOpen(true); }}><Plus size={15} /> Dodaj</button></header>
+          <header className="health-panel__header">
+            <div>
+              <span className="section-kicker">
+                <Pill size={14} /> Rutyna
+              </span>
+              <h2>Leki i suplementy</h2>
+            </div>
+            <button
+              className="button button--soft button--small"
+              type="button"
+              onClick={() => {
+                setEditingMedication(null);
+                setMedicationDraft(newMedicationDraft());
+                setMedicationModalOpen(true);
+              }}
+            >
+              <Plus size={15} /> Dodaj
+            </button>
+          </header>
           <div className="health-medication-list">
             {medications.map((medication) => {
               const taken = medication.lastTakenOn === today;
               return (
-                <article className={medication.active ? "health-medication" : "health-medication health-medication--inactive"} key={medication.id}>
-                  <span className="health-medication__icon"><Pill size={17} /></span>
+                <article
+                  className={
+                    medication.active
+                      ? "health-medication"
+                      : "health-medication health-medication--inactive"
+                  }
+                  key={medication.id}
+                >
+                  <span className="health-medication__icon">
+                    <Pill size={17} />
+                  </span>
                   <div>
-                    <div className="health-medication__title"><strong>{medication.name}</strong><span className="health-visibility">{medication.visibility === "private" ? <LockKeyhole size={11} /> : <Users size={11} />}{medication.visibility === "private" ? "Tylko ja" : "Domownicy"}</span></div>
-                    <span>{medication.dosage} · {medication.schedule}{medication.reminderTime ? ` · ${medication.reminderTime}` : ""}</span>
+                    <div className="health-medication__title">
+                      <strong>{medication.name}</strong>
+                      <span className="health-visibility">
+                        {medication.visibility === "private" ? (
+                          <LockKeyhole size={11} />
+                        ) : (
+                          <Users size={11} />
+                        )}
+                        {medication.visibility === "private" ? "Tylko ja" : "Domownicy"}
+                      </span>
+                    </div>
+                    <span>
+                      {medication.dosage} · {medication.schedule}
+                      {medication.reminderTime ? ` · ${medication.reminderTime}` : ""}
+                    </span>
                   </div>
-                  <button className={taken ? "health-taken active" : "health-taken"} type="button" disabled={!medication.active} onClick={() => toggleMedicationTaken(medication.id, today)} aria-pressed={taken}>{taken ? <Check size={14} /> : <CircleMark />}{taken ? "Przyjęte" : "Oznacz"}</button>
+                  <button
+                    className={taken ? "health-taken active" : "health-taken"}
+                    type="button"
+                    disabled={!medication.active}
+                    onClick={() => toggleMedicationTaken(medication.id, today)}
+                    aria-pressed={taken}
+                  >
+                    {taken ? <Check size={14} /> : <CircleMark />}
+                    {taken ? "Przyjęte" : "Oznacz"}
+                  </button>
                   <div className="health-medication__actions">
-                    <button className="icon-button" type="button" onClick={() => openMedicationForEdit(medication)} aria-label={`Edytuj ${medication.name}`}><Pencil size={15} /></button>
-                    <button className={medication.active ? "icon-button health-active-toggle active" : "icon-button health-active-toggle"} type="button" onClick={() => toggleMedicationActive(medication.id)} aria-label={medication.active ? `Wstrzymaj ${medication.name}` : `Aktywuj ${medication.name}`} aria-pressed={medication.active}><Power size={15} /></button>
-                    <button className="icon-button module-danger-icon" type="button" onClick={() => removeMedication(medication)} aria-label={`Usuń ${medication.name}`}><Trash2 size={15} /></button>
+                    <button
+                      className="icon-button"
+                      type="button"
+                      onClick={() => openMedicationForEdit(medication)}
+                      aria-label={`Edytuj ${medication.name}`}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      className={
+                        medication.active
+                          ? "icon-button health-active-toggle active"
+                          : "icon-button health-active-toggle"
+                      }
+                      type="button"
+                      onClick={() => toggleMedicationActive(medication.id)}
+                      aria-label={
+                        medication.active
+                          ? `Wstrzymaj ${medication.name}`
+                          : `Aktywuj ${medication.name}`
+                      }
+                      aria-pressed={medication.active}
+                    >
+                      <Power size={15} />
+                    </button>
+                    <button
+                      className="icon-button module-danger-icon"
+                      type="button"
+                      onClick={() => removeMedication(medication)}
+                      aria-label={`Usuń ${medication.name}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </article>
               );
             })}
-            {!medications.length && <div className="health-empty"><Pill size={22} /><strong>Brak leków</strong><span>Lista codziennej rutyny jest pusta.</span></div>}
+            {!medications.length && (
+              <div className="health-empty">
+                <Pill size={22} />
+                <strong>Brak leków</strong>
+                <span>Lista codziennej rutyny jest pusta.</span>
+              </div>
+            )}
           </div>
-          <p className="health-disclaimer">Puls pomaga pamiętać, ale nie zastępuje porady lekarza ani informacji na recepcie.</p>
+          <p className="health-disclaimer">
+            Puls pomaga pamiętać, ale nie zastępuje porady lekarza ani informacji na recepcie.
+          </p>
         </section>
 
         <section className="panel health-panel health-measurements">
           <header className="health-panel__header">
-            <div><span className="section-kicker"><Activity size={14} /> Dziennik</span><h2>Pomiary</h2></div>
-            <button className="button button--soft button--small" type="button" onClick={() => { setEditingMeasurement(null); setMeasurementDraft(newMeasurementDraft()); setMeasurementModalOpen(true); }}><Plus size={15} /> Nowy pomiar</button>
+            <div>
+              <span className="section-kicker">
+                <Activity size={14} /> Dziennik
+              </span>
+              <h2>Pomiary</h2>
+            </div>
+            <button
+              className="button button--soft button--small"
+              type="button"
+              onClick={() => {
+                setEditingMeasurement(null);
+                setMeasurementDraft(newMeasurementDraft());
+                setMeasurementModalOpen(true);
+              }}
+            >
+              <Plus size={15} /> Nowy pomiar
+            </button>
           </header>
           <div className="health-measurement-list">
             {measurements.slice(0, 8).map((measurement) => (
               <article className="health-measurement" key={measurement.id}>
-                <span className="health-measurement__icon"><Activity size={17} /></span>
-                <div><small>{measurementMeta[measurement.type].label}</small><strong>{measurement.value} <span>{measurement.unit}</span></strong></div>
-                <time>{format(parseISO(measurement.measuredAt), "d MMM yyyy, HH:mm", { locale: pl })}</time>
-                <span className="health-visibility">{measurement.visibility === "private" ? <LockKeyhole size={11} /> : <Users size={11} />}{measurement.visibility === "private" ? "Prywatny" : "Wspólny"}</span>
+                <span className="health-measurement__icon">
+                  <Activity size={17} />
+                </span>
+                <div>
+                  <small>{measurementMeta[measurement.type].label}</small>
+                  <strong>
+                    {measurement.value} <span>{measurement.unit}</span>
+                  </strong>
+                </div>
+                <time>
+                  {format(parseISO(measurement.measuredAt), "d MMM yyyy, HH:mm", { locale: pl })}
+                </time>
+                <span className="health-visibility">
+                  {measurement.visibility === "private" ? (
+                    <LockKeyhole size={11} />
+                  ) : (
+                    <Users size={11} />
+                  )}
+                  {measurement.visibility === "private" ? "Prywatny" : "Wspólny"}
+                </span>
                 <div className="health-measurement__actions">
-                  <button className="icon-button" type="button" onClick={() => openMeasurementForEdit(measurement)} aria-label={`Edytuj pomiar ${measurementMeta[measurement.type].label}`}><Pencil size={15} /></button>
-                  <button className="icon-button module-danger-icon" type="button" onClick={() => removeMeasurement(measurement.id)} aria-label={`Usuń pomiar ${measurementMeta[measurement.type].label}`}><Trash2 size={15} /></button>
+                  <button
+                    className="icon-button"
+                    type="button"
+                    onClick={() => openMeasurementForEdit(measurement)}
+                    aria-label={`Edytuj pomiar ${measurementMeta[measurement.type].label}`}
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    className="icon-button module-danger-icon"
+                    type="button"
+                    onClick={() => removeMeasurement(measurement.id)}
+                    aria-label={`Usuń pomiar ${measurementMeta[measurement.type].label}`}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </article>
             ))}
-            {!measurements.length && <div className="health-empty"><Activity size={22} /><strong>Brak pomiarów</strong><span>Zapisz wartość, którą chcesz obserwować w czasie.</span></div>}
+            {!measurements.length && (
+              <div className="health-empty">
+                <Activity size={22} />
+                <strong>Brak pomiarów</strong>
+                <span>Zapisz wartość, którą chcesz obserwować w czasie.</span>
+              </div>
+            )}
           </div>
         </section>
       </div>
 
-      <Modal open={appointmentModalOpen} onClose={() => setAppointmentModalOpen(false)} title={editingAppointment ? "Edytuj wizytę" : "Nowa wizyta"} eyebrow="Zdrowie" size="large">
+      <Modal
+        open={appointmentModalOpen}
+        onClose={() => setAppointmentModalOpen(false)}
+        title={editingAppointment ? "Edytuj wizytę" : "Nowa wizyta"}
+        eyebrow="Zdrowie"
+        size="large"
+      >
         <form className="health-form" onSubmit={saveAppointment}>
-          <label className="field field--prominent"><span>Nazwa wizyty lub badania</span><input autoFocus required value={appointmentDraft.title} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, title: event.target.value })} placeholder="np. Kontrola u okulisty" /></label>
-          <div className="form-grid form-grid--2"><label className="field"><span>Lekarz lub placówka</span><input required value={appointmentDraft.clinician} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, clinician: event.target.value })} placeholder="Nazwisko albo nazwa placówki" /></label><label className="field"><span>Specjalizacja</span><input value={appointmentDraft.specialty} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, specialty: event.target.value })} placeholder="Opcjonalnie" /></label></div>
-          <div className="form-grid form-grid--2"><label className="field"><span>Data</span><input required type="date" value={appointmentDraft.date} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, date: event.target.value })} /></label><label className="field"><span>Godzina</span><input required type="time" value={appointmentDraft.time} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, time: event.target.value })} /></label></div>
-          <label className="field"><span>Miejsce</span><input value={appointmentDraft.location} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, location: event.target.value })} placeholder="Adres lub nazwa gabinetu" /></label>
-          {editingAppointment && <label className="field"><span>Status</span><select value={appointmentDraft.status} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, status: event.target.value as HealthAppointment["status"] })}><option value="scheduled">Zaplanowana</option><option value="completed">Odbyta</option><option value="cancelled">Anulowana</option></select></label>}
-          <div className="form-grid form-grid--2"><label className="field"><span>Widoczność</span><select value={appointmentDraft.visibility} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, visibility: event.target.value as Visibility })}><option value="private">Tylko ja</option><option value="household">Domownicy</option></select></label><label className="field"><span>Notatka</span><input value={appointmentDraft.notes} onChange={(event) => setAppointmentDraft({ ...appointmentDraft, notes: event.target.value })} placeholder="np. przygotowanie do badania" /></label></div>
-          <div className="health-private-note"><LockKeyhole size={15} /><span>Nowe dane zdrowotne są domyślnie prywatne.</span></div>
-          <div className="modal-actions"><span /><div><button className="button button--ghost" type="button" onClick={() => setAppointmentModalOpen(false)}>Anuluj</button><button className="button button--primary" type="submit">{editingAppointment ? "Zapisz zmiany" : "Zapisz wizytę"}</button></div></div>
+          <label className="field field--prominent">
+            <span>Nazwa wizyty lub badania</span>
+            <input
+              autoFocus
+              required
+              value={appointmentDraft.title}
+              onChange={(event) =>
+                setAppointmentDraft({ ...appointmentDraft, title: event.target.value })
+              }
+              placeholder="np. Kontrola u okulisty"
+            />
+          </label>
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Lekarz lub placówka</span>
+              <input
+                required
+                value={appointmentDraft.clinician}
+                onChange={(event) =>
+                  setAppointmentDraft({ ...appointmentDraft, clinician: event.target.value })
+                }
+                placeholder="Nazwisko albo nazwa placówki"
+              />
+            </label>
+            <label className="field">
+              <span>Specjalizacja</span>
+              <input
+                value={appointmentDraft.specialty}
+                onChange={(event) =>
+                  setAppointmentDraft({ ...appointmentDraft, specialty: event.target.value })
+                }
+                placeholder="Opcjonalnie"
+              />
+            </label>
+          </div>
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Data</span>
+              <input
+                required
+                type="date"
+                value={appointmentDraft.date}
+                onChange={(event) =>
+                  setAppointmentDraft({ ...appointmentDraft, date: event.target.value })
+                }
+              />
+            </label>
+            <label className="field">
+              <span>Godzina</span>
+              <input
+                required
+                type="time"
+                value={appointmentDraft.time}
+                onChange={(event) =>
+                  setAppointmentDraft({ ...appointmentDraft, time: event.target.value })
+                }
+              />
+            </label>
+          </div>
+          <label className="field">
+            <span>Miejsce</span>
+            <input
+              value={appointmentDraft.location}
+              onChange={(event) =>
+                setAppointmentDraft({ ...appointmentDraft, location: event.target.value })
+              }
+              placeholder="Adres lub nazwa gabinetu"
+            />
+          </label>
+          {editingAppointment && (
+            <label className="field">
+              <span>Status</span>
+              <select
+                value={appointmentDraft.status}
+                onChange={(event) =>
+                  setAppointmentDraft({
+                    ...appointmentDraft,
+                    status: event.target.value as HealthAppointment["status"],
+                  })
+                }
+              >
+                <option value="scheduled">Zaplanowana</option>
+                <option value="completed">Odbyta</option>
+                <option value="cancelled">Anulowana</option>
+              </select>
+            </label>
+          )}
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Widoczność</span>
+              <select
+                value={appointmentDraft.visibility}
+                onChange={(event) =>
+                  setAppointmentDraft({
+                    ...appointmentDraft,
+                    visibility: event.target.value as Visibility,
+                  })
+                }
+              >
+                <option value="private">Tylko ja</option>
+                <option value="household">Domownicy</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Notatka</span>
+              <input
+                value={appointmentDraft.notes}
+                onChange={(event) =>
+                  setAppointmentDraft({ ...appointmentDraft, notes: event.target.value })
+                }
+                placeholder="np. przygotowanie do badania"
+              />
+            </label>
+          </div>
+          <div className="health-private-note">
+            <LockKeyhole size={15} />
+            <span>Nowe dane zdrowotne są domyślnie prywatne.</span>
+          </div>
+          <div className="modal-actions">
+            <span />
+            <div>
+              <button
+                className="button button--ghost"
+                type="button"
+                onClick={() => setAppointmentModalOpen(false)}
+              >
+                Anuluj
+              </button>
+              <button className="button button--primary" type="submit">
+                {editingAppointment ? "Zapisz zmiany" : "Zapisz wizytę"}
+              </button>
+            </div>
+          </div>
         </form>
       </Modal>
 
-      <Modal open={measurementModalOpen} onClose={() => setMeasurementModalOpen(false)} title={editingMeasurement ? "Edytuj pomiar" : "Nowy pomiar"} eyebrow="Dziennik zdrowia">
+      <Modal
+        open={measurementModalOpen}
+        onClose={() => setMeasurementModalOpen(false)}
+        title={editingMeasurement ? "Edytuj pomiar" : "Nowy pomiar"}
+        eyebrow="Dziennik zdrowia"
+      >
         <form className="health-form" onSubmit={saveMeasurement}>
-          <label className="field"><span>Rodzaj</span><select value={measurementDraft.type} onChange={(event) => { const type = event.target.value as HealthMeasurementType; setMeasurementDraft({ ...measurementDraft, type, unit: measurementMeta[type].unit }); }}>{Object.entries(measurementMeta).map(([value, meta]) => <option value={value} key={value}>{meta.label}</option>)}</select></label>
-          <div className="form-grid form-grid--2"><label className="field field--prominent"><span>Wartość</span><input autoFocus required inputMode="decimal" value={measurementDraft.value} onChange={(event) => setMeasurementDraft({ ...measurementDraft, value: event.target.value })} placeholder={measurementDraft.type === "blood_pressure" ? "120/80" : "0,0"} /></label><label className="field"><span>Jednostka</span><input value={measurementDraft.unit} onChange={(event) => setMeasurementDraft({ ...measurementDraft, unit: event.target.value })} placeholder={measurementMeta[measurementDraft.type].unit ? `np. ${measurementMeta[measurementDraft.type].unit}` : "np. szt."} /></label></div>
-          <div className="form-grid form-grid--2"><label className="field"><span>Data</span><input required type="date" value={measurementDraft.date} onChange={(event) => setMeasurementDraft({ ...measurementDraft, date: event.target.value })} /></label><label className="field"><span>Godzina</span><input required type="time" value={measurementDraft.time} onChange={(event) => setMeasurementDraft({ ...measurementDraft, time: event.target.value })} /></label></div>
-          <label className="field"><span>Notatka</span><input value={measurementDraft.notes} onChange={(event) => setMeasurementDraft({ ...measurementDraft, notes: event.target.value })} placeholder="Opcjonalny kontekst pomiaru" /></label>
-          <label className="field"><span>Widoczność</span><select value={measurementDraft.visibility} onChange={(event) => setMeasurementDraft({ ...measurementDraft, visibility: event.target.value as Visibility })}><option value="private">Tylko ja</option><option value="household">Domownicy</option></select></label>
-          <div className="modal-actions"><span /><div><button className="button button--ghost" type="button" onClick={() => setMeasurementModalOpen(false)}>Anuluj</button><button className="button button--primary" type="submit">{editingMeasurement ? "Zapisz zmiany" : "Zapisz pomiar"}</button></div></div>
+          <label className="field">
+            <span>Rodzaj</span>
+            <select
+              value={measurementDraft.type}
+              onChange={(event) => {
+                const type = event.target.value as HealthMeasurementType;
+                setMeasurementDraft({
+                  ...measurementDraft,
+                  type,
+                  unit: measurementMeta[type].unit,
+                });
+              }}
+            >
+              {Object.entries(measurementMeta).map(([value, meta]) => (
+                <option value={value} key={value}>
+                  {meta.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="form-grid form-grid--2">
+            <label className="field field--prominent">
+              <span>Wartość</span>
+              <input
+                autoFocus
+                required
+                inputMode="decimal"
+                value={measurementDraft.value}
+                onChange={(event) =>
+                  setMeasurementDraft({ ...measurementDraft, value: event.target.value })
+                }
+                placeholder={measurementDraft.type === "blood_pressure" ? "120/80" : "0,0"}
+              />
+            </label>
+            <label className="field">
+              <span>Jednostka</span>
+              <input
+                value={measurementDraft.unit}
+                onChange={(event) =>
+                  setMeasurementDraft({ ...measurementDraft, unit: event.target.value })
+                }
+                placeholder={
+                  measurementMeta[measurementDraft.type].unit
+                    ? `np. ${measurementMeta[measurementDraft.type].unit}`
+                    : "np. szt."
+                }
+              />
+            </label>
+          </div>
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Data</span>
+              <input
+                required
+                type="date"
+                value={measurementDraft.date}
+                onChange={(event) =>
+                  setMeasurementDraft({ ...measurementDraft, date: event.target.value })
+                }
+              />
+            </label>
+            <label className="field">
+              <span>Godzina</span>
+              <input
+                required
+                type="time"
+                value={measurementDraft.time}
+                onChange={(event) =>
+                  setMeasurementDraft({ ...measurementDraft, time: event.target.value })
+                }
+              />
+            </label>
+          </div>
+          <label className="field">
+            <span>Notatka</span>
+            <input
+              value={measurementDraft.notes}
+              onChange={(event) =>
+                setMeasurementDraft({ ...measurementDraft, notes: event.target.value })
+              }
+              placeholder="Opcjonalny kontekst pomiaru"
+            />
+          </label>
+          <label className="field">
+            <span>Widoczność</span>
+            <select
+              value={measurementDraft.visibility}
+              onChange={(event) =>
+                setMeasurementDraft({
+                  ...measurementDraft,
+                  visibility: event.target.value as Visibility,
+                })
+              }
+            >
+              <option value="private">Tylko ja</option>
+              <option value="household">Domownicy</option>
+            </select>
+          </label>
+          <div className="modal-actions">
+            <span />
+            <div>
+              <button
+                className="button button--ghost"
+                type="button"
+                onClick={() => setMeasurementModalOpen(false)}
+              >
+                Anuluj
+              </button>
+              <button className="button button--primary" type="submit">
+                {editingMeasurement ? "Zapisz zmiany" : "Zapisz pomiar"}
+              </button>
+            </div>
+          </div>
         </form>
       </Modal>
 
-      <Modal open={medicationModalOpen} onClose={() => setMedicationModalOpen(false)} title={editingMedication ? "Edytuj lek" : "Nowy lek lub suplement"} eyebrow="Codzienna rutyna">
+      <Modal
+        open={medicationModalOpen}
+        onClose={() => setMedicationModalOpen(false)}
+        title={editingMedication ? "Edytuj lek" : "Nowy lek lub suplement"}
+        eyebrow="Codzienna rutyna"
+      >
         <form className="health-form" onSubmit={saveMedication}>
-          <label className="field field--prominent"><span>Nazwa</span><input autoFocus required value={medicationDraft.name} onChange={(event) => setMedicationDraft({ ...medicationDraft, name: event.target.value })} placeholder="np. Witamina D3" /></label>
-          <div className="form-grid form-grid--2"><label className="field"><span>Dawkowanie</span><input required value={medicationDraft.dosage} onChange={(event) => setMedicationDraft({ ...medicationDraft, dosage: event.target.value })} placeholder="np. 1 tabletka" /></label><label className="field"><span>Codzienne przypomnienie</span><input type="time" value={medicationDraft.reminderTime} onChange={(event) => setMedicationDraft({ ...medicationDraft, reminderTime: event.target.value })} /><small>Jeśli ustawisz godzinę, Puls przypomni raz dziennie.</small></label></div>
-          <label className="field"><span>Opis schematu</span><input value={medicationDraft.schedule} onChange={(event) => setMedicationDraft({ ...medicationDraft, schedule: event.target.value })} placeholder="np. codziennie po śniadaniu" /><small>To notatka informacyjna; nie zmienia częstotliwości powiadomienia.</small></label>
-          <label className="field"><span>Widoczność</span><select value={medicationDraft.visibility} onChange={(event) => setMedicationDraft({ ...medicationDraft, visibility: event.target.value as Visibility })}><option value="private">Tylko ja</option><option value="household">Domownicy</option></select></label>
-          <div className="health-private-note"><LockKeyhole size={15} /><span>Informacje o lekach są domyślnie prywatne.</span></div>
-          <div className="modal-actions"><span /><div><button className="button button--ghost" type="button" onClick={() => setMedicationModalOpen(false)}>Anuluj</button><button className="button button--primary" type="submit">{editingMedication ? "Zapisz zmiany" : "Dodaj do rutyny"}</button></div></div>
+          <label className="field field--prominent">
+            <span>Nazwa</span>
+            <input
+              autoFocus
+              required
+              value={medicationDraft.name}
+              onChange={(event) =>
+                setMedicationDraft({ ...medicationDraft, name: event.target.value })
+              }
+              placeholder="np. Witamina D3"
+            />
+          </label>
+          <div className="form-grid form-grid--2">
+            <label className="field">
+              <span>Dawkowanie</span>
+              <input
+                required
+                value={medicationDraft.dosage}
+                onChange={(event) =>
+                  setMedicationDraft({ ...medicationDraft, dosage: event.target.value })
+                }
+                placeholder="np. 1 tabletka"
+              />
+            </label>
+            <label className="field">
+              <span>Codzienne przypomnienie</span>
+              <input
+                type="time"
+                value={medicationDraft.reminderTime}
+                onChange={(event) =>
+                  setMedicationDraft({ ...medicationDraft, reminderTime: event.target.value })
+                }
+              />
+              <small>Jeśli ustawisz godzinę, Puls przypomni raz dziennie.</small>
+            </label>
+          </div>
+          <label className="field">
+            <span>Opis schematu</span>
+            <input
+              value={medicationDraft.schedule}
+              onChange={(event) =>
+                setMedicationDraft({ ...medicationDraft, schedule: event.target.value })
+              }
+              placeholder="np. codziennie po śniadaniu"
+            />
+            <small>To notatka informacyjna; nie zmienia częstotliwości powiadomienia.</small>
+          </label>
+          <label className="field">
+            <span>Widoczność</span>
+            <select
+              value={medicationDraft.visibility}
+              onChange={(event) =>
+                setMedicationDraft({
+                  ...medicationDraft,
+                  visibility: event.target.value as Visibility,
+                })
+              }
+            >
+              <option value="private">Tylko ja</option>
+              <option value="household">Domownicy</option>
+            </select>
+          </label>
+          <div className="health-private-note">
+            <LockKeyhole size={15} />
+            <span>Informacje o lekach są domyślnie prywatne.</span>
+          </div>
+          <div className="modal-actions">
+            <span />
+            <div>
+              <button
+                className="button button--ghost"
+                type="button"
+                onClick={() => setMedicationModalOpen(false)}
+              >
+                Anuluj
+              </button>
+              <button className="button button--primary" type="submit">
+                {editingMedication ? "Zapisz zmiany" : "Dodaj do rutyny"}
+              </button>
+            </div>
+          </div>
         </form>
       </Modal>
     </div>

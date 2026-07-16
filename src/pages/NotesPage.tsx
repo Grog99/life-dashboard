@@ -41,7 +41,9 @@ export function NotesPage({ onQuickAdd, onToast }: NotesPageProps) {
           note.title.toLocaleLowerCase("pl").includes(normalized) ||
           note.content.toLocaleLowerCase("pl").includes(normalized),
       )
-      .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt));
+      .sort(
+        (a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt),
+      );
   }, [notes, onlyPinned, query]);
 
   const convertFirstLine = (note: Note) => {
@@ -77,13 +79,32 @@ export function NotesPage({ onQuickAdd, onToast }: NotesPageProps) {
           <h1>Notatki</h1>
           <p>Luźne pomysły, listy i rzeczy, do których chcesz wrócić.</p>
         </div>
-        <button className="button button--primary" type="button" onClick={onQuickAdd}><Plus size={17} /> Nowa notatka</button>
+        <button className="button button--primary" type="button" onClick={onQuickAdd}>
+          <Plus size={17} /> Nowa notatka
+        </button>
       </header>
 
       <div className="notes-toolbar">
-        <label className="search-field search-field--wide"><Search size={17} /><span className="sr-only">Szukaj w notatkach</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj w notatkach…" /></label>
-        <button className={onlyPinned ? "filter-pill active" : "filter-pill"} type="button" onClick={() => setOnlyPinned((value) => !value)} aria-pressed={onlyPinned}><Pin size={15} /> Tylko przypięte</button>
-        <span className="notes-count">{visibleNotes.length} {polishPlural(visibleNotes.length, "notatka", "notatki", "notatek")}</span>
+        <label className="search-field search-field--wide">
+          <Search size={17} />
+          <span className="sr-only">Szukaj w notatkach</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Szukaj w notatkach…"
+          />
+        </label>
+        <button
+          className={onlyPinned ? "filter-pill active" : "filter-pill"}
+          type="button"
+          onClick={() => setOnlyPinned((value) => !value)}
+          aria-pressed={onlyPinned}
+        >
+          <Pin size={15} /> Tylko przypięte
+        </button>
+        <span className="notes-count">
+          {visibleNotes.length} {polishPlural(visibleNotes.length, "notatka", "notatki", "notatek")}
+        </span>
       </div>
 
       {visibleNotes.length ? (
@@ -93,14 +114,35 @@ export function NotesPage({ onQuickAdd, onToast }: NotesPageProps) {
               key={note.id}
               note={note}
               onUpdate={(changes) => updateNote(note.id, changes)}
-              onDelete={() => { deleteNote(note.id); onToast("Notatka usunięta"); }}
+              onDelete={() => {
+                deleteNote(note.id);
+                onToast("Notatka usunięta");
+              }}
               onConvert={() => convertFirstLine(note)}
             />
           ))}
-          <button className="new-note-card" type="button" onClick={onQuickAdd}><span><Plus size={22} /></span><strong>Nowa notatka</strong><small>Zapisz coś, zanim ucieknie</small></button>
+          <button className="new-note-card" type="button" onClick={onQuickAdd}>
+            <span>
+              <Plus size={22} />
+            </span>
+            <strong>Nowa notatka</strong>
+            <small>Zapisz coś, zanim ucieknie</small>
+          </button>
         </div>
       ) : (
-        <div className="panel notes-empty-panel"><EmptyState icon={FileText} title={query ? "Nie znaleziono notatek" : "Czysta kartka"} description={query ? "Spróbuj innej frazy albo pokaż wszystkie notatki." : "Pierwsza myśl nie musi być idealnie uporządkowana. Po prostu ją zapisz."} action={query ? "Wyczyść wyszukiwanie" : "Utwórz notatkę"} onAction={query ? () => setQuery("") : onQuickAdd} /></div>
+        <div className="panel notes-empty-panel">
+          <EmptyState
+            icon={FileText}
+            title={query ? "Nie znaleziono notatek" : "Czysta kartka"}
+            description={
+              query
+                ? "Spróbuj innej frazy albo pokaż wszystkie notatki."
+                : "Pierwsza myśl nie musi być idealnie uporządkowana. Po prostu ją zapisz."
+            }
+            action={query ? "Wyczyść wyszukiwanie" : "Utwórz notatkę"}
+            onAction={query ? () => setQuery("") : onQuickAdd}
+          />
+        </div>
       )}
     </div>
   );
@@ -124,12 +166,15 @@ function NoteCard({ note, onUpdate, onDelete, onConvert }: NoteCardProps) {
   const syncedRef = useRef({ title: note.title, content: note.content });
 
   useEffect(() => {
-    if (syncedRef.current.title === note.title && syncedRef.current.content === note.content) return;
+    if (syncedRef.current.title === note.title && syncedRef.current.content === note.content)
+      return;
     syncedRef.current = { title: note.title, content: note.content };
     setTitle(note.title);
     setContent(note.content);
   }, [note.content, note.title]);
-  useEffect(() => { onUpdateRef.current = onUpdate; }, [onUpdate]);
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
   useEffect(() => {
     if (title === syncedRef.current.title && content === syncedRef.current.content) return;
     const timer = window.setTimeout(() => {
@@ -158,15 +203,43 @@ function NoteCard({ note, onUpdate, onDelete, onConvert }: NoteCardProps) {
       <header>
         <span className="note-date">
           Edytowano {formatShortDate(note.updatedAt.slice(0, 10))}
-          {note.visibility === "private" && <span className="private-badge"><Lock size={11} /> Prywatne</span>}
+          {note.visibility === "private" && (
+            <span className="private-badge">
+              <Lock size={11} /> Prywatne
+            </span>
+          )}
         </span>
         <div>
           {note.pinned && <Pin className="note-pin" size={15} fill="currentColor" />}
-          <button className="icon-button" type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="Opcje notatki"><MoreHorizontal size={18} /></button>
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => setMenuOpen((value) => !value)}
+            aria-label="Opcje notatki"
+          >
+            <MoreHorizontal size={18} />
+          </button>
           {menuOpen && (
             <div className="context-menu note-menu">
-              <button type="button" onClick={() => { onUpdate({ pinned: !note.pinned }); setMenuOpen(false); }}>{note.pinned ? <PinOff size={15} /> : <Pin size={15} />}{note.pinned ? "Odepnij" : "Przypnij"}</button>
-              <button type="button" onClick={() => { cycleColor(); setMenuOpen(false); }}><Palette size={15} /> Zmień kolor</button>
+              <button
+                type="button"
+                onClick={() => {
+                  onUpdate({ pinned: !note.pinned });
+                  setMenuOpen(false);
+                }}
+              >
+                {note.pinned ? <PinOff size={15} /> : <Pin size={15} />}
+                {note.pinned ? "Odepnij" : "Przypnij"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  cycleColor();
+                  setMenuOpen(false);
+                }}
+              >
+                <Palette size={15} /> Zmień kolor
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -177,15 +250,49 @@ function NoteCard({ note, onUpdate, onDelete, onConvert }: NoteCardProps) {
                 {note.visibility === "private" ? <Users size={15} /> : <Lock size={15} />}
                 {note.visibility === "private" ? "Udostępnij domownikom" : "Ustaw jako prywatne"}
               </button>
-              <button type="button" onClick={() => { onConvert(); setMenuOpen(false); }}><CheckSquare2 size={15} /> Wiersz → zadanie</button>
-              <button className="danger" type="button" onClick={() => { if (window.confirm(`Usunąć notatkę „${note.title || "Bez tytułu"}”?`)) onDelete(); }}><Trash2 size={15} /> Usuń</button>
+              <button
+                type="button"
+                onClick={() => {
+                  onConvert();
+                  setMenuOpen(false);
+                }}
+              >
+                <CheckSquare2 size={15} /> Wiersz → zadanie
+              </button>
+              <button
+                className="danger"
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Usunąć notatkę „${note.title || "Bez tytułu"}”?`)) onDelete();
+                }}
+              >
+                <Trash2 size={15} /> Usuń
+              </button>
             </div>
           )}
         </div>
       </header>
-      <input className="note-card__title" value={title} onChange={(event) => setTitle(event.target.value)} onBlur={save} aria-label="Tytuł notatki" />
-      <textarea className="note-card__content" value={content} onChange={(event) => setContent(event.target.value)} onBlur={save} placeholder="Zacznij pisać…" aria-label={`Treść notatki ${note.title}`} />
-      <footer><span><span className="save-dot" /> autosave</span><span>{content.length} znaków</span></footer>
+      <input
+        className="note-card__title"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        onBlur={save}
+        aria-label="Tytuł notatki"
+      />
+      <textarea
+        className="note-card__content"
+        value={content}
+        onChange={(event) => setContent(event.target.value)}
+        onBlur={save}
+        placeholder="Zacznij pisać…"
+        aria-label={`Treść notatki ${note.title}`}
+      />
+      <footer>
+        <span>
+          <span className="save-dot" /> autosave
+        </span>
+        <span>{content.length} znaków</span>
+      </footer>
     </article>
   );
 }

@@ -19,7 +19,9 @@ describe("advanced health store", () => {
       visibility: "private",
     });
 
-    expect(useAdvancedStore.getState().healthAppointments.find((item) => item.id === id)).toMatchObject({
+    expect(
+      useAdvancedStore.getState().healthAppointments.find((item) => item.id === id),
+    ).toMatchObject({
       title: "Kontrola",
       visibility: "private",
     });
@@ -28,10 +30,14 @@ describe("advanced health store", () => {
   it("oznacza lek jako przyjęty i pozwala cofnąć oznaczenie", () => {
     const medicationId = useAdvancedStore.getState().medications[0].id;
     useAdvancedStore.getState().toggleMedicationTaken(medicationId, "2099-01-01");
-    expect(useAdvancedStore.getState().medications.find((item) => item.id === medicationId)?.lastTakenOn).toBe("2099-01-01");
+    expect(
+      useAdvancedStore.getState().medications.find((item) => item.id === medicationId)?.lastTakenOn,
+    ).toBe("2099-01-01");
 
     useAdvancedStore.getState().toggleMedicationTaken(medicationId, "2099-01-01");
-    expect(useAdvancedStore.getState().medications.find((item) => item.id === medicationId)?.lastTakenOn).toBeUndefined();
+    expect(
+      useAdvancedStore.getState().medications.find((item) => item.id === medicationId)?.lastTakenOn,
+    ).toBeUndefined();
   });
 
   it("dodaje pomiar zdrowia", () => {
@@ -44,13 +50,18 @@ describe("advanced health store", () => {
       visibility: "private",
     });
 
-    expect(useAdvancedStore.getState().healthMeasurements[0]).toMatchObject({ id, value: "120/80" });
+    expect(useAdvancedStore.getState().healthMeasurements[0]).toMatchObject({
+      id,
+      value: "120/80",
+    });
   });
 
   it("pozwala edytować lek i pomiar bez utraty tożsamości rekordu", () => {
     const medicationId = useAdvancedStore.getState().medications[0].id;
     useAdvancedStore.getState().updateMedication(medicationId, { visibility: "household" });
-    expect(useAdvancedStore.getState().medications.find((item) => item.id === medicationId)?.visibility).toBe("household");
+    expect(
+      useAdvancedStore.getState().medications.find((item) => item.id === medicationId)?.visibility,
+    ).toBe("household");
 
     const measurementId = useAdvancedStore.getState().addHealthMeasurement({
       type: "weight",
@@ -60,32 +71,80 @@ describe("advanced health store", () => {
       ownerId: "me",
       visibility: "private",
     });
-    useAdvancedStore.getState().updateHealthMeasurement(measurementId, { value: "79", visibility: "household" });
-    expect(useAdvancedStore.getState().healthMeasurements.find((item) => item.id === measurementId)).toMatchObject({
+    useAdvancedStore
+      .getState()
+      .updateHealthMeasurement(measurementId, { value: "79", visibility: "household" });
+    expect(
+      useAdvancedStore.getState().healthMeasurements.find((item) => item.id === measurementId),
+    ).toMatchObject({
       value: "79",
       visibility: "household",
     });
   });
 
   it("tworzy budżet, cel i rezerwację podróży", () => {
-    const budgetId = useAdvancedStore.getState().addBudget({ category: "Edukacja", limitMinor: 50000, currency: "PLN", color: "#123456" });
-    const goalId = useAdvancedStore.getState().addSavingsGoal({ name: "Kurs", targetMinor: 200000, savedMinor: 25000, currency: "PLN", ownerId: "me", visibility: "private" });
+    const budgetId = useAdvancedStore
+      .getState()
+      .addBudget({ category: "Edukacja", limitMinor: 50000, currency: "PLN", color: "#123456" });
+    const goalId = useAdvancedStore.getState().addSavingsGoal({
+      name: "Kurs",
+      targetMinor: 200000,
+      savedMinor: 25000,
+      currency: "PLN",
+      ownerId: "me",
+      visibility: "private",
+    });
     const tripId = useAdvancedStore.getState().trips[0].id;
-    const bookingId = useAdvancedStore.getState().addTripBooking({ tripId, type: "stay", provider: "Hotel", reference: "ABC", title: "Nocleg", startAt: "2026-08-02T15:00", amountMinor: 100000, paid: false });
+    const bookingId = useAdvancedStore.getState().addTripBooking({
+      tripId,
+      type: "stay",
+      provider: "Hotel",
+      reference: "ABC",
+      title: "Nocleg",
+      startAt: "2026-08-02T15:00",
+      amountMinor: 100000,
+      paid: false,
+    });
 
-    expect(useAdvancedStore.getState().financeBudgets.some((item) => item.id === budgetId)).toBe(true);
+    expect(useAdvancedStore.getState().financeBudgets.some((item) => item.id === budgetId)).toBe(
+      true,
+    );
     expect(useAdvancedStore.getState().savingsGoals.some((item) => item.id === goalId)).toBe(true);
-    expect(useAdvancedStore.getState().tripBookings.find((item) => item.id === bookingId)?.paid).toBe(false);
+    expect(
+      useAdvancedStore.getState().tripBookings.find((item) => item.id === bookingId)?.paid,
+    ).toBe(false);
   });
 
   it("import i usunięcie historycznej operacji CSV nie zmieniają aktualnego salda", () => {
     const account = useAdvancedStore.getState().financeAccounts[0];
     const before = account.balanceMinor;
-    useAdvancedStore.getState().importTransactions([{ accountId: account.id, bookedOn: "2026-07-01", amountMinor: -12345, currency: account.currency, merchant: "Test", title: "Historia", category: "Inne", source: "csv", fingerprint: "test-history", ownerId: "me", visibility: "private" }]);
-    const imported = useAdvancedStore.getState().financeTransactions.find((item) => item.fingerprint === "test-history");
-    expect(useAdvancedStore.getState().financeAccounts.find((item) => item.id === account.id)?.balanceMinor).toBe(before);
+    useAdvancedStore.getState().importTransactions([
+      {
+        accountId: account.id,
+        bookedOn: "2026-07-01",
+        amountMinor: -12345,
+        currency: account.currency,
+        merchant: "Test",
+        title: "Historia",
+        category: "Inne",
+        source: "csv",
+        fingerprint: "test-history",
+        ownerId: "me",
+        visibility: "private",
+      },
+    ]);
+    const imported = useAdvancedStore
+      .getState()
+      .financeTransactions.find((item) => item.fingerprint === "test-history");
+    expect(
+      useAdvancedStore.getState().financeAccounts.find((item) => item.id === account.id)
+        ?.balanceMinor,
+    ).toBe(before);
     useAdvancedStore.getState().deleteTransaction(imported!.id);
-    expect(useAdvancedStore.getState().financeAccounts.find((item) => item.id === account.id)?.balanceMinor).toBe(before);
+    expect(
+      useAdvancedStore.getState().financeAccounts.find((item) => item.id === account.id)
+        ?.balanceMinor,
+    ).toBe(before);
   });
 
   it("dodaje składniki przepisu do listy zakupów bez duplikatów", () => {
@@ -119,7 +178,9 @@ describe("advanced health store", () => {
       medications: [sample.medications[0], { id: "bad" }],
     };
     const merge = useAdvancedStore.persist.getOptions().merge!;
-    const merged = merge(persistedState, useAdvancedStore.getState()) as ReturnType<typeof useAdvancedStore.getState>;
+    const merged = merge(persistedState, useAdvancedStore.getState()) as ReturnType<
+      typeof useAdvancedStore.getState
+    >;
 
     expect(merged.medications).toHaveLength(1);
     expect(merged.medications[0].id).toBe(sample.medications[0].id);

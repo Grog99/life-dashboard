@@ -6,9 +6,7 @@ import type { Reminder } from "../types";
 export function useReminderEngine(onDue: (reminder: Reminder) => void): void {
   const delivered = useRef(new Set<string>());
   const reminders = useLifeStore((state) => state.reminders);
-  const notificationsEnabled = useLifeStore(
-    (state) => state.preferences.notificationsEnabled,
-  );
+  const notificationsEnabled = useLifeStore((state) => state.preferences.notificationsEnabled);
   const markReminderNotified = useLifeStore((state) => state.markReminderNotified);
 
   useEffect(() => {

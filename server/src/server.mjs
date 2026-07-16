@@ -23,9 +23,7 @@ import {
 
 const appOrigin = (process.env.APP_ORIGIN ?? "http://localhost:8080").replace(/\/$/, "");
 const production = process.env.NODE_ENV === "production";
-const secureCookie = process.env.COOKIE_SECURE
-  ? process.env.COOKIE_SECURE === "true"
-  : production;
+const secureCookie = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === "true" : production;
 const cookieName = secureCookie ? "__Host-puls_session" : "puls_session";
 const sessionDays = Number(process.env.SESSION_DAYS ?? 30);
 const maxWorkspaceBytes = Number(process.env.MAX_WORKSPACE_BYTES ?? 5_000_000);
@@ -84,7 +82,7 @@ app.setErrorHandler((error, request, reply) => {
       : statusCode >= 500
         ? "Wewnętrzny błąd serwera"
         : error.message,
-    code: uniqueViolation ? "CONFLICT" : error.code ?? "INTERNAL_ERROR",
+    code: uniqueViolation ? "CONFLICT" : (error.code ?? "INTERNAL_ERROR"),
   });
 });
 
@@ -94,7 +92,11 @@ app.addHook("onRequest", async (request) => {
     if (origin && origin.replace(/\/$/, "") !== appOrigin) {
       throw httpError(403, "Nieprawidłowe źródło żądania", "ORIGIN_MISMATCH");
     }
-    if (!origin && request.headers["sec-fetch-site"] && request.headers["sec-fetch-site"] !== "same-origin") {
+    if (
+      !origin &&
+      request.headers["sec-fetch-site"] &&
+      request.headers["sec-fetch-site"] !== "same-origin"
+    ) {
       throw httpError(403, "Żądanie spoza aplikacji zostało odrzucone", "ORIGIN_REQUIRED");
     }
   }
@@ -132,8 +134,9 @@ async function getSession(request) {
   if (!result.rowCount) return null;
   const session = result.rows[0];
   if (Date.now() - new Date(session.last_seen_at ?? 0).getTime() > 15 * 60_000) {
-    void query("UPDATE sessions SET last_seen_at = now() WHERE id = $1", [session.session_id])
-      .catch((error) => request.log.warn({ error }, "Could not refresh session activity"));
+    void query("UPDATE sessions SET last_seen_at = now() WHERE id = $1", [
+      session.session_id,
+    ]).catch((error) => request.log.warn({ error }, "Could not refresh session activity"));
   }
   return session;
 }
@@ -186,14 +189,19 @@ function checkRateLimit(map, key, limit) {
     if (map.size >= 5_000) {
       for (const [existingKey, entry] of map) if (entry.resetAt < now) map.delete(existingKey);
       if (map.size >= 5_000 && !map.has(key)) {
-        throw httpError(429, "Serwer otrzymał zbyt wiele prób logowania. Spróbuj ponownie później", "RATE_LIMITED");
+        throw httpError(
+          429,
+          "Serwer otrzymał zbyt wiele prób logowania. Spróbuj ponownie później",
+          "RATE_LIMITED",
+        );
       }
     }
     map.set(key, { count: 1, resetAt: now + 15 * 60_000 });
     return;
   }
   current.count += 1;
-  if (current.count > limit) throw httpError(429, "Zbyt wiele prób. Spróbuj ponownie później", "RATE_LIMITED");
+  if (current.count > limit)
+    throw httpError(429, "Zbyt wiele prób. Spróbuj ponownie później", "RATE_LIMITED");
 }
 
 function assertLoginRate(request, email) {
@@ -234,7 +242,14 @@ async function audit(client, session, action, entityType, entityId, metadata = {
   await client.query(
     `INSERT INTO audit_events(household_id, actor_id, action, entity_type, entity_id, metadata)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    [session?.household_id ?? null, session?.user_id ?? null, action, entityType, entityId, metadata],
+    [
+      session?.household_id ?? null,
+      session?.user_id ?? null,
+      action,
+      entityType,
+      entityId,
+      metadata,
+    ],
   );
 }
 
@@ -253,7 +268,11 @@ app.post("/api/v1/auth/bootstrap", async (request, reply) => {
   assertLoginRate(request);
   const body = request.body ?? {};
   const configuredToken = process.env.BOOTSTRAP_TOKEN;
-  if (!configuredToken || !body.bootstrapToken || !timingSafeString(body.bootstrapToken, configuredToken)) {
+  if (
+    !configuredToken ||
+    !body.bootstrapToken ||
+    !timingSafeString(body.bootstrapToken, configuredToken)
+  ) {
     throw httpError(403, "Nieprawidłowy token startowy", "INVALID_BOOTSTRAP_TOKEN");
   }
   const email = normalizeEmail(body.email);
@@ -266,7 +285,8 @@ app.post("/api/v1/auth/bootstrap", async (request, reply) => {
   return transaction(async (client) => {
     await client.query("SELECT pg_advisory_xact_lock(hashtext('puls-bootstrap'))");
     const configured = await client.query("SELECT EXISTS(SELECT 1 FROM users) AS configured");
-    if (configured.rows[0].configured) throw httpError(409, "Puls został już skonfigurowany", "ALREADY_BOOTSTRAPPED");
+    if (configured.rows[0].configured)
+      throw httpError(409, "Puls został już skonfigurowany", "ALREADY_BOOTSTRAPPED");
     const user = await client.query(
       "INSERT INTO users(email, display_name, password_hash) VALUES ($1, $2, $3) RETURNING id",
       [email, name, passwordHash],
@@ -279,9 +299,17 @@ app.post("/api/v1/auth/bootstrap", async (request, reply) => {
       "INSERT INTO household_members(household_id, user_id, role) VALUES ($1, $2, 'owner')",
       [household.rows[0].id, user.rows[0].id],
     );
-    await client.query("INSERT INTO workspace_states(household_id) VALUES ($1)", [household.rows[0].id]);
+    await client.query("INSERT INTO workspace_states(household_id) VALUES ($1)", [
+      household.rows[0].id,
+    ]);
     await createSession(client, request, reply, user.rows[0].id, household.rows[0].id);
-    await audit(client, { user_id: user.rows[0].id, household_id: household.rows[0].id }, "bootstrap", "household", household.rows[0].id);
+    await audit(
+      client,
+      { user_id: user.rows[0].id, household_id: household.rows[0].id },
+      "bootstrap",
+      "household",
+      household.rows[0].id,
+    );
     reply.status(201);
     return { ok: true };
   });
@@ -298,14 +326,24 @@ app.post("/api/v1/auth/login", async (request, reply) => {
     [email],
   );
   const valid = await passwordOperation(() =>
-    verifyPassword(String(body.password ?? ""), result.rowCount ? result.rows[0].password_hash : DUMMY_PASSWORD_HASH),
+    verifyPassword(
+      String(body.password ?? ""),
+      result.rowCount ? result.rows[0].password_hash : DUMMY_PASSWORD_HASH,
+    ),
   );
-  if (!result.rowCount || !valid) throw httpError(401, "Nieprawidłowy e-mail lub hasło", "INVALID_CREDENTIALS");
+  if (!result.rowCount || !valid)
+    throw httpError(401, "Nieprawidłowy e-mail lub hasło", "INVALID_CREDENTIALS");
   loginAttempts.delete(request.ip);
   loginAttemptsByAccount.delete(email);
   await transaction(async (client) => {
     await createSession(client, request, reply, result.rows[0].id, result.rows[0].household_id);
-    await audit(client, { user_id: result.rows[0].id, household_id: result.rows[0].household_id }, "login", "session", null);
+    await audit(
+      client,
+      { user_id: result.rows[0].id, household_id: result.rows[0].household_id },
+      "login",
+      "session",
+      null,
+    );
   });
   return { ok: true };
 });
@@ -316,14 +354,19 @@ app.post("/api/v1/auth/register", async (request, reply) => {
   assertLoginRate(request, email);
   const inviteHash = hashToken(String(body.inviteToken ?? ""));
   const name = String(body.name ?? "").trim();
-  if (!isEmail(email) || name.length < 2) throw httpError(400, "Uzupełnij prawidłowe dane", "INVALID_INPUT");
+  if (!isEmail(email) || name.length < 2)
+    throw httpError(400, "Uzupełnij prawidłowe dane", "INVALID_INPUT");
   const invitePreview = await query(
     `SELECT invited_email FROM household_invitations
       WHERE token_hash = $1 AND accepted_at IS NULL AND expires_at > now()`,
     [inviteHash],
   );
-  if (!invitePreview.rowCount) throw httpError(400, "Zaproszenie wygasło lub jest nieprawidłowe", "INVALID_INVITE");
-  if (invitePreview.rows[0].invited_email && normalizeEmail(invitePreview.rows[0].invited_email) !== email) {
+  if (!invitePreview.rowCount)
+    throw httpError(400, "Zaproszenie wygasło lub jest nieprawidłowe", "INVALID_INVITE");
+  if (
+    invitePreview.rows[0].invited_email &&
+    normalizeEmail(invitePreview.rows[0].invited_email) !== email
+  ) {
     throw httpError(403, "Zaproszenie jest przypisane do innego adresu", "INVITE_EMAIL_MISMATCH");
   }
   const passwordHash = await validatedPasswordHash(body.password);
@@ -334,7 +377,8 @@ app.post("/api/v1/auth/register", async (request, reply) => {
         FOR UPDATE`,
       [inviteHash],
     );
-    if (!inviteResult.rowCount) throw httpError(400, "Zaproszenie wygasło lub jest nieprawidłowe", "INVALID_INVITE");
+    if (!inviteResult.rowCount)
+      throw httpError(400, "Zaproszenie wygasło lub jest nieprawidłowe", "INVALID_INVITE");
     const invite = inviteResult.rows[0];
     if (invite.invited_email && normalizeEmail(invite.invited_email) !== email) {
       throw httpError(403, "Zaproszenie jest przypisane do innego adresu", "INVITE_EMAIL_MISMATCH");
@@ -352,7 +396,13 @@ app.post("/api/v1/auth/register", async (request, reply) => {
       [user.rows[0].id, invite.id],
     );
     await createSession(client, request, reply, user.rows[0].id, invite.household_id);
-    await audit(client, { user_id: user.rows[0].id, household_id: invite.household_id }, "invite.accept", "invitation", invite.id);
+    await audit(
+      client,
+      { user_id: user.rows[0].id, household_id: invite.household_id },
+      "invite.accept",
+      "invitation",
+      invite.id,
+    );
   });
   loginAttempts.delete(request.ip);
   loginAttemptsByAccount.delete(email);
@@ -398,7 +448,10 @@ app.post("/api/v1/households/:id/select", async (request) => {
     [request.params.id, session.user_id],
   );
   if (!membership.rowCount) throw httpError(403, "Brak dostępu", "FORBIDDEN");
-  await query("UPDATE sessions SET household_id = $1 WHERE id = $2", [request.params.id, session.session_id]);
+  await query("UPDATE sessions SET household_id = $1 WHERE id = $2", [
+    request.params.id,
+    session.session_id,
+  ]);
   return { ok: true };
 });
 
@@ -413,9 +466,13 @@ app.post("/api/v1/households/invitations/accept", async (request) => {
         FOR UPDATE`,
       [inviteHash, session.user_id],
     );
-    if (!result.rowCount) throw httpError(400, "Zaproszenie wygasło lub jest nieprawidłowe", "INVALID_INVITE");
+    if (!result.rowCount)
+      throw httpError(400, "Zaproszenie wygasło lub jest nieprawidłowe", "INVALID_INVITE");
     const invite = result.rows[0];
-    if (invite.invited_email && normalizeEmail(invite.invited_email) !== normalizeEmail(session.email)) {
+    if (
+      invite.invited_email &&
+      normalizeEmail(invite.invited_email) !== normalizeEmail(session.email)
+    ) {
       throw httpError(403, "Zaproszenie jest przypisane do innego adresu", "INVITE_EMAIL_MISMATCH");
     }
     await client.query(
@@ -427,8 +484,17 @@ app.post("/api/v1/households/invitations/accept", async (request) => {
       "UPDATE household_invitations SET accepted_by = $1, accepted_at = now() WHERE id = $2",
       [session.user_id, invite.id],
     );
-    await client.query("UPDATE sessions SET household_id = $1 WHERE id = $2", [invite.household_id, session.session_id]);
-    await audit(client, { ...session, household_id: invite.household_id }, "invite.accept", "invitation", invite.id);
+    await client.query("UPDATE sessions SET household_id = $1 WHERE id = $2", [
+      invite.household_id,
+      session.session_id,
+    ]);
+    await audit(
+      client,
+      { ...session, household_id: invite.household_id },
+      "invite.accept",
+      "invitation",
+      invite.id,
+    );
     return invite.household_id;
   });
   return { ok: true, householdId };
@@ -457,7 +523,10 @@ app.post("/api/v1/households/current/invitations", async (request) => {
      VALUES ($1, $2, $3, $4, $5, now() + interval '7 days') RETURNING id, expires_at`,
     [session.household_id, hashToken(token), email, role, session.user_id],
   );
-  await audit(pool, session, "invite.create", "invitation", result.rows[0].id, { role, hasEmail: Boolean(email) });
+  await audit(pool, session, "invite.create", "invitation", result.rows[0].id, {
+    role,
+    hasEmail: Boolean(email),
+  });
   return {
     token,
     inviteUrl: `${appOrigin}/?invite=${encodeURIComponent(token)}`,
@@ -476,10 +545,10 @@ app.delete("/api/v1/households/current/members/:userId", async (request) => {
     );
     const targetRole = target.rows[0]?.role ?? null;
     assertRemovableMember({ targetUserId, targetRole, sessionUserId: session.user_id });
-    await client.query(
-      "DELETE FROM household_members WHERE household_id = $1 AND user_id = $2",
-      [session.household_id, targetUserId],
-    );
+    await client.query("DELETE FROM household_members WHERE household_id = $1 AND user_id = $2", [
+      session.household_id,
+      targetUserId,
+    ]);
     await client.query(
       "DELETE FROM user_workspace_states WHERE household_id = $1 AND user_id = $2",
       [session.household_id, targetUserId],
@@ -495,8 +564,13 @@ app.delete("/api/v1/households/current/members/:userId", async (request) => {
 app.get("/api/v1/workspace", async (request) => {
   const session = await requireHousehold(request);
   const [sharedResult, privateResult, membersResult] = await Promise.all([
-    query("SELECT revision, data, updated_at FROM workspace_states WHERE household_id = $1", [session.household_id]),
-    query("SELECT data FROM user_workspace_states WHERE household_id = $1 AND user_id = $2", [session.household_id, session.user_id]),
+    query("SELECT revision, data, updated_at FROM workspace_states WHERE household_id = $1", [
+      session.household_id,
+    ]),
+    query("SELECT data FROM user_workspace_states WHERE household_id = $1 AND user_id = $2", [
+      session.household_id,
+      session.user_id,
+    ]),
     query(
       `SELECT u.id, u.email, u.display_name AS name, hm.role
          FROM household_members hm JOIN users u ON u.id = hm.user_id
@@ -521,7 +595,12 @@ app.put("/api/v1/workspace", async (request, reply) => {
   const session = await requireHousehold(request);
   const body = request.body ?? {};
   const expectedRevision = Number(body.revision);
-  if (!Number.isSafeInteger(expectedRevision) || !body.data || typeof body.data !== "object" || Array.isArray(body.data)) {
+  if (
+    !Number.isSafeInteger(expectedRevision) ||
+    !body.data ||
+    typeof body.data !== "object" ||
+    Array.isArray(body.data)
+  ) {
     throw httpError(400, "Nieprawidłowy dokument danych", "INVALID_WORKSPACE");
   }
   if (!workspaceDocumentIsValid(body.data)) {
@@ -551,9 +630,15 @@ app.put("/api/v1/workspace", async (request, reply) => {
     return updated.rows[0];
   });
   if (!result) {
-    const current = await query("SELECT revision FROM workspace_states WHERE household_id = $1", [session.household_id]);
+    const current = await query("SELECT revision FROM workspace_states WHERE household_id = $1", [
+      session.household_id,
+    ]);
     reply.status(409);
-    return { error: "Dane zostały zmienione na innym urządzeniu", code: "REVISION_CONFLICT", revision: current.rows[0]?.revision ?? 0 };
+    return {
+      error: "Dane zostały zmienione na innym urządzeniu",
+      code: "REVISION_CONFLICT",
+      revision: current.rows[0]?.revision ?? 0,
+    };
   }
   return result;
 });
@@ -562,7 +647,9 @@ app.post("/api/v1/migration/local-v1/preview", async (request) => {
   await requireHousehold(request);
   const source = request.body?.data ?? {};
   const keys = ["tasks", "events", "reminders", "notes", "habits"];
-  const counts = Object.fromEntries(keys.map((key) => [key, Array.isArray(source[key]) ? source[key].length : 0]));
+  const counts = Object.fromEntries(
+    keys.map((key) => [key, Array.isArray(source[key]) ? source[key].length : 0]),
+  );
   return { valid: Object.values(counts).some((count) => count > 0), counts };
 });
 
@@ -614,7 +701,13 @@ app.post("/api/v1/push/subscriptions", async (request) => {
     `INSERT INTO push_subscriptions(user_id, endpoint, p256dh, auth_secret, user_agent)
      VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh, auth_secret = EXCLUDED.auth_secret, user_agent = EXCLUDED.user_agent`,
-    [session.user_id, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth, String(request.headers["user-agent"] ?? "").slice(0, 500)],
+    [
+      session.user_id,
+      subscription.endpoint,
+      subscription.keys.p256dh,
+      subscription.keys.auth,
+      String(request.headers["user-agent"] ?? "").slice(0, 500),
+    ],
   );
   return { ok: true };
 });
@@ -622,23 +715,39 @@ app.post("/api/v1/push/subscriptions", async (request) => {
 app.delete("/api/v1/push/subscriptions", async (request) => {
   const session = await requireSession(request);
   const endpoint = String(request.body?.endpoint ?? "");
-  await query("DELETE FROM push_subscriptions WHERE user_id = $1 AND endpoint = $2", [session.user_id, endpoint]);
+  await query("DELETE FROM push_subscriptions WHERE user_id = $1 AND endpoint = $2", [
+    session.user_id,
+    endpoint,
+  ]);
   return { ok: true };
 });
 
 function googleConfigured() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI && process.env.TOKEN_ENCRYPTION_KEY);
+  return Boolean(
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_SECRET &&
+    process.env.GOOGLE_REDIRECT_URI &&
+    process.env.TOKEN_ENCRYPTION_KEY,
+  );
 }
 
 app.get("/api/v1/integrations/google/status", async (request) => {
   const session = await requireSession(request);
-  const connection = await query("SELECT google_email, connected_at FROM google_connections WHERE user_id = $1", [session.user_id]);
-  return { configured: googleConfigured(), connected: Boolean(connection.rowCount), connection: connection.rows[0] ?? null };
+  const connection = await query(
+    "SELECT google_email, connected_at FROM google_connections WHERE user_id = $1",
+    [session.user_id],
+  );
+  return {
+    configured: googleConfigured(),
+    connected: Boolean(connection.rowCount),
+    connection: connection.rows[0] ?? null,
+  };
 });
 
 app.post("/api/v1/integrations/google/start", async (request) => {
   const session = await requireSession(request);
-  if (!googleConfigured()) throw httpError(503, "Integracja Google nie jest skonfigurowana", "GOOGLE_NOT_CONFIGURED");
+  if (!googleConfigured())
+    throw httpError(503, "Integracja Google nie jest skonfigurowana", "GOOGLE_NOT_CONFIGURED");
   const state = randomToken();
   const returnPath = safeSameOriginPath(request.body?.returnPath, appOrigin);
   await query(
@@ -658,13 +767,15 @@ app.post("/api/v1/integrations/google/start", async (request) => {
 });
 
 app.get("/api/v1/integrations/google/callback", async (request, reply) => {
-  if (!googleConfigured()) throw httpError(503, "Integracja Google nie jest skonfigurowana", "GOOGLE_NOT_CONFIGURED");
+  if (!googleConfigured())
+    throw httpError(503, "Integracja Google nie jest skonfigurowana", "GOOGLE_NOT_CONFIGURED");
   const stateHash = hashToken(String(request.query.state ?? ""));
   const stateResult = await query(
     "DELETE FROM oauth_states WHERE state_hash = $1 AND expires_at > now() RETURNING user_id, return_path",
     [stateHash],
   );
-  if (!stateResult.rowCount || !request.query.code) throw httpError(400, "Sesja OAuth wygasła", "INVALID_OAUTH_STATE");
+  if (!stateResult.rowCount || !request.query.code)
+    throw httpError(400, "Sesja OAuth wygasła", "INVALID_OAUTH_STATE");
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -699,7 +810,9 @@ app.get("/api/v1/integrations/google/callback", async (request, reply) => {
       encryptSecret(tokens.access_token),
       tokens.refresh_token ? encryptSecret(tokens.refresh_token) : null,
       String(tokens.expires_in ?? 3600),
-      String(tokens.scope ?? "").split(" ").filter(Boolean),
+      String(tokens.scope ?? "")
+        .split(" ")
+        .filter(Boolean),
       profile.email ?? null,
     ],
   );
@@ -715,7 +828,8 @@ app.delete("/api/v1/integrations/google", async (request) => {
     [session.user_id],
   );
   if (connection.rowCount) {
-    const encrypted = connection.rows[0].refresh_token_encrypted ?? connection.rows[0].access_token_encrypted;
+    const encrypted =
+      connection.rows[0].refresh_token_encrypted ?? connection.rows[0].access_token_encrypted;
     if (encrypted) {
       try {
         await fetch("https://oauth2.googleapis.com/revoke", {
@@ -735,14 +849,22 @@ app.delete("/api/v1/integrations/google", async (request) => {
 
 app.post("/api/v1/integrations/google/sync", async (request) => {
   const session = await requireSession(request);
-  const connectionResult = await query("SELECT * FROM google_connections WHERE user_id = $1", [session.user_id]);
-  if (!connectionResult.rowCount) throw httpError(409, "Najpierw połącz Google Calendar", "GOOGLE_NOT_CONNECTED");
+  const connectionResult = await query("SELECT * FROM google_connections WHERE user_id = $1", [
+    session.user_id,
+  ]);
+  if (!connectionResult.rowCount)
+    throw httpError(409, "Najpierw połącz Google Calendar", "GOOGLE_NOT_CONNECTED");
   const accessToken = await freshGoogleAccessToken(connectionResult.rows[0]);
   const from = request.body?.from ?? new Date().toISOString();
   const until = request.body?.until ?? new Date(Date.now() + 90 * 24 * 60 * 60_000).toISOString();
   const fromTime = Date.parse(from);
   const untilTime = Date.parse(until);
-  if (!Number.isFinite(fromTime) || !Number.isFinite(untilTime) || untilTime <= fromTime || untilTime - fromTime > 366 * 24 * 60 * 60_000) {
+  if (
+    !Number.isFinite(fromTime) ||
+    !Number.isFinite(untilTime) ||
+    untilTime <= fromTime ||
+    untilTime - fromTime > 366 * 24 * 60 * 60_000
+  ) {
     throw httpError(400, "Nieprawidłowy zakres synchronizacji kalendarza", "INVALID_SYNC_RANGE");
   }
   const items = [];
@@ -782,10 +904,14 @@ app.post("/api/v1/integrations/google/sync", async (request) => {
 });
 
 async function freshGoogleAccessToken(connection) {
-  if (connection.access_token_encrypted && new Date(connection.token_expires_at).getTime() > Date.now() + 60_000) {
+  if (
+    connection.access_token_encrypted &&
+    new Date(connection.token_expires_at).getTime() > Date.now() + 60_000
+  ) {
     return decryptSecret(connection.access_token_encrypted);
   }
-  if (!connection.refresh_token_encrypted) throw httpError(401, "Połącz ponownie Google Calendar", "GOOGLE_RECONNECT_REQUIRED");
+  if (!connection.refresh_token_encrypted)
+    throw httpError(401, "Połącz ponownie Google Calendar", "GOOGLE_RECONNECT_REQUIRED");
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -797,7 +923,8 @@ async function freshGoogleAccessToken(connection) {
     }),
     signal: AbortSignal.timeout(15_000),
   });
-  if (!response.ok) throw httpError(401, "Połącz ponownie Google Calendar", "GOOGLE_RECONNECT_REQUIRED");
+  if (!response.ok)
+    throw httpError(401, "Połącz ponownie Google Calendar", "GOOGLE_RECONNECT_REQUIRED");
   const tokens = await response.json();
   await query(
     "UPDATE google_connections SET access_token_encrypted = $1, token_expires_at = now() + ($2 || ' seconds')::interval, updated_at = now() WHERE user_id = $3",
@@ -807,7 +934,9 @@ async function freshGoogleAccessToken(connection) {
 }
 
 const currentFile = fileURLToPath(import.meta.url);
-const staticRoot = path.resolve(process.env.STATIC_DIR ?? path.join(path.dirname(currentFile), "..", "..", "dist"));
+const staticRoot = path.resolve(
+  process.env.STATIC_DIR ?? path.join(path.dirname(currentFile), "..", "..", "dist"),
+);
 if (existsSync(staticRoot)) {
   await app.register(fastifyStatic, { root: staticRoot, prefix: "/" });
   app.setNotFoundHandler((request, reply) => {

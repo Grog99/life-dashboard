@@ -617,7 +617,10 @@
   background: var(--surface-subtle);
   border: 1px solid var(--border);
   border-radius: 14px;
-  transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .recipe-card:hover {
@@ -903,7 +906,9 @@
 
 .garage-card--active {
   background: color-mix(in srgb, var(--vehicle-color) 7%, var(--surface));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vehicle-color) 25%, transparent), var(--shadow-card);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--vehicle-color) 25%, transparent),
+    var(--shadow-card);
 }
 
 .garage-card__icon {

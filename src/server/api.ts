@@ -45,7 +45,8 @@ export async function apiRequest<T>(
   if (callerSignal?.aborted) abortFromCaller();
   else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
   const timeout = window.setTimeout(
-    () => controller.abort(new DOMException("Przekroczono czas oczekiwania na serwer", "TimeoutError")),
+    () =>
+      controller.abort(new DOMException("Przekroczono czas oczekiwania na serwer", "TimeoutError")),
     Math.max(1_000, timeoutMs),
   );
   try {

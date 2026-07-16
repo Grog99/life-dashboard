@@ -85,7 +85,9 @@ export function decryptSecret(value) {
 }
 
 export function normalizeEmail(value) {
-  return String(value ?? "").trim().toLocaleLowerCase("en-US");
+  return String(value ?? "")
+    .trim()
+    .toLocaleLowerCase("en-US");
 }
 
 export function isEmail(value) {

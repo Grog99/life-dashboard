@@ -22,7 +22,9 @@ describe("life store", () => {
     expect(useLifeStore.getState().toggleFocus("task-book")).toBe(false);
     useLifeStore.getState().toggleFocus("task-walk");
     expect(useLifeStore.getState().toggleFocus("task-book")).toBe(true);
-    expect(useLifeStore.getState().tasks.filter((task) => task.isFocus && task.status === "todo")).toHaveLength(3);
+    expect(
+      useLifeStore.getState().tasks.filter((task) => task.isFocus && task.status === "todo"),
+    ).toHaveLength(3);
   });
 
   it("nie pozwala przywróceniu zadania ominąć limitu priorytetów", () => {
@@ -97,7 +99,9 @@ describe("life store", () => {
       icon: "walk",
       targetLabel: "raz dziennie",
     });
-    const habit = useLifeStore.getState().habits.find((item) => item.name === "Rytuał bez widoczności");
+    const habit = useLifeStore
+      .getState()
+      .habits.find((item) => item.name === "Rytuał bez widoczności");
     expect(habit?.visibility).toBe("private");
     expect(habit?.ownerId).toBe("me");
   });
@@ -124,7 +128,9 @@ describe("life store", () => {
       tasks: [sample.tasks[0], { ...sample.tasks[1], title: "" }],
     };
     const merge = useLifeStore.persist.getOptions().merge!;
-    const merged = merge(persistedState, useLifeStore.getState()) as ReturnType<typeof useLifeStore.getState>;
+    const merged = merge(persistedState, useLifeStore.getState()) as ReturnType<
+      typeof useLifeStore.getState
+    >;
 
     expect(merged.tasks).toHaveLength(1);
     expect(merged.tasks[0].id).toBe(sample.tasks[0].id);
@@ -140,10 +146,12 @@ describe("serie powtarzalne w store", () => {
   });
 
   it("addRecurringTask materializuje okno wystąpień z deterministycznymi id", () => {
-    const seriesId = useLifeStore.getState().addRecurringTask(
-      { title: "Sprzątanie", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
-      { freq: "weekly", interval: 1, anchorDate: dateKey() },
-    );
+    const seriesId = useLifeStore
+      .getState()
+      .addRecurringTask(
+        { title: "Sprzątanie", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+        { freq: "weekly", interval: 1, anchorDate: dateKey() },
+      );
     const occ = useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId);
     expect(occ).toHaveLength(SERIES_WINDOW);
     expect(occ.every((task) => task.status === "todo")).toBe(true);
@@ -152,30 +160,46 @@ describe("serie powtarzalne w store", () => {
   });
 
   it("addRecurringTask respektuje limit count", () => {
-    const seriesId = useLifeStore.getState().addRecurringTask(
-      { title: "Trzy razy", priority: "low", category: "Dom", isFocus: false, energy: "low" },
-      { freq: "daily", interval: 1, count: 3, anchorDate: dateKey() },
+    const seriesId = useLifeStore
+      .getState()
+      .addRecurringTask(
+        { title: "Trzy razy", priority: "low", category: "Dom", isFocus: false, energy: "low" },
+        { freq: "daily", interval: 1, count: 3, anchorDate: dateKey() },
+      );
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(
+      3,
     );
-    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(3);
   });
 
   it("addRecurringEvent zachowuje czas trwania wydarzenia w każdym wystąpieniu", () => {
     const seriesId = useLifeStore.getState().addRecurringEvent(
-      { title: "Trening", date: dateKey(), startTime: "18:00", endTime: "19:30", kind: "personal" },
+      {
+        title: "Trening",
+        date: dateKey(),
+        startTime: "18:00",
+        endTime: "19:30",
+        kind: "personal",
+      },
       { freq: "weekly", interval: 1, anchorDate: dateKey() },
     );
     const occ = useLifeStore.getState().events.filter((event) => event.seriesId === seriesId);
     expect(occ).toHaveLength(SERIES_WINDOW);
-    expect(occ.every((event) => event.startTime === "18:00" && event.endTime === "19:30")).toBe(true);
+    expect(occ.every((event) => event.startTime === "18:00" && event.endTime === "19:30")).toBe(
+      true,
+    );
   });
 
   it("deleteSeries kasuje wszystkie wystąpienia serii", () => {
-    const seriesId = useLifeStore.getState().addRecurringTask(
-      { title: "Do usunięcia", priority: "low", category: "Dom", isFocus: false, energy: "low" },
-      { freq: "daily", interval: 1, anchorDate: dateKey() },
-    );
+    const seriesId = useLifeStore
+      .getState()
+      .addRecurringTask(
+        { title: "Do usunięcia", priority: "low", category: "Dom", isFocus: false, energy: "low" },
+        { freq: "daily", interval: 1, anchorDate: dateKey() },
+      );
     useLifeStore.getState().deleteSeries(seriesId);
-    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(0);
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(
+      0,
+    );
   });
 
   it("updateSeries zmienia tylko przyszłe/dzisiejsze wystąpienia, nie rusza przeszłych", () => {
@@ -209,10 +233,12 @@ describe("serie powtarzalne w store", () => {
   });
 
   it("expandRecurringSeries jest no-op, gdy okno jest pełne (bez zbędnego zapisu)", () => {
-    useLifeStore.getState().addRecurringTask(
-      { title: "Pełne okno", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
-      { freq: "daily", interval: 1, anchorDate: dateKey() },
-    );
+    useLifeStore
+      .getState()
+      .addRecurringTask(
+        { title: "Pełne okno", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+        { freq: "daily", interval: 1, anchorDate: dateKey() },
+      );
     const before = useLifeStore.getState().tasks;
     useLifeStore.getState().expandRecurringSeries();
     expect(useLifeStore.getState().tasks).toBe(before); // ta sama referencja = brak zapisu
@@ -220,10 +246,12 @@ describe("serie powtarzalne w store", () => {
 
   it("updateEventSeries zmienia godzinę serii (anchorTime) na przyszłych wystąpieniach", () => {
     const today = dateKey();
-    const seriesId = useLifeStore.getState().addRecurringEvent(
-      { title: "Trening", date: today, startTime: "18:00", endTime: "19:00", kind: "personal" },
-      { freq: "daily", interval: 1, anchorDate: today, anchorTime: "18:00" },
-    );
+    const seriesId = useLifeStore
+      .getState()
+      .addRecurringEvent(
+        { title: "Trening", date: today, startTime: "18:00", endTime: "19:00", kind: "personal" },
+        { freq: "daily", interval: 1, anchorDate: today, anchorTime: "18:00" },
+      );
     useLifeStore.getState().updateEventSeries(seriesId, {
       title: "Trening",
       startTime: "20:00",
@@ -232,21 +260,29 @@ describe("serie powtarzalne w store", () => {
     });
     const occ = useLifeStore.getState().events.filter((event) => event.seriesId === seriesId);
     expect(occ.length).toBeGreaterThan(0);
-    expect(occ.every((event) => event.startTime === "20:00" && event.endTime === "21:00")).toBe(true);
+    expect(occ.every((event) => event.startTime === "20:00" && event.endTime === "21:00")).toBe(
+      true,
+    );
   });
 
   it("updateSeries zmniejsza limit count i przycina przyszłe wystąpienia ponad limit", () => {
     const today = dateKey();
-    const seriesId = useLifeStore.getState().addRecurringTask(
-      { title: "Limit", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
-      { freq: "daily", interval: 1, anchorDate: today },
+    const seriesId = useLifeStore
+      .getState()
+      .addRecurringTask(
+        { title: "Limit", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+        { freq: "daily", interval: 1, anchorDate: today },
+      );
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(
+      SERIES_WINDOW,
     );
-    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(SERIES_WINDOW);
     useLifeStore.getState().updateSeries(seriesId, {
       title: "Limit",
       recurrence: { freq: "daily", interval: 1, anchorDate: today, count: 3 },
     });
-    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(3);
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(
+      3,
+    );
   });
 
   it("updateSeries propaguje zmianę widoczności na całą serię, także przeszłe wystąpienia", () => {
