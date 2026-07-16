@@ -362,3 +362,30 @@ je zasadą parytetu z obecnym zachowaniem i YAGNI (do weryfikacji w review PR):
 Brak otwartych pytań — patrz „Podejście → Decyzje z rundy doprecyzowania (sesja non-interactive)"
 wyżej. Trzy pytania biznesowe rozstrzygnięto zasadą parytetu z obecnym zachowaniem; do ewentualnej
 korekty w review PR.
+
+## Status po wdrożeniu
+
+Zaimplementowano zgodnie z planem (dane → backend → frontend), zweryfikowano end-to-end przez
+Playwright na realnym Postgresie (bootstrap, dodanie konta/transakcji, saldo, persystencja po
+reloadzie z wyczyszczonym `localStorage`). Podczas weryfikacji znaleziono i naprawiono trzy luki,
+których ten plan nie przewidział:
+
+1. **Edycja widoczności celu oszczędnościowego.** Plan założył (Non-goals), że endpointy modelują
+   dokładnie dzisiejszy zestaw mutacji UI — ale przeoczył, że `FinancePage.tsx`'s modal edycji celu
+   POZWALA zmienić `visibility` istniejącego celu, i to działało w modelu JSONB. `GOAL_UPDATE_KEYS`
+   w `finance.mjs` (i odpowiednik w `useFinanceStore.ts`) rozszerzono o `visibility` — to nie jest
+   nowa funkcja, tylko naprawa regresji względem dzisiejszego zachowania.
+2. **`POST /api/v1/finance/reset`** (nowy endpoint, nieprzewidziany w planie). "Wyczyść dane
+   aplikacji" w Ustawieniach dziś czyści cały dokument JSONB jednym `PUT /api/v1/workspace` — po
+   normalizacji nie ma już czym nadpisać finansów. Dodano dedykowany endpoint usuwający rekordy
+   wspólne + wyłącznie prywatne rekordy wywołującego (nigdy prywatne rekordy innych domowników),
+   analogicznie do dotychczasowego zakresu. Pokryty testem DB (`finance.node.mjs`).
+3. **Fałszywe ostrzeżenie "niezgodny format" na czystej instalacji** w `useFinanceStore.ts`: zustand
+   wywołuje `merge()` bezwarunkowo nawet gdy dany klucz nigdy nie istniał w `localStorage`
+   (pierwsze uruchomienie), co bez poprawki pokazywało użytkownikowi mylący komunikat o uszkodzonych
+   danych finansowych zaraz po założeniu konta. Naprawiono w `useFinanceStore.ts`.
+
+**Odkryto też (poza zakresem tego PR):** identyczny wzorzec błędu #3 istnieje już dziś w
+`useAdvancedStore.ts` i `useLifeStore.ts` (`merge(undefined, ...)` na czystej instalacji też tam
+pokazuje fałszywe "niezgodny format"/"dane miały niezgodny format"). To pre-existing bug niezwiązany
+z modelem synchronizacji Finansów — wart osobnego zgłoszenia, nie naprawiany w tym PR.
