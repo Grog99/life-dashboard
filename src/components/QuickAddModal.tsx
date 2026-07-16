@@ -13,7 +13,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { addHours, format, getISODay, parseISO } from "date-fns";
 import { Modal } from "./Modal";
 import { dateKey, formatShortDate } from "../lib/date";
-import { alignWeeklyAnchor, nextOccurrences, WEEKDAY_LABELS } from "../lib/recurrence";
+import { alignWeeklyAnchor, nextOccurrences } from "../lib/recurrence";
+import { RecurrenceFields, useRecurrenceForm } from "./RecurrenceFields";
 import { parseSmartCapture } from "../lib/smartCapture";
 import { useLifeStore } from "../store/useLifeStore";
 import { useServerAuth } from "../server/AuthGate";
@@ -25,7 +26,6 @@ import type {
   Priority,
   QuickAddType,
   Recurrence,
-  RecurrenceFreq,
 } from "../types";
 
 interface QuickAddModalProps {
@@ -75,10 +75,7 @@ export function QuickAddModal({
   const [dateEditedManually, setDateEditedManually] = useState(false);
   const [timeEditedManually, setTimeEditedManually] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
-  const [repeatFreq, setRepeatFreq] = useState<RecurrenceFreq>("weekly");
-  const [repeatInterval, setRepeatInterval] = useState("1");
-  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
-  const [repeatCount, setRepeatCount] = useState("");
+  const repeat = useRecurrenceForm();
 
   useEffect(() => {
     if (!open) return;
@@ -101,10 +98,7 @@ export function QuickAddModal({
     setDateEditedManually(false);
     setTimeEditedManually(false);
     setRepeatEnabled(false);
-    setRepeatFreq("weekly");
-    setRepeatInterval("1");
-    setRepeatWeekdays([]);
-    setRepeatCount("");
+    repeat.reset();
   }, [initialType, open]);
 
   useEffect(() => {
@@ -123,25 +117,11 @@ export function QuickAddModal({
     setTimeEditedManually(true);
   };
 
-  const toggleRepeatWeekday = (iso: number) => {
-    setRepeatWeekdays((current) =>
-      current.includes(iso)
-        ? current.filter((value) => value !== iso)
-        : [...current, iso].sort((a, b) => a - b),
-    );
-  };
-
   const buildRecurrence = (anchorDateRaw: string, anchorTime?: string): Recurrence => {
-    const weekdays = repeatFreq === "weekly" && repeatWeekdays.length ? repeatWeekdays : undefined;
-    const anchorDate = weekdays ? alignWeeklyAnchor(anchorDateRaw, weekdays) : anchorDateRaw;
-    return {
-      freq: repeatFreq,
-      interval: Math.max(1, Number(repeatInterval) || 1),
-      weekdays,
-      count: repeatCount ? Math.max(1, Number(repeatCount) || 1) : undefined,
-      anchorDate,
-      anchorTime,
-    };
+    const recurrence = repeat.build(anchorDateRaw, anchorTime);
+    return recurrence.weekdays
+      ? { ...recurrence, anchorDate: alignWeeklyAnchor(anchorDateRaw, recurrence.weekdays) }
+      : recurrence;
   };
 
   const repeatPreview =
@@ -409,9 +389,9 @@ export function QuickAddModal({
                   setRepeatEnabled(checked);
                   if (checked) {
                     if (type === "task") setDetailsOpen(true);
-                    if (repeatWeekdays.length === 0) {
+                    if (repeat.weekdays.length === 0) {
                       const anchor = date || dateKey();
-                      setRepeatWeekdays([getISODay(parseISO(anchor))]);
+                      repeat.setWeekdays([getISODay(parseISO(anchor))]);
                     }
                   }
                 }}
@@ -424,60 +404,14 @@ export function QuickAddModal({
             </label>
 
             {repeatEnabled && (
-              <div className="quick-add-details repeat-panel">
-                <div className="form-grid form-grid--3">
-                  <label className="field">
-                    <span>Co ile</span>
-                    <select value={repeatFreq} onChange={(event) => setRepeatFreq(event.target.value as RecurrenceFreq)}>
-                      <option value="daily">Dni</option>
-                      <option value="weekly">Tygodni</option>
-                      <option value="monthly">Miesięcy</option>
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Co ile jednostek</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={repeatInterval}
-                      onChange={(event) => setRepeatInterval(event.target.value)}
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Zakończ po (opcjonalnie)</span>
-                    <input
-                      type="number"
-                      min={1}
-                      placeholder="Bez limitu"
-                      value={repeatCount}
-                      onChange={(event) => setRepeatCount(event.target.value)}
-                    />
-                  </label>
-                </div>
-
-                {repeatFreq === "weekly" && (
-                  <fieldset className="weekday-picker">
-                    <legend>Dni tygodnia</legend>
-                    {WEEKDAY_LABELS.map(({ iso, label }) => (
-                      <button
-                        type="button"
-                        key={iso}
-                        className={repeatWeekdays.includes(iso) ? "active" : ""}
-                        aria-pressed={repeatWeekdays.includes(iso)}
-                        onClick={() => toggleRepeatWeekday(iso)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </fieldset>
-                )}
-
+              <>
+                <RecurrenceFields form={repeat} />
                 {repeatPreview.length > 0 && (
                   <p className="repeat-preview">
                     Najbliższe: {repeatPreview.map((value) => formatShortDate(value)).join(", ")}
                   </p>
                 )}
-              </div>
+              </>
             )}
           </>
         )}

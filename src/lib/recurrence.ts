@@ -140,11 +140,21 @@ export function expandSeries<T extends SeriesItem>(items: T[], today: string, wi
 
     let index = maxIndex + 1;
     let added = futureCount;
-    while (added < window) {
+    let guard = 0;
+    // Materializuj wyłącznie wystąpienia dzisiejsze/przyszłe. Gdy seria „utknęła" w
+    // przeszłości (długa nieobecność w aplikacji), przeskocz przeszłe indeksy zamiast
+    // tworzyć nieaktualne wystąpienia — `id` pozostaje deterministyczne (seriesId#index),
+    // więc scalanie między urządzeniami dalej działa. `guard` chroni przed pętlą przy
+    // bardzo starej kotwicy serii bez limitu.
+    while (added < window && guard < 10_000) {
       if (recurrence.count !== undefined && index >= recurrence.count) break;
-      additions.push(buildSeriesOccurrence(template, recurrence, seriesId, index));
-      added += 1;
+      const occurrence = buildSeriesOccurrence(template, recurrence, seriesId, index);
+      if (!occurrence.date || occurrence.date >= today) {
+        additions.push(occurrence);
+        added += 1;
+      }
       index += 1;
+      guard += 1;
     }
   }
 

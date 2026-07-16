@@ -198,12 +198,21 @@ export const useLifeStore = create<LifeStore>()(
       // (ten sam seriesIndex, nowa data), po czym okno jest dosuwane przez expandSeries.
       updateSeries: (seriesId, changes) => {
         const today = dateKey();
+        const now = new Date().toISOString();
         set((state) => {
           const nextRecurrence = changes.recurrence;
+          const limit = nextRecurrence?.count;
           const updated = state.tasks.map((task) => {
             if (task.seriesId !== seriesId) return task;
-            if (task.date && task.date < today) return task;
-            const merged: Task = { ...task, ...changes, updatedAt: new Date().toISOString() };
+            if (task.date && task.date < today) {
+              // Przeszłe/ukończone wystąpienia zostają nietknięte, ale zmianę widoczności
+              // propagujemy na całą serię — inaczej split po `visibility` rozdzieliłby ją
+              // między dokument wspólny i prywatny przy synchronizacji.
+              return changes.visibility && changes.visibility !== task.visibility
+                ? { ...task, visibility: changes.visibility, updatedAt: now }
+                : task;
+            }
+            const merged: Task = { ...task, ...changes, updatedAt: now };
             if (nextRecurrence && task.seriesIndex !== undefined) {
               const occurrence = occurrenceDate(nextRecurrence, task.seriesIndex);
               merged.date = occurrence.date;
@@ -211,7 +220,18 @@ export const useLifeStore = create<LifeStore>()(
             }
             return merged;
           });
-          return { tasks: expandSeries(updated, today) };
+          // Zmniejszenie limitu `count` usuwa przyszłe wystąpienia ponad nowy limit;
+          // przeszłe (historia) zostają.
+          const trimmed =
+            limit === undefined
+              ? updated
+              : updated.filter(
+                  (task) =>
+                    task.seriesId !== seriesId ||
+                    (task.seriesIndex ?? 0) < limit ||
+                    Boolean(task.date && task.date < today),
+                );
+          return { tasks: expandSeries(trimmed, today) };
         });
       },
       deleteSeries: (seriesId) =>
@@ -272,12 +292,20 @@ export const useLifeStore = create<LifeStore>()(
       // przy przeliczaniu godziny startu z nowej reguły.
       updateEventSeries: (seriesId, changes) => {
         const today = dateKey();
+        const now = new Date().toISOString();
         set((state) => {
           const nextRecurrence = changes.recurrence;
+          const limit = nextRecurrence?.count;
           const updated = state.events.map((event) => {
             if (event.seriesId !== seriesId) return event;
-            if (event.date < today) return event;
-            const merged: CalendarEvent = { ...event, ...changes, updatedAt: new Date().toISOString() };
+            if (event.date < today) {
+              // Jak w updateSeries: przeszłe wystąpienia bez zmian, ale widoczność
+              // propagujemy na całą serię, by nie rozszczepić jej między dokumenty.
+              return changes.visibility && changes.visibility !== event.visibility
+                ? { ...event, visibility: changes.visibility, updatedAt: now }
+                : event;
+            }
+            const merged: CalendarEvent = { ...event, ...changes, updatedAt: now };
             if (nextRecurrence && event.seriesIndex !== undefined) {
               // Czas trwania liczony z wartości PO scaleniu `changes` (nie z oryginalnego
               // wystąpienia), żeby edycja godzin w formularzu serii dotyczyła jednolicie
@@ -291,7 +319,16 @@ export const useLifeStore = create<LifeStore>()(
             }
             return merged;
           });
-          return { events: expandSeries(updated, today) };
+          const trimmed =
+            limit === undefined
+              ? updated
+              : updated.filter(
+                  (event) =>
+                    event.seriesId !== seriesId ||
+                    (event.seriesIndex ?? 0) < limit ||
+                    event.date < today,
+                );
+          return { events: expandSeries(trimmed, today) };
         });
       },
       deleteEventSeries: (seriesId) =>

@@ -217,4 +217,65 @@ describe("serie powtarzalne w store", () => {
     useLifeStore.getState().expandRecurringSeries();
     expect(useLifeStore.getState().tasks).toBe(before); // ta sama referencja = brak zapisu
   });
+
+  it("updateEventSeries zmienia godzinę serii (anchorTime) na przyszłych wystąpieniach", () => {
+    const today = dateKey();
+    const seriesId = useLifeStore.getState().addRecurringEvent(
+      { title: "Trening", date: today, startTime: "18:00", endTime: "19:00", kind: "personal" },
+      { freq: "daily", interval: 1, anchorDate: today, anchorTime: "18:00" },
+    );
+    useLifeStore.getState().updateEventSeries(seriesId, {
+      title: "Trening",
+      startTime: "20:00",
+      endTime: "21:00",
+      recurrence: { freq: "daily", interval: 1, anchorDate: today, anchorTime: "20:00" },
+    });
+    const occ = useLifeStore.getState().events.filter((event) => event.seriesId === seriesId);
+    expect(occ.length).toBeGreaterThan(0);
+    expect(occ.every((event) => event.startTime === "20:00" && event.endTime === "21:00")).toBe(true);
+  });
+
+  it("updateSeries zmniejsza limit count i przycina przyszłe wystąpienia ponad limit", () => {
+    const today = dateKey();
+    const seriesId = useLifeStore.getState().addRecurringTask(
+      { title: "Limit", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+      { freq: "daily", interval: 1, anchorDate: today },
+    );
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(SERIES_WINDOW);
+    useLifeStore.getState().updateSeries(seriesId, {
+      title: "Limit",
+      recurrence: { freq: "daily", interval: 1, anchorDate: today, count: 3 },
+    });
+    expect(useLifeStore.getState().tasks.filter((task) => task.seriesId === seriesId)).toHaveLength(3);
+  });
+
+  it("updateSeries propaguje zmianę widoczności na całą serię, także przeszłe wystąpienia", () => {
+    const past = dateKey(addDays(new Date(), -3));
+    const future = dateKey(addDays(new Date(), 3));
+    const recurrence = { freq: "daily" as const, interval: 1, anchorDate: past };
+    const timestamp = new Date().toISOString();
+    const shared = {
+      title: "Widoczność",
+      status: "todo" as const,
+      priority: "medium" as const,
+      category: "Dom",
+      isFocus: false,
+      energy: "low" as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      seriesId: "s-vis",
+      recurrence,
+      visibility: "household" as const,
+    };
+    useLifeStore.setState({
+      tasks: [
+        { ...shared, id: "s-vis#0", date: past, seriesIndex: 0 },
+        { ...shared, id: "s-vis#5", date: future, seriesIndex: 5 },
+      ],
+    });
+    useLifeStore.getState().updateSeries("s-vis", { visibility: "private" });
+    const tasks = useLifeStore.getState().tasks;
+    expect(tasks.find((task) => task.id === "s-vis#0")?.visibility).toBe("private"); // przeszłe też
+    expect(tasks.find((task) => task.id === "s-vis#5")?.visibility).toBe("private");
+  });
 });

@@ -21,10 +21,10 @@ import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { TaskItem } from "../components/TaskItem";
 import { dateKey, formatShortDate, isOverdue } from "../lib/date";
-import { WEEKDAY_LABELS } from "../lib/recurrence";
+import { RecurrenceFields, useRecurrenceForm } from "../components/RecurrenceFields";
 import { useLifeStore } from "../store/useLifeStore";
 import type { Visibility } from "../advancedTypes";
-import type { Energy, Priority, RecurrenceFreq, Task } from "../types";
+import type { Energy, Priority, Task } from "../types";
 
 type TaskFilter = "today" | "inbox" | "upcoming" | "all" | "done";
 
@@ -241,10 +241,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
   const [energy, setEnergy] = useState<Energy>("medium");
   const [estimatedMinutes, setEstimatedMinutes] = useState("30");
   const [visibility, setVisibility] = useState<Visibility>("household");
-  const [repeatFreq, setRepeatFreq] = useState<RecurrenceFreq>("weekly");
-  const [repeatInterval, setRepeatInterval] = useState("1");
-  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
-  const [repeatCount, setRepeatCount] = useState("");
+  const repeat = useRecurrenceForm(task?.recurrence);
 
   useEffect(() => {
     if (!task) return;
@@ -257,10 +254,8 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
     setEnergy(task.energy);
     setEstimatedMinutes(String(task.estimatedMinutes ?? 30));
     setVisibility(task.visibility ?? "household");
-    setRepeatFreq(task.recurrence?.freq ?? "weekly");
-    setRepeatInterval(String(task.recurrence?.interval ?? 1));
-    setRepeatWeekdays(task.recurrence?.weekdays ?? []);
-    setRepeatCount(task.recurrence?.count ? String(task.recurrence.count) : "");
+    repeat.reset(task.recurrence);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task]);
 
   const buildChanges = (): Partial<Task> => ({
@@ -282,22 +277,13 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
 
   const submitSeries = () => {
     if (!task?.recurrence) return;
+    if (!title.trim()) return; // przycisk poza formularzem — pilnujemy wymaganej nazwy sami (inaczej pusty tytuł zepsułby serię)
+    // Zachowujemy anchorDate serii (stabilny seriesIndex), ale bierzemy AKTUALNĄ godzinę
+    // z formularza jako anchorTime — inaczej edycja godziny serii byłaby cofana.
     onSaveSeries({
       ...buildChanges(),
-      recurrence: {
-        ...task.recurrence,
-        freq: repeatFreq,
-        interval: Math.max(1, Number(repeatInterval) || 1),
-        weekdays: repeatFreq === "weekly" && repeatWeekdays.length ? repeatWeekdays : undefined,
-        count: repeatCount ? Math.max(1, Number(repeatCount) || 1) : undefined,
-      },
+      recurrence: repeat.build(task.recurrence.anchorDate, date ? time || undefined : undefined),
     });
-  };
-
-  const toggleRepeatWeekday = (iso: number) => {
-    setRepeatWeekdays((current) =>
-      current.includes(iso) ? current.filter((value) => value !== iso) : [...current, iso].sort((a, b) => a - b),
-    );
   };
 
   const hasUnsavedChanges = () =>
@@ -310,7 +296,8 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
       priority !== task!.priority ||
       energy !== task!.energy ||
       estimatedMinutes !== String(task!.estimatedMinutes ?? 30) ||
-      visibility !== (task!.visibility ?? "household")
+      visibility !== (task!.visibility ?? "household") ||
+      repeat.differsFrom(task!.recurrence)
     );
   const confirmDiscardChanges = () =>
     !hasUnsavedChanges() || window.confirm("Masz niezapisane zmiany w zadaniu. Czy na pewno chcesz je odrzucić?");
@@ -335,44 +322,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
           <label className="field"><span>Widoczność</span><select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
         </div>
 
-        {task?.seriesId && (
-          <div className="quick-add-details repeat-panel">
-            <div className="form-grid form-grid--3">
-              <label className="field">
-                <span>Co ile</span>
-                <select value={repeatFreq} onChange={(event) => setRepeatFreq(event.target.value as RecurrenceFreq)}>
-                  <option value="daily">Dni</option>
-                  <option value="weekly">Tygodni</option>
-                  <option value="monthly">Miesięcy</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Co ile jednostek</span>
-                <input type="number" min={1} value={repeatInterval} onChange={(event) => setRepeatInterval(event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Zakończ po (opcjonalnie)</span>
-                <input type="number" min={1} placeholder="Bez limitu" value={repeatCount} onChange={(event) => setRepeatCount(event.target.value)} />
-              </label>
-            </div>
-            {repeatFreq === "weekly" && (
-              <fieldset className="weekday-picker">
-                <legend>Dni tygodnia</legend>
-                {WEEKDAY_LABELS.map(({ iso, label }) => (
-                  <button
-                    type="button"
-                    key={iso}
-                    className={repeatWeekdays.includes(iso) ? "active" : ""}
-                    aria-pressed={repeatWeekdays.includes(iso)}
-                    onClick={() => toggleRepeatWeekday(iso)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </fieldset>
-            )}
-          </div>
-        )}
+        {task?.seriesId && <RecurrenceFields form={repeat} />}
 
         <footer className="modal-actions modal-actions--spread">
           <div>

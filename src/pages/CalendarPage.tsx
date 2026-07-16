@@ -18,11 +18,11 @@ import { pl } from "date-fns/locale";
 import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { dateKey, formatDayName, formatShortDate, relativeDay, weekDays } from "../lib/date";
-import { WEEKDAY_LABELS } from "../lib/recurrence";
+import { RecurrenceFields, useRecurrenceForm } from "../components/RecurrenceFields";
 import { useLifeStore } from "../store/useLifeStore";
 import { useServerAuth } from "../server/AuthGate";
 import type { Visibility } from "../advancedTypes";
-import type { CalendarEvent, Energy, EventKind, Priority, RecurrenceFreq, Task } from "../types";
+import type { CalendarEvent, Energy, EventKind, Priority, Task } from "../types";
 import { apiRequest, serverMode } from "../server/api";
 
 interface CalendarPageProps {
@@ -313,10 +313,7 @@ function EventEditModal({ event, onClose, onSave, onDelete, onSaveSeries, onDele
   const [kind, setKind] = useState<EventKind>("personal");
   const [notes, setNotes] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("household");
-  const [repeatFreq, setRepeatFreq] = useState<RecurrenceFreq>("weekly");
-  const [repeatInterval, setRepeatInterval] = useState("1");
-  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
-  const [repeatCount, setRepeatCount] = useState("");
+  const repeat = useRecurrenceForm(event?.recurrence);
 
   useEffect(() => {
     if (!event) return;
@@ -328,10 +325,8 @@ function EventEditModal({ event, onClose, onSave, onDelete, onSaveSeries, onDele
     setKind(event.kind);
     setNotes(event.notes ?? "");
     setVisibility(event.visibility ?? "household");
-    setRepeatFreq(event.recurrence?.freq ?? "weekly");
-    setRepeatInterval(String(event.recurrence?.interval ?? 1));
-    setRepeatWeekdays(event.recurrence?.weekdays ?? []);
-    setRepeatCount(event.recurrence?.count ? String(event.recurrence.count) : "");
+    repeat.reset(event.recurrence);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event]);
 
   const buildChanges = (): Partial<CalendarEvent> => ({
@@ -356,26 +351,20 @@ function EventEditModal({ event, onClose, onSave, onDelete, onSaveSeries, onDele
 
   const submitSeries = () => {
     if (!event?.recurrence) return;
+    if (!title.trim()) {
+      onToast("Podaj nazwę wydarzenia");
+      return;
+    }
     if (!date || !startTime || !endTime || endTime <= startTime) {
       onToast("Sprawdź datę i kolejność godzin wydarzenia");
       return;
     }
+    // Zachowujemy anchorDate serii, ale anchorTime bierzemy z aktualnego pola „Od",
+    // aby edycja godziny serii faktycznie się zapisała (fix z code review).
     onSaveSeries({
       ...buildChanges(),
-      recurrence: {
-        ...event.recurrence,
-        freq: repeatFreq,
-        interval: Math.max(1, Number(repeatInterval) || 1),
-        weekdays: repeatFreq === "weekly" && repeatWeekdays.length ? repeatWeekdays : undefined,
-        count: repeatCount ? Math.max(1, Number(repeatCount) || 1) : undefined,
-      },
+      recurrence: repeat.build(event.recurrence.anchorDate, startTime),
     });
-  };
-
-  const toggleRepeatWeekday = (iso: number) => {
-    setRepeatWeekdays((current) =>
-      current.includes(iso) ? current.filter((value) => value !== iso) : [...current, iso].sort((a, b) => a - b),
-    );
   };
 
   return (
@@ -399,44 +388,7 @@ function EventEditModal({ event, onClose, onSave, onDelete, onSaveSeries, onDele
         <label className="field"><span>Widoczność</span><select value={visibility} onChange={(input) => setVisibility(input.target.value as Visibility)}><option value="household">Cały dom</option><option value="private">Tylko ja</option></select></label>
         <label className="field"><span>Notatka</span><textarea value={notes} onChange={(input) => setNotes(input.target.value)} placeholder="Szczegóły, link, przygotowanie…" /></label>
 
-        {event?.seriesId && (
-          <div className="quick-add-details repeat-panel">
-            <div className="form-grid form-grid--3">
-              <label className="field">
-                <span>Co ile</span>
-                <select value={repeatFreq} onChange={(input) => setRepeatFreq(input.target.value as RecurrenceFreq)}>
-                  <option value="daily">Dni</option>
-                  <option value="weekly">Tygodni</option>
-                  <option value="monthly">Miesięcy</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Co ile jednostek</span>
-                <input type="number" min={1} value={repeatInterval} onChange={(input) => setRepeatInterval(input.target.value)} />
-              </label>
-              <label className="field">
-                <span>Zakończ po (opcjonalnie)</span>
-                <input type="number" min={1} placeholder="Bez limitu" value={repeatCount} onChange={(input) => setRepeatCount(input.target.value)} />
-              </label>
-            </div>
-            {repeatFreq === "weekly" && (
-              <fieldset className="weekday-picker">
-                <legend>Dni tygodnia</legend>
-                {WEEKDAY_LABELS.map(({ iso, label }) => (
-                  <button
-                    type="button"
-                    key={iso}
-                    className={repeatWeekdays.includes(iso) ? "active" : ""}
-                    aria-pressed={repeatWeekdays.includes(iso)}
-                    onClick={() => toggleRepeatWeekday(iso)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </fieldset>
-            )}
-          </div>
-        )}
+        {event?.seriesId && <RecurrenceFields form={repeat} />}
 
         <footer className="modal-actions modal-actions--spread">
           <div>
@@ -476,10 +428,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
   const [priority, setPriority] = useState<Priority>("medium");
   const [energy, setEnergy] = useState<Energy>("medium");
   const [estimatedMinutes, setEstimatedMinutes] = useState("30");
-  const [repeatFreq, setRepeatFreq] = useState<RecurrenceFreq>("weekly");
-  const [repeatInterval, setRepeatInterval] = useState("1");
-  const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
-  const [repeatCount, setRepeatCount] = useState("");
+  const repeat = useRecurrenceForm(task?.recurrence);
 
   useEffect(() => {
     if (!task) return;
@@ -491,10 +440,8 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
     setPriority(task.priority);
     setEnergy(task.energy);
     setEstimatedMinutes(String(task.estimatedMinutes ?? 30));
-    setRepeatFreq(task.recurrence?.freq ?? "weekly");
-    setRepeatInterval(String(task.recurrence?.interval ?? 1));
-    setRepeatWeekdays(task.recurrence?.weekdays ?? []);
-    setRepeatCount(task.recurrence?.count ? String(task.recurrence.count) : "");
+    repeat.reset(task.recurrence);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task]);
 
   const buildChanges = (): Partial<Task> => ({
@@ -515,22 +462,12 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
 
   const submitSeries = () => {
     if (!task?.recurrence) return;
+    if (!title.trim()) return; // przycisk poza formularzem — pilnujemy wymaganej nazwy sami
+    // anchorDate serii zachowany, anchorTime z aktualnego pola „Godzina" (fix z code review).
     onSaveSeries({
       ...buildChanges(),
-      recurrence: {
-        ...task.recurrence,
-        freq: repeatFreq,
-        interval: Math.max(1, Number(repeatInterval) || 1),
-        weekdays: repeatFreq === "weekly" && repeatWeekdays.length ? repeatWeekdays : undefined,
-        count: repeatCount ? Math.max(1, Number(repeatCount) || 1) : undefined,
-      },
+      recurrence: repeat.build(task.recurrence.anchorDate, time || undefined),
     });
-  };
-
-  const toggleRepeatWeekday = (iso: number) => {
-    setRepeatWeekdays((current) =>
-      current.includes(iso) ? current.filter((value) => value !== iso) : [...current, iso].sort((a, b) => a - b),
-    );
   };
 
   return (
@@ -552,44 +489,7 @@ function TaskEditModal({ task, onClose, onSave, onDelete, onSaveSeries, onDelete
           <label className="field"><span>Energia</span><select value={energy} onChange={(input) => setEnergy(input.target.value as Energy)}><option value="low">Mała</option><option value="medium">Średnia</option><option value="high">Duża</option></select></label>
         </div>
 
-        {task?.seriesId && (
-          <div className="quick-add-details repeat-panel">
-            <div className="form-grid form-grid--3">
-              <label className="field">
-                <span>Co ile</span>
-                <select value={repeatFreq} onChange={(input) => setRepeatFreq(input.target.value as RecurrenceFreq)}>
-                  <option value="daily">Dni</option>
-                  <option value="weekly">Tygodni</option>
-                  <option value="monthly">Miesięcy</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Co ile jednostek</span>
-                <input type="number" min={1} value={repeatInterval} onChange={(input) => setRepeatInterval(input.target.value)} />
-              </label>
-              <label className="field">
-                <span>Zakończ po (opcjonalnie)</span>
-                <input type="number" min={1} placeholder="Bez limitu" value={repeatCount} onChange={(input) => setRepeatCount(input.target.value)} />
-              </label>
-            </div>
-            {repeatFreq === "weekly" && (
-              <fieldset className="weekday-picker">
-                <legend>Dni tygodnia</legend>
-                {WEEKDAY_LABELS.map(({ iso, label }) => (
-                  <button
-                    type="button"
-                    key={iso}
-                    className={repeatWeekdays.includes(iso) ? "active" : ""}
-                    aria-pressed={repeatWeekdays.includes(iso)}
-                    onClick={() => toggleRepeatWeekday(iso)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </fieldset>
-            )}
-          </div>
-        )}
+        {task?.seriesId && <RecurrenceFields form={repeat} />}
 
         <footer className="modal-actions modal-actions--spread">
           <div>

@@ -130,6 +130,16 @@ describe("expandSeries — rozwijanie okna", () => {
     const b = expandSeries<SeriesItem>([seed()], "2026-03-01").map((item) => item.id);
     expect(a).toEqual(b);
   });
+
+  it("catch-up: zaległa seria materializuje wyłącznie wystąpienia od dziś, nie w przeszłości", () => {
+    // Ostatnie zmaterializowane wystąpienie (index 5) wypada 2026-03-06 — daleko przed `today`.
+    const stale = buildSeriesOccurrence<SeriesItem>({ id: "x" }, rec, "s1", 5);
+    const today = "2026-04-01";
+    const grown = expandSeries<SeriesItem>([stale], today);
+    const added = grown.filter((item) => item.id !== "s1#5");
+    expect(added).toHaveLength(SERIES_WINDOW); // dosunięto pełne okno
+    expect(added.every((item) => Boolean(item.date && item.date >= today))).toBe(true); // żadnego wystąpienia w przeszłości
+  });
 });
 
 describe("nextOccurrences — podgląd dat", () => {
