@@ -33,7 +33,13 @@ import {
 import { differenceInCalendarDays, eachDayOfInterval, format, isValid, parseISO } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import type { CurrencyCode, PackingItem, Trip, TripBooking, TripItineraryItem } from "../advancedTypes";
+import type {
+  CurrencyCode,
+  PackingItem,
+  Trip,
+  TripBooking,
+  TripItineraryItem,
+} from "../advancedTypes";
 import { Modal } from "../components/Modal";
 import { formatShortDate } from "../lib/date";
 import { formatMoney, parseMoneyToMinor } from "../lib/money";

@@ -422,12 +422,7 @@ export const useTripsStore = create<TripsStore>()(
             if (trip) {
               trips = upsertById(state.trips, {
                 ...trip,
-                progress: localProgressForTrip(
-                  trip.status,
-                  item.tripId,
-                  itinerary,
-                  state.bookings,
-                ),
+                progress: localProgressForTrip(trip.status, item.tripId, itinerary, state.bookings),
               });
             }
           }
@@ -697,7 +692,10 @@ export const useTripsStore = create<TripsStore>()(
         const packing = parseArrayField(state.packing, packingItemSchema);
         const pendingMutations = parseArrayField(state.pendingMutations, pendingMutationSchema);
         const droppedCount =
-          trips.dropped + itinerary.dropped + bookings.dropped + packing.dropped +
+          trips.dropped +
+          itinerary.dropped +
+          bookings.dropped +
+          packing.dropped +
           pendingMutations.dropped;
 
         if (droppedCount > 0) {

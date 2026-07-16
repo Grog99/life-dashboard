@@ -8,11 +8,7 @@
 // jeszcze niewysłanych zmian świeżym snapshotem serwera.
 import { useEffect, useRef, useState } from "react";
 import { apiRequest, ApiError } from "../server/api";
-import {
-  useTripsStore,
-  type TripMutationResult,
-  type TripSnapshot,
-} from "../store/useTripsStore";
+import { useTripsStore, type TripMutationResult, type TripSnapshot } from "../store/useTripsStore";
 
 export type TripsSyncState = "synced" | "saving" | "offline";
 

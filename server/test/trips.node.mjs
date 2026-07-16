@@ -3,7 +3,6 @@ import test, { after } from "node:test";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import {
-  TripValidationError,
   SUPPORTED_TRIP_OPS,
   applyTripMutation,
   assertTripMutationShape,
@@ -152,7 +151,10 @@ test("validateTripUpdatePayload requires a positive integer baseVersion", () => 
 });
 
 test("validateTripUpdatePayload allows clearing budgetMinor to null", () => {
-  const { changes } = validateTripUpdatePayload({ id: "trip-1", changes: { budgetMinor: null } }, 1);
+  const { changes } = validateTripUpdatePayload(
+    { id: "trip-1", changes: { budgetMinor: null } },
+    1,
+  );
   assert.equal(changes.budgetMinor, null);
 });
 
@@ -255,7 +257,10 @@ test("validatePackingUpdatePayload only allows packed/assignedTo (parity with to
 });
 
 test("validatePackingUpdatePayload allows clearing assignedTo to null", () => {
-  const { changes } = validatePackingUpdatePayload({ id: "pk-1", changes: { assignedTo: null } }, 1);
+  const { changes } = validatePackingUpdatePayload(
+    { id: "pk-1", changes: { assignedTo: null } },
+    1,
+  );
   assert.equal(changes.assignedTo, null);
 });
 
@@ -282,7 +287,11 @@ test("assertTripMutationShape validates the whole-request envelope", () => {
     () => assertTripMutationShape({ ...valid, payload: "nope" }),
     (error) => error.statusCode === 400,
   );
-  assert.equal(SUPPORTED_TRIP_OPS.has("itinerary.update"), false, "itinerary.update is out of scope (YAGNI)");
+  assert.equal(
+    SUPPORTED_TRIP_OPS.has("itinerary.update"),
+    false,
+    "itinerary.update is out of scope (YAGNI)",
+  );
 });
 
 test("row->DTO mappers convert snake_case/bigint-as-string/Date columns to the frontend shape", () => {
@@ -464,7 +473,10 @@ dbTest("readTripsSnapshot returns the whole household's trips (no visibility fil
       payload: tripCreatePayload({ name: "Grecja" }),
     });
     const snapshot = await readTripsSnapshot(client, householdId);
-    assert.deepEqual(snapshot.trips.map((trip) => trip.name), ["Grecja"]);
+    assert.deepEqual(
+      snapshot.trips.map((trip) => trip.name),
+      ["Grecja"],
+    );
     assert.deepEqual(snapshot.itinerary, []);
     assert.deepEqual(snapshot.bookings, []);
     assert.deepEqual(snapshot.packing, []);
@@ -606,27 +618,30 @@ dbTest(
   },
 );
 
-dbTest("trip.update to status 'archived' forces progress to 100 regardless of children", async () => {
-  await withRollback(async (client) => {
-    const { householdId, userId } = await createHouseholdAndUser(client, "owner");
-    const ctx = { householdId, userId };
-    const tripId = randomUUID();
-    const created = await applyTripMutation(client, ctx, {
-      idempotencyKey: randomUUID(),
-      op: "trip.create",
-      payload: tripCreatePayload({ id: tripId, status: "planning" }),
+dbTest(
+  "trip.update to status 'archived' forces progress to 100 regardless of children",
+  async () => {
+    await withRollback(async (client) => {
+      const { householdId, userId } = await createHouseholdAndUser(client, "owner");
+      const ctx = { householdId, userId };
+      const tripId = randomUUID();
+      const created = await applyTripMutation(client, ctx, {
+        idempotencyKey: randomUUID(),
+        op: "trip.create",
+        payload: tripCreatePayload({ id: tripId, status: "planning" }),
+      });
+      const archived = await applyTripMutation(client, ctx, {
+        idempotencyKey: randomUUID(),
+        op: "trip.update",
+        payload: { id: tripId, changes: { status: "archived" } },
+        baseVersion: created.record.version,
+      });
+      assert.equal(archived.status, "applied");
+      assert.equal(archived.record.progress, 100);
+      assert.equal(archived.record.status, "archived");
     });
-    const archived = await applyTripMutation(client, ctx, {
-      idempotencyKey: randomUUID(),
-      op: "trip.update",
-      payload: { id: tripId, changes: { status: "archived" } },
-      baseVersion: created.record.version,
-    });
-    assert.equal(archived.status, "applied");
-    assert.equal(archived.record.progress, 100);
-    assert.equal(archived.record.status, "archived");
-  });
-});
+  },
+);
 
 dbTest("trip.update: a stale baseVersion conflicts with the current record", async () => {
   await withRollback(async (client) => {
@@ -659,26 +674,29 @@ dbTest("trip.update: a stale baseVersion conflicts with the current record", asy
   });
 });
 
-dbTest("itinerary.create/booking.create reject a trip that doesn't exist in this household", async () => {
-  await withRollback(async (client) => {
-    const { householdId, userId } = await createHouseholdAndUser(client, "owner");
-    const ctx = { householdId, userId };
-    const result = await applyTripMutation(client, ctx, {
-      idempotencyKey: randomUUID(),
-      op: "itinerary.create",
-      payload: {
-        id: randomUUID(),
-        tripId: "does-not-exist",
-        date: "2026-08-02",
-        time: "09:00",
-        title: "Lot",
-        type: "transport",
-      },
+dbTest(
+  "itinerary.create/booking.create reject a trip that doesn't exist in this household",
+  async () => {
+    await withRollback(async (client) => {
+      const { householdId, userId } = await createHouseholdAndUser(client, "owner");
+      const ctx = { householdId, userId };
+      const result = await applyTripMutation(client, ctx, {
+        idempotencyKey: randomUUID(),
+        op: "itinerary.create",
+        payload: {
+          id: randomUUID(),
+          tripId: "does-not-exist",
+          date: "2026-08-02",
+          time: "09:00",
+          title: "Lot",
+          type: "transport",
+        },
+      });
+      assert.equal(result.status, "error");
+      assert.equal(result.code, "TRIP_NOT_FOUND");
     });
-    assert.equal(result.status, "error");
-    assert.equal(result.code, "TRIP_NOT_FOUND");
-  });
-});
+  },
+);
 
 dbTest("booking.delete tolerates an orphaned itineraryItemId and is idempotent", async () => {
   await withRollback(async (client) => {
@@ -803,29 +821,36 @@ dbTest(
   },
 );
 
-dbTest("cross-household isolation: a trip from another household is not visible or editable", async () => {
-  await withRollback(async (client) => {
-    const owner = await createHouseholdAndUser(client, "owner");
-    const stranger = await createHouseholdAndUser(client, "stranger");
-    const tripId = randomUUID();
-    await applyTripMutation(client, { householdId: owner.householdId, userId: owner.userId }, {
-      idempotencyKey: randomUUID(),
-      op: "trip.create",
-      payload: tripCreatePayload({ id: tripId }),
+dbTest(
+  "cross-household isolation: a trip from another household is not visible or editable",
+  async () => {
+    await withRollback(async (client) => {
+      const owner = await createHouseholdAndUser(client, "owner");
+      const stranger = await createHouseholdAndUser(client, "stranger");
+      const tripId = randomUUID();
+      await applyTripMutation(
+        client,
+        { householdId: owner.householdId, userId: owner.userId },
+        {
+          idempotencyKey: randomUUID(),
+          op: "trip.create",
+          payload: tripCreatePayload({ id: tripId }),
+        },
+      );
+      const strangerSnapshot = await readTripsSnapshot(client, stranger.householdId);
+      assert.deepEqual(strangerSnapshot.trips, []);
+      const attempt = await applyTripMutation(
+        client,
+        { householdId: stranger.householdId, userId: stranger.userId },
+        {
+          idempotencyKey: randomUUID(),
+          op: "trip.update",
+          payload: { id: tripId, changes: { name: "Podmienione" } },
+          baseVersion: 1,
+        },
+      );
+      assert.equal(attempt.status, "error");
+      assert.equal(attempt.code, "NOT_FOUND");
     });
-    const strangerSnapshot = await readTripsSnapshot(client, stranger.householdId);
-    assert.deepEqual(strangerSnapshot.trips, []);
-    const attempt = await applyTripMutation(
-      client,
-      { householdId: stranger.householdId, userId: stranger.userId },
-      {
-        idempotencyKey: randomUUID(),
-        op: "trip.update",
-        payload: { id: tripId, changes: { name: "Podmienione" } },
-        baseVersion: 1,
-      },
-    );
-    assert.equal(attempt.status, "error");
-    assert.equal(attempt.code, "NOT_FOUND");
-  });
-});
+  },
+);

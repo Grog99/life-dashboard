@@ -163,9 +163,10 @@ export function tripRowToDto(row) {
     startDate: row.start_date,
     endDate: row.end_date,
     status: row.status,
-    budgetMinor: row.budget_minor === null || row.budget_minor === undefined
-      ? undefined
-      : Number(row.budget_minor),
+    budgetMinor:
+      row.budget_minor === null || row.budget_minor === undefined
+        ? undefined
+        : Number(row.budget_minor),
     currency: row.currency,
     travelers: Array.isArray(row.travelers) ? row.travelers : [],
     progress: row.progress,
@@ -185,9 +186,8 @@ export function itineraryRowToDto(row) {
     title: row.title,
     type: row.type,
     location: row.location ?? undefined,
-    costMinor: row.cost_minor === null || row.cost_minor === undefined
-      ? undefined
-      : Number(row.cost_minor),
+    costMinor:
+      row.cost_minor === null || row.cost_minor === undefined ? undefined : Number(row.cost_minor),
     booked: row.booked,
     notes: row.notes ?? undefined,
     version: row.version,
@@ -273,7 +273,11 @@ export function validateTripCreatePayload(payload) {
     "Nieprawidłowa lista podróżników",
     "INVALID_TRAVELERS",
   );
-  assertShape(TRIP_ACCENTS.has(payload.accent), "Nieprawidłowy akcent kolorystyczny", "INVALID_ACCENT");
+  assertShape(
+    TRIP_ACCENTS.has(payload.accent),
+    "Nieprawidłowy akcent kolorystyczny",
+    "INVALID_ACCENT",
+  );
   if (payload.notes !== undefined && payload.notes !== null) {
     assertShape(
       typeof payload.notes === "string" && payload.notes.length <= 5000,
@@ -326,7 +330,11 @@ export function validateTripUpdatePayload(payload, baseVersion) {
     changes.name = c.name.trim();
   }
   if (c.destination !== undefined) {
-    assertShape(isNonEmptyText(c.destination, 500), "Nieprawidłowy cel podróży", "INVALID_DESTINATION");
+    assertShape(
+      isNonEmptyText(c.destination, 500),
+      "Nieprawidłowy cel podróży",
+      "INVALID_DESTINATION",
+    );
     changes.destination = c.destination.trim();
   }
   if (c.startDate !== undefined) {
@@ -365,7 +373,11 @@ export function validateTripUpdatePayload(payload, baseVersion) {
     changes.currency = c.currency;
   }
   if (c.travelers !== undefined) {
-    assertShape(isTravelersArray(c.travelers), "Nieprawidłowa lista podróżników", "INVALID_TRAVELERS");
+    assertShape(
+      isTravelersArray(c.travelers),
+      "Nieprawidłowa lista podróżników",
+      "INVALID_TRAVELERS",
+    );
     changes.travelers = c.travelers;
   }
   if (c.accent !== undefined) {
@@ -395,10 +407,18 @@ export function validateItineraryCreatePayload(payload) {
   assertShape(isId(payload.tripId), "Nieprawidłowy identyfikator podróży", "INVALID_TRIP_ID");
   assertShape(isIsoDate(payload.date), "Nieprawidłowa data punktu planu", "INVALID_DATE");
   assertShape(isClockTime(payload.time), "Nieprawidłowa godzina punktu planu", "INVALID_TIME");
-  assertShape(isNonEmptyText(payload.title, 500), "Nieprawidłowy tytuł punktu planu", "INVALID_TITLE");
+  assertShape(
+    isNonEmptyText(payload.title, 500),
+    "Nieprawidłowy tytuł punktu planu",
+    "INVALID_TITLE",
+  );
   assertShape(ITINERARY_TYPES.has(payload.type), "Nieprawidłowy typ punktu planu", "INVALID_TYPE");
   if (payload.location !== undefined && payload.location !== null) {
-    assertShape(isOptionalText(payload.location, 500), "Nieprawidłowa lokalizacja", "INVALID_LOCATION");
+    assertShape(
+      isOptionalText(payload.location, 500),
+      "Nieprawidłowa lokalizacja",
+      "INVALID_LOCATION",
+    );
   }
   if (payload.costMinor !== undefined && payload.costMinor !== null) {
     assertShape(
@@ -408,7 +428,11 @@ export function validateItineraryCreatePayload(payload) {
     );
   }
   if (payload.booked !== undefined) {
-    assertShape(typeof payload.booked === "boolean", "Nieprawidłowa flaga rezerwacji", "INVALID_BOOKED");
+    assertShape(
+      typeof payload.booked === "boolean",
+      "Nieprawidłowa flaga rezerwacji",
+      "INVALID_BOOKED",
+    );
   }
   if (payload.notes !== undefined && payload.notes !== null) {
     assertShape(isOptionalText(payload.notes, 5000), "Nieprawidłowa notatka", "INVALID_NOTES");
@@ -442,13 +466,29 @@ export function validateBookingCreatePayload(payload) {
   }
   assertShape(BOOKING_TYPES.has(payload.type), "Nieprawidłowy typ rezerwacji", "INVALID_TYPE");
   if (payload.provider !== undefined && payload.provider !== null) {
-    assertShape(isOptionalText(payload.provider, 500), "Nieprawidłowy dostawca", "INVALID_PROVIDER");
+    assertShape(
+      isOptionalText(payload.provider, 500),
+      "Nieprawidłowy dostawca",
+      "INVALID_PROVIDER",
+    );
   }
   if (payload.reference !== undefined && payload.reference !== null) {
-    assertShape(isOptionalText(payload.reference, 500), "Nieprawidłowy numer referencyjny", "INVALID_REFERENCE");
+    assertShape(
+      isOptionalText(payload.reference, 500),
+      "Nieprawidłowy numer referencyjny",
+      "INVALID_REFERENCE",
+    );
   }
-  assertShape(isNonEmptyText(payload.title, 500), "Nieprawidłowy tytuł rezerwacji", "INVALID_TITLE");
-  assertShape(isIsoDateTime(payload.startAt), "Nieprawidłowa data/godzina rezerwacji", "INVALID_START_AT");
+  assertShape(
+    isNonEmptyText(payload.title, 500),
+    "Nieprawidłowy tytuł rezerwacji",
+    "INVALID_TITLE",
+  );
+  assertShape(
+    isIsoDateTime(payload.startAt),
+    "Nieprawidłowa data/godzina rezerwacji",
+    "INVALID_START_AT",
+  );
   assertShape(
     isSafeMoney(payload.amountMinor) && payload.amountMinor >= 0,
     "Nieprawidłowa kwota rezerwacji",
@@ -488,7 +528,11 @@ export function validateBookingUpdatePayload(payload, baseVersion) {
   assertShape(isId(payload.id), "Nieprawidłowy identyfikator rezerwacji", "INVALID_ID");
   assertShape(isPlainObject(payload.changes), "Brak zmian do zastosowania", "INVALID_CHANGES");
   for (const key of Object.keys(payload.changes)) {
-    assertShape(BOOKING_UPDATE_KEYS.has(key), `Pola "${key}" nie można edytować`, "INVALID_CHANGES");
+    assertShape(
+      BOOKING_UPDATE_KEYS.has(key),
+      `Pola "${key}" nie można edytować`,
+      "INVALID_CHANGES",
+    );
   }
   const version = normalizeRequiredVersion(baseVersion);
   const changes = {};
@@ -498,11 +542,19 @@ export function validateBookingUpdatePayload(payload, baseVersion) {
     changes.type = c.type;
   }
   if (c.provider !== undefined) {
-    assertShape(isOptionalText(c.provider ?? "", 500), "Nieprawidłowy dostawca", "INVALID_PROVIDER");
+    assertShape(
+      isOptionalText(c.provider ?? "", 500),
+      "Nieprawidłowy dostawca",
+      "INVALID_PROVIDER",
+    );
     changes.provider = c.provider ?? "";
   }
   if (c.reference !== undefined) {
-    assertShape(isOptionalText(c.reference ?? "", 500), "Nieprawidłowy numer referencyjny", "INVALID_REFERENCE");
+    assertShape(
+      isOptionalText(c.reference ?? "", 500),
+      "Nieprawidłowy numer referencyjny",
+      "INVALID_REFERENCE",
+    );
     changes.reference = c.reference ?? "";
   }
   if (c.title !== undefined) {
@@ -510,7 +562,11 @@ export function validateBookingUpdatePayload(payload, baseVersion) {
     changes.title = c.title.trim();
   }
   if (c.startAt !== undefined) {
-    assertShape(isIsoDateTime(c.startAt), "Nieprawidłowa data/godzina rezerwacji", "INVALID_START_AT");
+    assertShape(
+      isIsoDateTime(c.startAt),
+      "Nieprawidłowa data/godzina rezerwacji",
+      "INVALID_START_AT",
+    );
     changes.startAt = c.startAt;
   }
   if (c.amountMinor !== undefined) {
@@ -533,12 +589,24 @@ export function validatePackingCreatePayload(payload) {
   assertShape(isId(payload.id), "Nieprawidłowy identyfikator przedmiotu", "INVALID_ID");
   assertShape(isId(payload.tripId), "Nieprawidłowy identyfikator podróży", "INVALID_TRIP_ID");
   assertShape(isNonEmptyText(payload.name, 500), "Nieprawidłowa nazwa przedmiotu", "INVALID_NAME");
-  assertShape(PACKING_CATEGORIES.has(payload.category), "Nieprawidłowa kategoria", "INVALID_CATEGORY");
+  assertShape(
+    PACKING_CATEGORIES.has(payload.category),
+    "Nieprawidłowa kategoria",
+    "INVALID_CATEGORY",
+  );
   if (payload.packed !== undefined) {
-    assertShape(typeof payload.packed === "boolean", "Nieprawidłowa flaga spakowania", "INVALID_PACKED");
+    assertShape(
+      typeof payload.packed === "boolean",
+      "Nieprawidłowa flaga spakowania",
+      "INVALID_PACKED",
+    );
   }
   if (payload.assignedTo !== undefined && payload.assignedTo !== null) {
-    assertShape(isOptionalText(payload.assignedTo, 500), "Nieprawidłowy przypisany podróżnik", "INVALID_ASSIGNED_TO");
+    assertShape(
+      isOptionalText(payload.assignedTo, 500),
+      "Nieprawidłowy przypisany podróżnik",
+      "INVALID_ASSIGNED_TO",
+    );
   }
   return {
     id: payload.id,
@@ -560,7 +628,11 @@ export function validatePackingUpdatePayload(payload, baseVersion) {
   assertShape(isId(payload.id), "Nieprawidłowy identyfikator przedmiotu", "INVALID_ID");
   assertShape(isPlainObject(payload.changes), "Brak zmian do zastosowania", "INVALID_CHANGES");
   for (const key of Object.keys(payload.changes)) {
-    assertShape(PACKING_UPDATE_KEYS.has(key), `Pola "${key}" nie można edytować`, "INVALID_CHANGES");
+    assertShape(
+      PACKING_UPDATE_KEYS.has(key),
+      `Pola "${key}" nie można edytować`,
+      "INVALID_CHANGES",
+    );
   }
   const version = normalizeRequiredVersion(baseVersion);
   const changes = {};
@@ -573,7 +645,11 @@ export function validatePackingUpdatePayload(payload, baseVersion) {
     if (c.assignedTo === null) {
       changes.assignedTo = null;
     } else {
-      assertShape(isOptionalText(c.assignedTo, 500), "Nieprawidłowy przypisany podróżnik", "INVALID_ASSIGNED_TO");
+      assertShape(
+        isOptionalText(c.assignedTo, 500),
+        "Nieprawidłowy przypisany podróżnik",
+        "INVALID_ASSIGNED_TO",
+      );
       changes.assignedTo = c.assignedTo;
     }
   }
@@ -705,10 +781,10 @@ async function resolveConflictOrGone(client, query, params, mapper) {
 // ---------------------------------------------------------------------------
 
 async function recomputeTripProgress(client, tripId, householdId) {
-  const tripResult = await client.query(`SELECT status FROM trips WHERE id = $1 AND household_id = $2`, [
-    tripId,
-    householdId,
-  ]);
+  const tripResult = await client.query(
+    `SELECT status FROM trips WHERE id = $1 AND household_id = $2`,
+    [tripId, householdId],
+  );
   if (!tripResult.rowCount) return null;
   const status = tripResult.rows[0].status;
   const itineraryCount = await client.query(
@@ -863,7 +939,11 @@ async function execItineraryCreate(client, ctx, payload) {
     ctx.householdId,
   ]);
   if (!tripCheck.rowCount) {
-    return { status: "error", error: "Podróż nie istnieje lub jest niedostępna", code: "TRIP_NOT_FOUND" };
+    return {
+      status: "error",
+      error: "Podróż nie istnieje lub jest niedostępna",
+      code: "TRIP_NOT_FOUND",
+    };
   }
   try {
     const inserted = await client.query(
@@ -936,7 +1016,11 @@ async function execBookingCreate(client, ctx, payload) {
     ctx.householdId,
   ]);
   if (!tripCheck.rowCount) {
-    return { status: "error", error: "Podróż nie istnieje lub jest niedostępna", code: "TRIP_NOT_FOUND" };
+    return {
+      status: "error",
+      error: "Podróż nie istnieje lub jest niedostępna",
+      code: "TRIP_NOT_FOUND",
+    };
   }
   try {
     const inserted = await client.query(
@@ -1050,7 +1134,11 @@ async function execPackingCreate(client, ctx, payload) {
     ctx.householdId,
   ]);
   if (!tripCheck.rowCount) {
-    return { status: "error", error: "Podróż nie istnieje lub jest niedostępna", code: "TRIP_NOT_FOUND" };
+    return {
+      status: "error",
+      error: "Podróż nie istnieje lub jest niedostępna",
+      code: "TRIP_NOT_FOUND",
+    };
   }
   try {
     const inserted = await client.query(
@@ -1186,9 +1274,10 @@ export async function applyTripMutation(client, ctx, mutation) {
     [idempotencyKey, ctx.householdId, ctx.userId, op],
   );
   if (!claim.rowCount) {
-    const existing = await client.query(`SELECT result FROM trip_mutations WHERE idempotency_key = $1`, [
-      idempotencyKey,
-    ]);
+    const existing = await client.query(
+      `SELECT result FROM trip_mutations WHERE idempotency_key = $1`,
+      [idempotencyKey],
+    );
     return existing.rows[0]?.result ?? { idempotencyKey, status: "duplicate" };
   }
 
