@@ -18,6 +18,7 @@ import {
   Lock,
   MapPin,
   Pause,
+  PawPrint,
   Play,
   Plus,
   RotateCcw,
@@ -97,6 +98,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
   const subscriptions = useAdvancedStore((state) => state.subscriptions);
   const vehicles = useAdvancedStore((state) => state.vehicles);
   const vehicleDeadlines = useAdvancedStore((state) => state.vehicleDeadlines);
+  const petVisits = useAdvancedStore((state) => state.petVisits);
   const healthAppointments = useAdvancedStore((state) => state.healthAppointments);
   const medications = useAdvancedStore((state) => state.medications);
   const hideAmounts = useAdvancedStore((state) => state.hideAmounts);
@@ -178,6 +180,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
   const nextSubscription = subscriptions.filter((item) => item.status === "active" || item.status === "trial").sort((a, b) => a.nextPayment.localeCompare(b.nextPayment))[0];
   const mainVehicle = vehicles[0];
   const nextCarDeadline = vehicleDeadlines.filter((item) => item.vehicleId === mainVehicle?.id && !item.completed && item.dueDate).sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))[0];
+  const nextPetVisit = petVisits.filter((item) => item.status === "scheduled" && item.date >= today).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
   const nextHealthAppointment = healthAppointments.filter((item) => item.status === "scheduled" && item.date >= today).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
   const activeMedications = medications.filter((item) => item.active);
   const medicationsTakenToday = activeMedications.filter((item) => item.lastTakenOn === today).length;
@@ -352,6 +355,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
               <button type="button" onClick={() => onNavigate("meals")}><span className="life-module-icon life-module-icon--meal"><Utensils size={18} /></span><div><small>Dzisiejsza kolacja</small><strong>{todayMeal?.title ?? "Jeszcze bez planu"}</strong><span>{todayMeal ? `${todayMeal.servings} porcje` : "Dodaj posiłek"}</span></div><ChevronRight size={15} /></button>
               <button type="button" onClick={() => onNavigate("subscriptions")}><span className="life-module-icon life-module-icon--sub"><Repeat2 size={18} /></span><div><small>Najbliższe odnowienie</small><strong>{nextSubscription?.name ?? "Brak odnowień"}</strong><span>{nextSubscription ? `${formatMoney(nextSubscription.amountMinor, nextSubscription.currency, hideAmounts)} · ${relativeDay(nextSubscription.nextPayment)}` : "Wszystko spokojnie"}</span></div><ChevronRight size={15} /></button>
               <button type="button" onClick={() => onNavigate("car")}><span className="life-module-icon life-module-icon--car"><CarFront size={18} /></span><div><small>{mainVehicle?.name ?? "Samochód"}</small><strong>{nextCarDeadline?.title ?? "Brak pilnych terminów"}</strong><span>{nextCarDeadline?.dueDate ? relativeDay(nextCarDeadline.dueDate) : mainVehicle ? `${mainVehicle.mileage.toLocaleString("pl-PL")} km` : "Dodaj pojazd"}</span></div><ChevronRight size={15} /></button>
+              <button type="button" onClick={() => onNavigate("pets")}><span className="life-module-icon life-module-icon--pets"><PawPrint size={18} /></span><div><small>Zwierzęta</small><strong>{nextPetVisit?.title ?? "Brak wizyt w planie"}</strong><span>{nextPetVisit ? `${relativeDay(nextPetVisit.date)} · ${nextPetVisit.time}` : "Wszystko spokojnie"}</span></div><ChevronRight size={15} /></button>
               <button type="button" onClick={() => onNavigate("health")}><span className="life-module-icon life-module-icon--health"><HeartPulse size={18} /></span><div><small>Zdrowie</small><strong>{nextHealthAppointment?.title ?? "Bez wizyt w planie"}</strong><span>{nextHealthAppointment ? `${relativeDay(nextHealthAppointment.date)} · ${nextHealthAppointment.time}` : activeMedications.length ? `Leki: ${medicationsTakenToday} z ${activeMedications.length} przyjęte` : "Wszystko spokojnie"}</span></div><ChevronRight size={15} /></button>
             </div>
           </section>

@@ -6,6 +6,7 @@ import {
   Leaf,
   HeartPulse,
   NotebookPen,
+  PawPrint,
   Plus,
   Search,
   Settings,
@@ -40,6 +41,7 @@ const destinations: Array<{ view: ViewId; label: string; icon: typeof LayoutDash
   { view: "subscriptions", label: "Przejdź do: Subskrypcje", icon: Repeat2, keywords: "subskrypcje abonamenty odnowienia" },
   { view: "meals", label: "Przejdź do: Posiłki", icon: Utensils, keywords: "posiłki przepisy zakupy jadłospis" },
   { view: "car", label: "Przejdź do: Samochód", icon: CarFront, keywords: "samochód auto serwis paliwo" },
+  { view: "pets", label: "Przejdź do: Zwierzęta", icon: PawPrint, keywords: "zwierzęta pies kot królik akwarium weterynarz" },
   { view: "health", label: "Przejdź do: Zdrowie", icon: HeartPulse, keywords: "zdrowie lekarz wizyty leki pomiary badania" },
   { view: "settings", label: "Przejdź do: Ustawienia", icon: Settings, keywords: "ustawienia motyw dane" },
 ];
@@ -53,6 +55,7 @@ export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: Comman
   const subscriptions = useAdvancedStore((state) => state.subscriptions);
   const recipes = useAdvancedStore((state) => state.recipes);
   const vehicles = useAdvancedStore((state) => state.vehicles);
+  const pets = useAdvancedStore((state) => state.pets);
   const healthAppointments = useAdvancedStore((state) => state.healthAppointments);
   const medications = useAdvancedStore((state) => state.medications);
   const [query, setQuery] = useState("");
@@ -110,12 +113,13 @@ export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: Comman
       ...subscriptions.filter((item) => `${item.name} ${item.category}`.toLocaleLowerCase("pl").includes(normalized)).slice(0, 2).map((item) => ({ id: item.id, label: item.name, meta: "Subskrypcja", view: "subscriptions" as ViewId, icon: Repeat2 })),
       ...recipes.filter((item) => `${item.name} ${item.tags.join(" ")}`.toLocaleLowerCase("pl").includes(normalized)).slice(0, 2).map((item) => ({ id: item.id, label: item.name, meta: "Przepis", view: "meals" as ViewId, icon: Utensils })),
       ...vehicles.filter((item) => `${item.name} ${item.make} ${item.model} ${item.plate}`.toLocaleLowerCase("pl").includes(normalized)).slice(0, 2).map((item) => ({ id: item.id, label: item.name, meta: "Samochód", view: "car" as ViewId, icon: CarFront })),
+      ...pets.filter((item) => `${item.name} ${item.species ?? ""}`.toLocaleLowerCase("pl").includes(normalized)).slice(0, 2).map((item) => ({ id: item.id, label: item.name, meta: "Zwierzęta", view: "pets" as ViewId, icon: PawPrint })),
       ...[...healthAppointments, ...medications].filter((item) => ("title" in item ? item.title : item.name).toLocaleLowerCase("pl").includes(normalized)).slice(0, 2).map((item) => ({ id: item.id, label: "title" in item ? item.title : item.name, meta: "Zdrowie", view: "health" as ViewId, icon: HeartPulse })),
       ...destinations
         .filter((destination) => `${destination.label} ${destination.keywords}`.toLocaleLowerCase("pl").includes(normalized))
         .map((destination) => ({ id: destination.view, label: destination.label, meta: "Widok", view: destination.view, icon: destination.icon })),
     ].slice(0, 7);
-  }, [events, financeTransactions, healthAppointments, medications, notes, query, recipes, subscriptions, tasks, trips, vehicles]);
+  }, [events, financeTransactions, healthAppointments, medications, notes, pets, query, recipes, subscriptions, tasks, trips, vehicles]);
 
   const go = (view: ViewId) => { onNavigate(view); onClose(); };
 

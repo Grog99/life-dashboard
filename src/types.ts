@@ -11,6 +11,7 @@ export type ViewId =
   | "subscriptions"
   | "meals"
   | "car"
+  | "pets"
   | "health"
   | "settings";
 

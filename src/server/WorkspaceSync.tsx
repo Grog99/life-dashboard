@@ -45,6 +45,7 @@ function replaceWithEmptyWorkspace() {
     financeAccounts: [], financeTransactions: [], financeBudgets: [], savingsGoals: [],
     trips: [], tripItinerary: [], tripBookings: [], packingItems: [], subscriptions: [],
     recipes: [], mealSlots: [], shoppingItems: [], vehicles: [], carExpenses: [], vehicleDeadlines: [],
+    pets: [], petExpenses: [], petVisits: [],
     healthAppointments: [], medications: [], healthMeasurements: [], hideAmounts: false,
   });
 }

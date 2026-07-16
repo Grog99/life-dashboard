@@ -200,6 +200,21 @@ export const vehicleSchema = sharedMetaSchema.extend({
 });
 export const carExpenseSchema = sharedMetaSchema.extend({ id: idSchema, vehicleId: idSchema, date: isoDate, type: z.enum(["fuel", "service", "insurance", "parking", "other"]), amountMinor: safeMoney.nonnegative(), mileage: z.number().int().nonnegative().optional(), liters: z.number().positive().optional(), title: nonEmptyText });
 export const vehicleDeadlineSchema = z.object({ id: idSchema, vehicleId: idSchema, title: nonEmptyText, dueDate: isoDate.optional(), dueMileage: z.number().int().nonnegative().optional(), completed: z.boolean() });
+const fishStockEntrySchema = z.object({ id: idSchema, species: nonEmptyText, count: z.number().int().nonnegative() });
+export const petSchema = sharedMetaSchema.extend({
+  id: idSchema, name: nonEmptyText, kind: z.enum(["rabbit", "dog", "cat", "guinea_pig", "aquarium", "other"]),
+  color: z.string().max(32), species: z.string().max(500).optional(), birthDate: isoDate.optional(),
+  fishStock: z.array(fishStockEntrySchema).max(500).optional(), notes: z.string().max(5000).optional(),
+});
+export const petExpenseSchema = sharedMetaSchema.extend({
+  id: idSchema, petId: idSchema, date: isoDate, type: z.enum(["food", "vet", "accessories", "grooming", "other"]),
+  amountMinor: safeMoney.nonnegative(), title: nonEmptyText, notes: z.string().max(5000).optional(),
+});
+export const petVisitSchema = sharedMetaSchema.extend({
+  id: idSchema, petId: idSchema, title: nonEmptyText, clinician: nonEmptyText, specialty: z.string().max(500).optional(),
+  date: isoDate, time: clockTime, location: z.string().max(1000).optional(),
+  status: z.enum(["scheduled", "completed", "cancelled"]), notes: z.string().max(5000).optional(),
+});
 export const healthAppointmentSchema = sharedMetaSchema.extend({
   id: idSchema, title: nonEmptyText, clinician: nonEmptyText, specialty: z.string().max(500).optional(),
   date: isoDate, time: clockTime, location: z.string().max(1000).optional(),
@@ -223,7 +238,8 @@ export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
   tripItinerary: z.array(tripItinerarySchema), tripBookings: z.array(tripBookingSchema), packingItems: z.array(packingItemSchema),
   subscriptions: z.array(subscriptionSchema), recipes: z.array(recipeSchema), mealSlots: z.array(mealSlotSchema),
   shoppingItems: z.array(shoppingItemSchema), vehicles: z.array(vehicleSchema), carExpenses: z.array(carExpenseSchema),
-  vehicleDeadlines: z.array(vehicleDeadlineSchema), healthAppointments: z.array(healthAppointmentSchema),
+  vehicleDeadlines: z.array(vehicleDeadlineSchema), pets: z.array(petSchema), petExpenses: z.array(petExpenseSchema),
+  petVisits: z.array(petVisitSchema), healthAppointments: z.array(healthAppointmentSchema),
   medications: z.array(medicationSchema), healthMeasurements: z.array(healthMeasurementSchema),
   householdMembers: z.array(householdMemberSchema),
   householdName: householdNameSchema, hideAmounts: hideAmountsSchema,

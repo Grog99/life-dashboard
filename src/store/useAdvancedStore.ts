@@ -17,6 +17,9 @@ import {
   mealSlotSchema,
   medicationSchema,
   packingItemSchema,
+  petExpenseSchema,
+  petSchema,
+  petVisitSchema,
   recipeSchema,
   savingsGoalSchema,
   shoppingItemSchema,
@@ -39,6 +42,9 @@ import type {
   Medication,
   MealSlot,
   PackingItem,
+  Pet,
+  PetExpense,
+  PetVisit,
   Recipe,
   SavingsGoal,
   ShoppingItem,
@@ -107,6 +113,15 @@ interface AdvancedActions {
   updateVehicle: (vehicleId: string, changes: Partial<Vehicle>) => void;
   addCarExpense: (expense: Omit<CarExpense, "id">) => string;
   toggleVehicleDeadline: (deadlineId: string) => void;
+  addPet: (pet: Omit<Pet, "id">) => string;
+  updatePet: (petId: string, changes: Partial<Pet>) => void;
+  deletePet: (petId: string) => void;
+  addPetExpense: (expense: Omit<PetExpense, "id">) => string;
+  deletePetExpense: (expenseId: string) => void;
+  addPetVisit: (visit: Omit<PetVisit, "id">) => string;
+  updatePetVisit: (visitId: string, changes: Partial<PetVisit>) => void;
+  deletePetVisit: (visitId: string) => void;
+  togglePetVisitCompleted: (visitId: string) => void;
   addHealthAppointment: (appointment: Omit<HealthAppointment, "id">) => string;
   updateHealthAppointment: (appointmentId: string, changes: Partial<HealthAppointment>) => void;
   deleteHealthAppointment: (appointmentId: string) => void;
@@ -346,6 +361,47 @@ export const useAdvancedStore = create<AdvancedStore>()(
               : deadline,
           ),
         })),
+      addPet: (pet) => {
+        const id = makeId();
+        set((state) => ({ pets: [...state.pets, { ...pet, id }] }));
+        return id;
+      },
+      updatePet: (petId, changes) =>
+        set((state) => ({
+          pets: state.pets.map((pet) => (pet.id === petId ? { ...pet, ...changes } : pet)),
+        })),
+      deletePet: (petId) =>
+        set((state) => ({
+          pets: state.pets.filter((pet) => pet.id !== petId),
+          petExpenses: state.petExpenses.filter((expense) => expense.petId !== petId),
+          petVisits: state.petVisits.filter((visit) => visit.petId !== petId),
+        })),
+      addPetExpense: (expense) => {
+        const id = makeId();
+        set((state) => ({ petExpenses: [{ ...expense, id }, ...state.petExpenses] }));
+        return id;
+      },
+      deletePetExpense: (expenseId) =>
+        set((state) => ({ petExpenses: state.petExpenses.filter((expense) => expense.id !== expenseId) })),
+      addPetVisit: (visit) => {
+        const id = makeId();
+        set((state) => ({ petVisits: [...state.petVisits, { ...visit, id }] }));
+        return id;
+      },
+      updatePetVisit: (visitId, changes) =>
+        set((state) => ({
+          petVisits: state.petVisits.map((visit) => (visit.id === visitId ? { ...visit, ...changes } : visit)),
+        })),
+      deletePetVisit: (visitId) =>
+        set((state) => ({ petVisits: state.petVisits.filter((visit) => visit.id !== visitId) })),
+      togglePetVisitCompleted: (visitId) =>
+        set((state) => ({
+          petVisits: state.petVisits.map((visit) =>
+            visit.id === visitId
+              ? { ...visit, status: visit.status === "completed" ? "scheduled" : "completed" }
+              : visit,
+          ),
+        })),
       addHealthAppointment: (appointment) => {
         const id = makeId();
         set((state) => ({
@@ -415,6 +471,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
         })),
       replaceAdvancedData: (data) => set({
         ...data,
+        pets: data.pets ?? [],
+        petExpenses: data.petExpenses ?? [],
+        petVisits: data.petVisits ?? [],
         healthAppointments: data.healthAppointments ?? [],
         medications: data.medications ?? [],
         healthMeasurements: data.healthMeasurements ?? [],
@@ -447,6 +506,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
         const vehicles = parseArrayField(state.vehicles, vehicleSchema);
         const carExpenses = parseArrayField(state.carExpenses, carExpenseSchema);
         const vehicleDeadlines = parseArrayField(state.vehicleDeadlines, vehicleDeadlineSchema);
+        const pets = parseArrayField(state.pets, petSchema);
+        const petExpenses = parseArrayField(state.petExpenses, petExpenseSchema);
+        const petVisits = parseArrayField(state.petVisits, petVisitSchema);
         const healthAppointments = parseArrayField(state.healthAppointments, healthAppointmentSchema);
         const medications = parseArrayField(state.medications, medicationSchema);
         const healthMeasurements = parseArrayField(state.healthMeasurements, healthMeasurementSchema);
@@ -457,7 +519,8 @@ export const useAdvancedStore = create<AdvancedStore>()(
         const arrayFields = [
           financeAccounts, financeTransactions, financeBudgets, savingsGoals, trips, tripItinerary,
           tripBookings, packingItems, subscriptions, recipes, mealSlots, shoppingItems, vehicles,
-          carExpenses, vehicleDeadlines, healthAppointments, medications, healthMeasurements, householdMembers,
+          carExpenses, vehicleDeadlines, pets, petExpenses, petVisits, healthAppointments, medications,
+          healthMeasurements, householdMembers,
         ];
         const droppedCount =
           arrayFields.reduce((sum, field) => sum + field.dropped, 0) + householdName.dropped + hideAmounts.dropped;
@@ -484,6 +547,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
           vehicles: vehicles.items,
           carExpenses: carExpenses.items,
           vehicleDeadlines: vehicleDeadlines.items,
+          pets: pets.items,
+          petExpenses: petExpenses.items,
+          petVisits: petVisits.items,
           healthAppointments: healthAppointments.items,
           medications: medications.items,
           healthMeasurements: healthMeasurements.items,
@@ -508,6 +574,9 @@ export const useAdvancedStore = create<AdvancedStore>()(
         vehicles: state.vehicles,
         carExpenses: state.carExpenses,
         vehicleDeadlines: state.vehicleDeadlines,
+        pets: state.pets,
+        petExpenses: state.petExpenses,
+        petVisits: state.petVisits,
         healthAppointments: state.healthAppointments,
         medications: state.medications,
         healthMeasurements: state.healthMeasurements,
@@ -537,6 +606,9 @@ export function exportAdvancedData(): AdvancedDataWithHealth {
     vehicles: state.vehicles,
     carExpenses: state.carExpenses,
     vehicleDeadlines: state.vehicleDeadlines,
+    pets: state.pets,
+    petExpenses: state.petExpenses,
+    petVisits: state.petVisits,
     healthAppointments: state.healthAppointments,
     medications: state.medications,
     healthMeasurements: state.healthMeasurements,

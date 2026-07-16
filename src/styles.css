@@ -1412,6 +1412,7 @@ kbd {
 .life-module-icon { display:grid;width:33px;height:33px;flex:0 0 auto;place-items:center;border-radius:10px; }
 .life-module-icon--finance { color:var(--brand);background:var(--brand-light); }.life-module-icon--trip { color:var(--amber);background:var(--amber-light); }.life-module-icon--meal { color:#a25c45;background:#f8e9df; }.life-module-icon--sub { color:var(--purple);background:var(--purple-light); }.life-module-icon--car { color:var(--blue);background:var(--blue-light); }
 .life-module-icon--health { color:#a4475d;background:#f7e6ea; }
+.life-module-icon--pets { color:#8a6a3a;background:#f3e7d3; }
 .life-overview-grid>button>div { display:flex;min-width:0;flex:1;flex-direction:column;gap:2px; }.life-overview-grid small { color:var(--muted);font-size: 10px;text-transform:uppercase; }.life-overview-grid strong { overflow:hidden;font-size:10px;text-overflow:ellipsis;white-space:nowrap; }.life-overview-grid>button>div>span { color:var(--muted);font-size: 10px; }.life-overview-grid>button>svg { color:var(--muted-light); }
 
 .next-card {

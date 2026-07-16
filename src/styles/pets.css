@@ -1,0 +1,262 @@
+/* Zwierzęta — pet-strip (analogiczny do garage-strip) */
+.pet-strip {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 5px;
+  margin-bottom: 13px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.pet-card,
+.pet-add {
+  display: flex;
+  min-width: 210px;
+  min-height: 92px;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  scroll-snap-align: start;
+}
+
+.pet-card:hover,
+.pet-card--active {
+  border-color: var(--pet-color);
+}
+
+.pet-card--active {
+  background: color-mix(in srgb, var(--pet-color) 7%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pet-color) 25%, transparent), var(--shadow-card);
+}
+
+.pet-card__icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #fff;
+  background: var(--pet-color);
+  border-radius: 12px;
+}
+
+.pet-card > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pet-card strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-card span,
+.pet-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.pet-add {
+  min-width: 145px;
+  justify-content: center;
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 750;
+  background: var(--brand-pale);
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.pet-add:hover {
+  border-color: var(--brand);
+}
+
+/* Kategorie wydatków — reużywają .car-expense-icon (moduł Samochód) */
+.car-expense-icon--food {
+  color: var(--brand);
+  background: var(--brand-light);
+}
+
+.car-expense-icon--vet {
+  color: var(--blue);
+  background: var(--blue-light);
+}
+
+.car-expense-icon--accessories {
+  color: var(--purple);
+  background: var(--purple-light);
+}
+
+.car-expense-icon--grooming {
+  color: var(--amber);
+  background: var(--amber-light);
+}
+
+/* Karta profilu zwierzęcia — reużywa strukturę .vehicle-overview-card */
+.pet-overview-card > header {
+  display: grid;
+  grid-template-columns: 45px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pet-overview-icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  color: #fff;
+  border-radius: 12px;
+}
+
+.pet-overview-card header > div {
+  min-width: 0;
+}
+
+.pet-overview-card header span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.pet-overview-card header h2 {
+  overflow: hidden;
+  margin: 2px 0;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-overview-card header p {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.pet-date-grid > div {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 5px;
+  padding: 9px;
+  background: var(--surface-subtle);
+  border-radius: 9px;
+}
+
+.pet-date-grid svg {
+  grid-row: 1 / 3;
+  color: var(--brand);
+}
+
+.pet-date-grid span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.pet-date-grid strong {
+  font-size: 12px;
+}
+
+.pet-fish-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 13px;
+}
+
+.pet-fish-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  background: var(--surface-subtle);
+  border-radius: 9px;
+}
+
+.pet-fish-row svg {
+  color: var(--brand);
+}
+
+.pet-fish-row span {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-fish-row strong {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pet-empty-note {
+  padding: 9px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pet-notes {
+  padding-top: 11px;
+  margin-top: 11px;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+}
+
+.pet-remove-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 11px;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.pet-fish-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pet-fish-editor__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .pet-card {
+    min-width: 195px;
+  }
+}
+
+@media (max-width: 470px) {
+  .pet-fish-editor__row {
+    grid-template-columns: minmax(0, 1fr) 74px 34px;
+  }
+}

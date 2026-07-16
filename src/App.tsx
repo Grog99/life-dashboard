@@ -20,9 +20,10 @@ const TripsPage = lazy(() => import("./pages/TripsPage").then((module) => ({ def
 const SubscriptionsPage = lazy(() => import("./pages/SubscriptionsPage").then((module) => ({ default: module.SubscriptionsPage })));
 const MealsPage = lazy(() => import("./pages/MealsPage").then((module) => ({ default: module.MealsPage })));
 const CarPage = lazy(() => import("./pages/CarPage").then((module) => ({ default: module.CarPage })));
+const PetsPage = lazy(() => import("./pages/PetsPage").then((module) => ({ default: module.PetsPage })));
 const HealthPage = lazy(() => import("./pages/HealthPage").then((module) => ({ default: module.HealthPage })));
 
-const viewIds: ViewId[] = ["today", "tasks", "calendar", "notes", "habits", "finance", "trips", "subscriptions", "meals", "car", "health", "settings"];
+const viewIds: ViewId[] = ["today", "tasks", "calendar", "notes", "habits", "finance", "trips", "subscriptions", "meals", "car", "pets", "health", "settings"];
 
 function viewFromUrl(): ViewId {
   const value = new URL(window.location.href).searchParams.get("view") as ViewId | null;
@@ -169,6 +170,7 @@ export default function App() {
         {view === "subscriptions" && <SubscriptionsPage onToast={showToast} />}
         {view === "meals" && <MealsPage onToast={showToast} />}
         {view === "car" && <CarPage onToast={showToast} />}
+        {view === "pets" && <PetsPage onToast={showToast} />}
         {view === "health" && <HealthPage onToast={showToast} />}
         {view === "settings" && <SettingsPage onToast={showToast} />}
         </Suspense>
