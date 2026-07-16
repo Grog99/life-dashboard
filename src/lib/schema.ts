@@ -1,5 +1,11 @@
 import { z } from "zod";
 import type { AdvancedData } from "../advancedTypes";
+import type {
+  FinanceAccount,
+  FinanceTransaction,
+  FinanceBudget,
+  SavingsGoal,
+} from "../financeTypes";
 
 export const energySchema = z.enum(["low", "medium", "high"]);
 const energy = energySchema;
@@ -152,8 +158,15 @@ export const backupEnvelopeSchema = z.object({
 const currencySchema = z.enum(["PLN", "EUR", "USD", "GBP"]);
 const safeMoney = z.number().int().safe();
 const sharedMetaSchema = z.object({ ownerId: idSchema, visibility: visibilitySchema });
+// Kolumna OCC per rekord (server/migrations/006_finance_normalized.sql): `version` startuje na 1
+// i rośnie tylko przy edycji pól opisowych (patrz docs/plans/model-synchronizacji-danych.md).
+const recordVersion = z.number().int().min(1);
 
-export const financeAccountSchema = sharedMetaSchema.extend({
+// Finanse (konta/transakcje/budżety/cele) nie są już częścią `advancedDataSchema` /
+// dokumentu JSONB workspace — mają własne znormalizowane tabele i endpoint `/api/v1/finance`.
+// Te schematy walidują snapshot GET-a i payloady mutacji POST-owanych do
+// `/api/v1/finance/mutations` (warstwa backend/frontend, patrz plan).
+export const financeAccountSchema: z.ZodType<FinanceAccount> = sharedMetaSchema.extend({
   id: idSchema,
   name: nonEmptyText,
   type: z.enum(["checking", "savings", "cash", "credit"]),
@@ -161,9 +174,10 @@ export const financeAccountSchema = sharedMetaSchema.extend({
   currency: currencySchema,
   color: z.string().max(32),
   archived: z.boolean(),
+  version: recordVersion,
   updatedAt: timestamp,
 });
-export const financeTransactionSchema = sharedMetaSchema.extend({
+export const financeTransactionSchema: z.ZodType<FinanceTransaction> = sharedMetaSchema.extend({
   id: idSchema,
   accountId: idSchema,
   bookedOn: isoDate,
@@ -175,23 +189,26 @@ export const financeTransactionSchema = sharedMetaSchema.extend({
   source: z.enum(["manual", "csv", "subscription", "trip", "car"]),
   fingerprint: z.string().max(500).optional(),
   notes: z.string().max(5000).optional(),
+  version: recordVersion,
   updatedAt: timestamp,
 });
-export const financeBudgetSchema = z.object({
+export const financeBudgetSchema: z.ZodType<FinanceBudget> = z.object({
   id: idSchema,
   category: nonEmptyText,
   limitMinor: safeMoney.nonnegative(),
   currency: currencySchema,
   color: z.string().max(32),
+  version: recordVersion,
   updatedAt: timestamp,
 });
-export const savingsGoalSchema = sharedMetaSchema.extend({
+export const savingsGoalSchema: z.ZodType<SavingsGoal> = sharedMetaSchema.extend({
   id: idSchema,
   name: nonEmptyText,
   targetMinor: safeMoney.nonnegative(),
   savedMinor: safeMoney.nonnegative(),
   currency: currencySchema,
   deadline: isoDate.optional(),
+  version: recordVersion,
   updatedAt: timestamp,
 });
 export const tripSchema = sharedMetaSchema.extend({
@@ -390,10 +407,6 @@ export const householdNameSchema = z.string().min(1).max(500);
 export const hideAmountsSchema = z.boolean();
 
 export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
-  financeAccounts: z.array(financeAccountSchema),
-  financeTransactions: z.array(financeTransactionSchema),
-  financeBudgets: z.array(financeBudgetSchema),
-  savingsGoals: z.array(savingsGoalSchema),
   trips: z.array(tripSchema),
   tripItinerary: z.array(tripItinerarySchema),
   tripBookings: z.array(tripBookingSchema),

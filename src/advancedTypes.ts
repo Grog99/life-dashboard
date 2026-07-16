@@ -1,55 +1,10 @@
-export type Visibility = "private" | "household";
-export type CurrencyCode = "PLN" | "EUR" | "USD" | "GBP";
+// Finanse (konta/transakcje/budżety/cele) żyją teraz w znormalizowanych tabelach SQL,
+// nie w tym dokumencie — patrz docs/plans/model-synchronizacji-danych.md i src/financeTypes.ts.
+// `Visibility`/`CurrencyCode`/`SharedMeta` zostają re-eksportowane stąd, bo reszta modułów
+// w tym pliku (Trip, Subscription, Vehicle, Pet, Health, ...) nadal z nich korzysta.
+import type { Visibility, CurrencyCode, SharedMeta } from "./financeTypes";
 
-export interface SharedMeta {
-  ownerId: string;
-  visibility: Visibility;
-}
-
-export interface FinanceAccount extends SharedMeta {
-  id: string;
-  name: string;
-  type: "checking" | "savings" | "cash" | "credit";
-  balanceMinor: number;
-  currency: CurrencyCode;
-  color: string;
-  archived: boolean;
-  updatedAt: string;
-}
-
-export interface FinanceTransaction extends SharedMeta {
-  id: string;
-  accountId: string;
-  bookedOn: string;
-  amountMinor: number;
-  currency: CurrencyCode;
-  merchant: string;
-  title: string;
-  category: string;
-  source: "manual" | "csv" | "subscription" | "trip" | "car";
-  fingerprint?: string;
-  notes?: string;
-  updatedAt: string;
-}
-
-export interface FinanceBudget {
-  id: string;
-  category: string;
-  limitMinor: number;
-  currency: CurrencyCode;
-  color: string;
-  updatedAt: string;
-}
-
-export interface SavingsGoal extends SharedMeta {
-  id: string;
-  name: string;
-  targetMinor: number;
-  savedMinor: number;
-  currency: CurrencyCode;
-  deadline?: string;
-  updatedAt: string;
-}
+export type { Visibility, CurrencyCode, SharedMeta };
 
 export interface Trip extends SharedMeta {
   id: string;
@@ -270,10 +225,6 @@ export interface HouseholdMember {
 }
 
 export interface AdvancedData {
-  financeAccounts: FinanceAccount[];
-  financeTransactions: FinanceTransaction[];
-  financeBudgets: FinanceBudget[];
-  savingsGoals: SavingsGoal[];
   trips: Trip[];
   tripItinerary: TripItineraryItem[];
   tripBookings: TripBooking[];
