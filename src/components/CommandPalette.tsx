@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLifeStore } from "../store/useLifeStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
+import { useTripsStore } from "../store/useTripsStore";
 import { lockBodyScroll } from "../lib/scrollLock";
 import type { ViewId } from "../types";
 
@@ -112,7 +113,7 @@ export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: Comman
   const notes = useLifeStore((state) => state.notes);
   const events = useLifeStore((state) => state.events);
   const financeTransactions = useFinanceStore((state) => state.transactions);
-  const trips = useAdvancedStore((state) => state.trips);
+  const trips = useTripsStore((state) => state.trips);
   const subscriptions = useAdvancedStore((state) => state.subscriptions);
   const recipes = useAdvancedStore((state) => state.recipes);
   const vehicles = useAdvancedStore((state) => state.vehicles);

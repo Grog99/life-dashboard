@@ -25,6 +25,7 @@ import { backupEnvelopeSchema, backupEnvelopeV2Schema, lifeDataSchema } from "..
 import { exportData, useLifeStore } from "../store/useLifeStore";
 import { exportAdvancedData, useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
+import { useTripsStore } from "../store/useTripsStore";
 import { apiRequest, serverMode } from "../server/api";
 import { useServerAuth } from "../server/AuthGate";
 import { removeCurrentPushSubscription } from "../server/push";
@@ -43,7 +44,8 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   const replaceAdvancedData = useAdvancedStore((state) => state.replaceAdvancedData);
   const resetFinanceData = useFinanceStore((state) => state.resetFinanceData);
   const financeTransactions = useFinanceStore((state) => state.transactions);
-  const trips = useAdvancedStore((state) => state.trips);
+  const resetTripsData = useTripsStore((state) => state.resetTripsData);
+  const trips = useTripsStore((state) => state.trips);
   const householdMembers = useAdvancedStore((state) => state.householdMembers);
   const { snapshot, logout } = useServerAuth();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -164,19 +166,20 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       )
     )
       return;
-    // Finanse nie są już częścią dokumentu JSONB, więc nie da się ich wyczyścić samym lokalnym
-    // replaceAdvancedData -- trzeba jawnie poprosić serwer o usunięcie znormalizowanych rekordów.
-    // Robimy to PRZED czyszczeniem reszty i przerywamy przy błędzie sieci, żeby nie pokazać
-    // "wyczyszczono", gdy finanse w rzeczywistości przetrwały na serwerze i wrócą przy kolejnej
-    // synchronizacji.
+    // Finanse i Podróże nie są już częścią dokumentu JSONB, więc nie da się ich wyczyścić samym
+    // lokalnym replaceAdvancedData -- trzeba jawnie poprosić serwer o usunięcie znormalizowanych
+    // rekordów. Robimy to PRZED czyszczeniem reszty i przerywamy przy błędzie sieci, żeby nie
+    // pokazać "wyczyszczono", gdy finanse/podróże w rzeczywistości przetrwały na serwerze i wrócą
+    // przy kolejnej synchronizacji.
     setClearingData(true);
     try {
       await apiRequest("/api/v1/finance/reset", { method: "POST", json: {} });
+      await apiRequest("/api/v1/trips/reset", { method: "POST", json: {} });
     } catch (error) {
       onToast(
         error instanceof Error
           ? error.message
-          : "Nie udało się wyczyścić danych finansowych na serwerze — spróbuj ponownie",
+          : "Nie udało się wyczyścić danych na serwerze — spróbuj ponownie",
       );
       return;
     } finally {
@@ -197,10 +200,6 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       householdName: "Dom",
       hideAmounts: false,
       householdMembers: [],
-      trips: [],
-      tripItinerary: [],
-      tripBookings: [],
-      packingItems: [],
       subscriptions: [],
       recipes: [],
       mealSlots: [],
@@ -216,6 +215,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       healthMeasurements: [],
     });
     resetFinanceData();
+    resetTripsData();
     onToast("Dane aplikacji zostały całkowicie wyczyszczone");
   };
 

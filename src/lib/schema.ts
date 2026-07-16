@@ -6,6 +6,7 @@ import type {
   FinanceBudget,
   SavingsGoal,
 } from "../financeTypes";
+import type { Trip, TripItineraryItem, TripBooking, PackingItem } from "../tripsTypes";
 
 export const energySchema = z.enum(["low", "medium", "high"]);
 const energy = energySchema;
@@ -211,7 +212,14 @@ export const savingsGoalSchema: z.ZodType<SavingsGoal> = sharedMetaSchema.extend
   version: recordVersion,
   updatedAt: timestamp,
 });
-export const tripSchema = sharedMetaSchema.extend({
+// Podróże (trips/tripItinerary/tripBookings/packingItems) nie są już częścią
+// `advancedDataSchema` / dokumentu JSONB workspace — mają własne znormalizowane tabele
+// (server/migrations/007_trips_normalized.sql) i endpoint `/api/v1/trips` (warstwa
+// backend/frontend, patrz docs/plans/podroze-trips.md). Te schematy walidują snapshot GET-a
+// i payloady mutacji POST-owanych do `/api/v1/trips/mutations`.
+// `Trip` NIE rozszerza `sharedMetaSchema` -- podróże są zawsze wspólne dla gospodarstwa,
+// bez `ownerId`/`visibility` (w odróżnieniu od Finansów).
+export const tripSchema: z.ZodType<Trip> = z.object({
   id: idSchema,
   name: nonEmptyText,
   destination: nonEmptyText,
@@ -224,9 +232,10 @@ export const tripSchema = sharedMetaSchema.extend({
   progress: z.number().min(0).max(100),
   accent: z.enum(["terracotta", "ocean", "forest", "violet"]),
   notes: z.string().max(10_000),
+  version: recordVersion,
   updatedAt: timestamp,
 });
-export const tripItinerarySchema = z.object({
+export const tripItinerarySchema: z.ZodType<TripItineraryItem> = z.object({
   id: idSchema,
   tripId: idSchema,
   date: isoDate,
@@ -237,9 +246,10 @@ export const tripItinerarySchema = z.object({
   costMinor: safeMoney.optional(),
   booked: z.boolean(),
   notes: z.string().max(5000).optional(),
+  version: recordVersion,
   updatedAt: timestamp,
 });
-export const tripBookingSchema = z.object({
+export const tripBookingSchema: z.ZodType<TripBooking> = z.object({
   id: idSchema,
   tripId: idSchema,
   itineraryItemId: idSchema.optional(),
@@ -250,15 +260,17 @@ export const tripBookingSchema = z.object({
   startAt: timestamp,
   amountMinor: safeMoney.nonnegative(),
   paid: z.boolean(),
+  version: recordVersion,
   updatedAt: timestamp,
 });
-export const packingItemSchema = z.object({
+export const packingItemSchema: z.ZodType<PackingItem> = z.object({
   id: idSchema,
   tripId: idSchema,
   name: nonEmptyText,
   category: z.enum(["documents", "clothes", "electronics", "health", "other"]),
   packed: z.boolean(),
   assignedTo: z.string().max(200).optional(),
+  version: recordVersion,
   updatedAt: timestamp,
 });
 export const subscriptionSchema = sharedMetaSchema.extend({
@@ -407,10 +419,6 @@ export const householdNameSchema = z.string().min(1).max(500);
 export const hideAmountsSchema = z.boolean();
 
 export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
-  trips: z.array(tripSchema),
-  tripItinerary: z.array(tripItinerarySchema),
-  tripBookings: z.array(tripBookingSchema),
-  packingItems: z.array(packingItemSchema),
   subscriptions: z.array(subscriptionSchema),
   recipes: z.array(recipeSchema),
   mealSlots: z.array(mealSlotSchema),

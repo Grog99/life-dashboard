@@ -162,10 +162,6 @@ test("server rejects malformed workspace documents", () => {
     false,
   );
   const collections = [
-    "trips",
-    "tripItinerary",
-    "tripBookings",
-    "packingItems",
     "subscriptions",
     "recipes",
     "mealSlots",

@@ -13,16 +13,12 @@ import {
   householdNameSchema,
   mealSlotSchema,
   medicationSchema,
-  packingItemSchema,
   petExpenseSchema,
   petSchema,
   petVisitSchema,
   recipeSchema,
   shoppingItemSchema,
   subscriptionSchema,
-  tripBookingSchema,
-  tripItinerarySchema,
-  tripSchema,
   vehicleDeadlineSchema,
   vehicleSchema,
 } from "../lib/schema";
@@ -34,16 +30,12 @@ import type {
   HealthMeasurement,
   Medication,
   MealSlot,
-  PackingItem,
   Pet,
   PetExpense,
   PetVisit,
   Recipe,
   ShoppingItem,
   Subscription,
-  Trip,
-  TripBooking,
-  TripItineraryItem,
   Vehicle,
 } from "../advancedTypes";
 
@@ -74,16 +66,6 @@ function parseScalarField<T>(
 
 interface AdvancedActions {
   toggleHideAmounts: () => void;
-  addTrip: (trip: Omit<Trip, "id" | "updatedAt">) => string;
-  updateTrip: (tripId: string, changes: Partial<Trip>) => void;
-  addTripItineraryItem: (item: Omit<TripItineraryItem, "id" | "updatedAt">) => string;
-  deleteTripItineraryItem: (itemId: string) => void;
-  addTripBooking: (booking: Omit<TripBooking, "id" | "updatedAt">) => string;
-  updateTripBooking: (bookingId: string, changes: Partial<TripBooking>) => void;
-  deleteTripBooking: (bookingId: string) => void;
-  togglePackingItem: (itemId: string) => void;
-  addPackingItem: (item: Omit<PackingItem, "id" | "updatedAt">) => void;
-  deletePackingItem: (itemId: string) => void;
   addSubscription: (subscription: Omit<Subscription, "id">) => string;
   updateSubscription: (subscriptionId: string, changes: Partial<Subscription>) => void;
   deleteSubscription: (subscriptionId: string) => void;
@@ -127,74 +109,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
     (set, get) => ({
       ...createAdvancedData(),
       toggleHideAmounts: () => set((state) => ({ hideAmounts: !state.hideAmounts })),
-      addTrip: (trip) => {
-        const id = makeId();
-        set((state) => ({
-          trips: [{ ...trip, id, updatedAt: new Date().toISOString() }, ...state.trips],
-        }));
-        return id;
-      },
-      updateTrip: (tripId, changes) =>
-        set((state) => ({
-          trips: state.trips.map((trip) =>
-            trip.id === tripId
-              ? { ...trip, ...changes, updatedAt: new Date().toISOString() }
-              : trip,
-          ),
-        })),
-      addTripItineraryItem: (item) => {
-        const id = makeId();
-        set((state) => ({
-          tripItinerary: [
-            ...state.tripItinerary,
-            { ...item, id, updatedAt: new Date().toISOString() },
-          ],
-        }));
-        return id;
-      },
-      deleteTripItineraryItem: (itemId) =>
-        set((state) => ({
-          tripItinerary: state.tripItinerary.filter((item) => item.id !== itemId),
-        })),
-      addTripBooking: (booking) => {
-        const id = makeId();
-        set((state) => ({
-          tripBookings: [
-            ...state.tripBookings,
-            { ...booking, id, updatedAt: new Date().toISOString() },
-          ],
-        }));
-        return id;
-      },
-      updateTripBooking: (bookingId, changes) =>
-        set((state) => ({
-          tripBookings: state.tripBookings.map((booking) =>
-            booking.id === bookingId
-              ? { ...booking, ...changes, updatedAt: new Date().toISOString() }
-              : booking,
-          ),
-        })),
-      deleteTripBooking: (bookingId) =>
-        set((state) => ({
-          tripBookings: state.tripBookings.filter((booking) => booking.id !== bookingId),
-        })),
-      togglePackingItem: (itemId) =>
-        set((state) => ({
-          packingItems: state.packingItems.map((item) =>
-            item.id === itemId
-              ? { ...item, packed: !item.packed, updatedAt: new Date().toISOString() }
-              : item,
-          ),
-        })),
-      addPackingItem: (item) =>
-        set((state) => ({
-          packingItems: [
-            ...state.packingItems,
-            { ...item, id: makeId(), updatedAt: new Date().toISOString() },
-          ],
-        })),
-      deletePackingItem: (itemId) =>
-        set((state) => ({ packingItems: state.packingItems.filter((item) => item.id !== itemId) })),
       addSubscription: (subscription) => {
         const id = makeId();
         set((state) => ({ subscriptions: [{ ...subscription, id }, ...state.subscriptions] }));
@@ -435,10 +349,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         }
         const state = persistedState as Record<string, unknown>;
 
-        const trips = parseArrayField(state.trips, tripSchema);
-        const tripItinerary = parseArrayField(state.tripItinerary, tripItinerarySchema);
-        const tripBookings = parseArrayField(state.tripBookings, tripBookingSchema);
-        const packingItems = parseArrayField(state.packingItems, packingItemSchema);
         const subscriptions = parseArrayField(state.subscriptions, subscriptionSchema);
         const recipes = parseArrayField(state.recipes, recipeSchema);
         const mealSlots = parseArrayField(state.mealSlots, mealSlotSchema);
@@ -471,10 +381,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         );
 
         const arrayFields = [
-          trips,
-          tripItinerary,
-          tripBookings,
-          packingItems,
           subscriptions,
           recipes,
           mealSlots,
@@ -504,10 +410,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 
         return {
           ...currentState,
-          trips: trips.items,
-          tripItinerary: tripItinerary.items,
-          tripBookings: tripBookings.items,
-          packingItems: packingItems.items,
           subscriptions: subscriptions.items,
           recipes: recipes.items,
           mealSlots: mealSlots.items,
@@ -527,10 +429,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         };
       },
       partialize: (state) => ({
-        trips: state.trips,
-        tripItinerary: state.tripItinerary,
-        tripBookings: state.tripBookings,
-        packingItems: state.packingItems,
         subscriptions: state.subscriptions,
         recipes: state.recipes,
         mealSlots: state.mealSlots,
@@ -555,10 +453,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 export function exportAdvancedData(): AdvancedDataWithHealth {
   const state = useAdvancedStore.getState();
   return {
-    trips: state.trips,
-    tripItinerary: state.tripItinerary,
-    tripBookings: state.tripBookings,
-    packingItems: state.packingItems,
     subscriptions: state.subscriptions,
     recipes: state.recipes,
     mealSlots: state.mealSlots,

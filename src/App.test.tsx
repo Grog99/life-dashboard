@@ -6,6 +6,7 @@ import { createSampleData } from "./data/sampleData";
 import { useLifeStore } from "./store/useLifeStore";
 import { createAdvancedData } from "./data/advancedData";
 import { useAdvancedStore } from "./store/useAdvancedStore";
+import { useTripsStore } from "./store/useTripsStore";
 
 describe("App", () => {
   beforeEach(() => {
@@ -13,6 +14,21 @@ describe("App", () => {
     window.history.replaceState(null, "", "/");
     useLifeStore.setState(createSampleData());
     useAdvancedStore.setState(createAdvancedData());
+    // Podróże nie są już seedowane w createAdvancedData() (docs/plans/podroze-trips.md -- domyślny
+    // stan offline jest pusty, serwer jest źródłem prawdy). Dorzuć jedną podróż, żeby test nawigacji
+    // trafiał na widok "Planer podróży" zamiast na pusty stan "Zaplanuj następny wyjazd".
+    useTripsStore.getState().resetTripsData();
+    useTripsStore.getState().addTrip({
+      name: "Toskania 2026",
+      destination: "Florencja",
+      startDate: "2026-08-01",
+      endDate: "2026-08-10",
+      status: "planning",
+      currency: "PLN",
+      travelers: ["Ty"],
+      accent: "terracotta",
+      notes: "",
+    });
   });
 
   afterEach(() => cleanup());

@@ -258,6 +258,11 @@
 .sync-indicator--finance {
   bottom: 54px;
 }
+/* Wskaźnik podróży (TripsSync) to trzecia niezależna instancja — przesunięty nad finanse, żeby
+   wszystkie trzy (workspace/finance/trips) mogły być widoczne równocześnie bez nakładania się. */
+.sync-indicator--trips {
+  bottom: 92px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -284,6 +289,9 @@
   }
   .sync-indicator--finance {
     bottom: calc(114px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--trips {
+    bottom: calc(156px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;
