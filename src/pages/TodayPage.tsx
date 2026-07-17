@@ -50,6 +50,7 @@ import { useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
 import { useMealsStore } from "../store/useMealsStore";
+import { useCarStore } from "../store/useCarStore";
 import { formatMoney } from "../lib/money";
 import { polishPlural } from "../lib/pluralize";
 import type { QuickAddType, ViewId } from "../types";
@@ -99,8 +100,8 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
   const trips = useTripsStore((state) => state.trips);
   const mealSlots = useMealsStore((state) => state.mealSlots);
   const subscriptions = useAdvancedStore((state) => state.subscriptions);
-  const vehicles = useAdvancedStore((state) => state.vehicles);
-  const vehicleDeadlines = useAdvancedStore((state) => state.vehicleDeadlines);
+  const vehicles = useCarStore((state) => state.vehicles);
+  const vehicleDeadlines = useCarStore((state) => state.vehicleDeadlines);
   const petVisits = useAdvancedStore((state) => state.petVisits);
   const healthAppointments = useAdvancedStore((state) => state.healthAppointments);
   const medications = useAdvancedStore((state) => state.medications);

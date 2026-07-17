@@ -27,6 +27,7 @@ import { exportAdvancedData, useAdvancedStore } from "../store/useAdvancedStore"
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
 import { useMealsStore } from "../store/useMealsStore";
+import { useCarStore } from "../store/useCarStore";
 import { apiRequest, serverMode } from "../server/api";
 import { useServerAuth } from "../server/AuthGate";
 import { removeCurrentPushSubscription } from "../server/push";
@@ -48,6 +49,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   const resetTripsData = useTripsStore((state) => state.resetTripsData);
   const trips = useTripsStore((state) => state.trips);
   const resetMealsData = useMealsStore((state) => state.resetMealsData);
+  const resetCarData = useCarStore((state) => state.resetCarData);
   const householdMembers = useAdvancedStore((state) => state.householdMembers);
   const { snapshot, logout } = useServerAuth();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -168,16 +170,17 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       )
     )
       return;
-    // Finanse, Podróże i Posiłki nie są już częścią dokumentu JSONB, więc nie da się ich wyczyścić
-    // samym lokalnym replaceAdvancedData -- trzeba jawnie poprosić serwer o usunięcie
+    // Finanse, Podróże, Posiłki i Auto nie są już częścią dokumentu JSONB, więc nie da się ich
+    // wyczyścić samym lokalnym replaceAdvancedData -- trzeba jawnie poprosić serwer o usunięcie
     // znormalizowanych rekordów. Robimy to PRZED czyszczeniem reszty i przerywamy przy błędzie
-    // sieci, żeby nie pokazać "wyczyszczono", gdy finanse/podróże/posiłki w rzeczywistości
+    // sieci, żeby nie pokazać "wyczyszczono", gdy finanse/podróże/posiłki/samochód w rzeczywistości
     // przetrwały na serwerze i wrócą przy kolejnej synchronizacji.
     setClearingData(true);
     try {
       await apiRequest("/api/v1/finance/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/trips/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/meals/reset", { method: "POST", json: {} });
+      await apiRequest("/api/v1/car/reset", { method: "POST", json: {} });
     } catch (error) {
       onToast(
         error instanceof Error
@@ -204,9 +207,6 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       hideAmounts: false,
       householdMembers: [],
       subscriptions: [],
-      vehicles: [],
-      carExpenses: [],
-      vehicleDeadlines: [],
       pets: [],
       petExpenses: [],
       petVisits: [],
@@ -217,6 +217,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
     resetFinanceData();
     resetTripsData();
     resetMealsData();
+    resetCarData();
     onToast("Dane aplikacji zostały całkowicie wyczyszczone");
   };
 

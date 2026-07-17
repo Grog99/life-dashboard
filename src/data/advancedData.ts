@@ -3,6 +3,10 @@ import type { AdvancedDataWithHealth } from "../advancedTypes";
 
 const day = (offset = 0) => format(addDays(new Date(), offset), "yyyy-MM-dd");
 
+// Auto (vehicles/carExpenses/vehicleDeadlines) nie ma już seedu tutaj — żyje w znormalizowanych
+// tabelach SQL, serwer jest źródłem prawdy (domyślny stan offline = pusty), patrz
+// docs/plans/auto-car.md i src/store/useCarStore.ts.
+
 export function createAdvancedData(): AdvancedDataWithHealth {
   return {
     householdName: "Nasz dom",
@@ -87,71 +91,6 @@ export function createAdvancedData(): AdvancedDataWithHealth {
         color: "#8b6ca5",
         ownerId: "me",
         visibility: "private",
-      },
-    ],
-    vehicles: [
-      {
-        id: "vehicle-corolla",
-        name: "Toyota Corolla",
-        make: "Toyota",
-        model: "Corolla",
-        year: 2020,
-        plate: "WA 1234K",
-        mileage: 68420,
-        fuelType: "hybrid",
-        inspectionDate: day(18),
-        insuranceDate: day(74),
-        color: "#496f67",
-        ownerId: "me",
-        visibility: "household",
-      },
-    ],
-    carExpenses: [
-      {
-        id: "car-fuel-1",
-        vehicleId: "vehicle-corolla",
-        date: day(-2),
-        type: "fuel",
-        amountMinor: 28640,
-        mileage: 68420,
-        liters: 42.1,
-        title: "Tankowanie Orlen",
-        ownerId: "me",
-        visibility: "household",
-      },
-      {
-        id: "car-service-1",
-        vehicleId: "vehicle-corolla",
-        date: day(-65),
-        type: "service",
-        amountMinor: 78000,
-        mileage: 65320,
-        title: "Olej i filtry",
-        ownerId: "me",
-        visibility: "household",
-      },
-    ],
-    vehicleDeadlines: [
-      {
-        id: "deadline-inspection",
-        vehicleId: "vehicle-corolla",
-        title: "Badanie techniczne",
-        dueDate: day(18),
-        completed: false,
-      },
-      {
-        id: "deadline-oil",
-        vehicleId: "vehicle-corolla",
-        title: "Wymiana oleju",
-        dueMileage: 75000,
-        completed: false,
-      },
-      {
-        id: "deadline-insurance",
-        vehicleId: "vehicle-corolla",
-        title: "Odnowienie OC/AC",
-        dueDate: day(74),
-        completed: false,
       },
     ],
     pets: [

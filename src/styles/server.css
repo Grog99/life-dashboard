@@ -268,6 +268,11 @@
 .sync-indicator--meals {
   bottom: 130px;
 }
+/* Wskaźnik samochodu (CarSync) to piąta niezależna instancja — przesunięty nad posiłki, żeby
+   wszystkie pięć (workspace/finance/trips/meals/car) mogły być widoczne równocześnie bez nakładania się. */
+.sync-indicator--car {
+  bottom: 168px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -300,6 +305,9 @@
   }
   .sync-indicator--meals {
     bottom: calc(198px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--car {
+    bottom: calc(240px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;

@@ -8,6 +8,7 @@ import type {
 } from "../financeTypes";
 import type { Trip, TripItineraryItem, TripBooking, PackingItem } from "../tripsTypes";
 import type { Recipe, MealSlot, ShoppingItem } from "../mealsTypes";
+import type { Vehicle, CarExpense, VehicleDeadline } from "../carTypes";
 
 export const energySchema = z.enum(["low", "medium", "high"]);
 const energy = energySchema;
@@ -328,7 +329,16 @@ export const shoppingItemSchema: z.ZodType<ShoppingItem> = z.object({
   version: recordVersion,
   updatedAt: timestamp,
 });
-export const vehicleSchema = sharedMetaSchema.extend({
+// Auto (vehicles/carExpenses/vehicleDeadlines) nie jest już częścią `advancedDataSchema` /
+// dokumentu JSONB workspace — ma własne znormalizowane tabele
+// (server/migrations/009_car_normalized.sql) i endpoint `/api/v1/car` (warstwa
+// backend/frontend, patrz docs/plans/auto-car.md). Te schematy walidują snapshot GET-a
+// i payloady mutacji POST-owanych do `/api/v1/car/mutations`.
+// `Vehicle`/`CarExpense` NADAL rozszerzają `sharedMetaSchema` -- w odróżnieniu od Podróży/Meals,
+// Auto zachowuje rozróżnienie prywatne/wspólne (parytet z Finansami, patrz plan "Decyzje
+// ustalone z góry" #8). `VehicleDeadline` bez `sharedMetaSchema` -- dziedziczy widoczność po
+// pojeździe-rodzicu (jak dziś).
+export const vehicleSchema: z.ZodType<Vehicle> = sharedMetaSchema.extend({
   id: idSchema,
   name: nonEmptyText,
   make: z.string().max(200),
@@ -340,8 +350,10 @@ export const vehicleSchema = sharedMetaSchema.extend({
   inspectionDate: isoDate,
   insuranceDate: isoDate,
   color: z.string().max(32),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const carExpenseSchema = sharedMetaSchema.extend({
+export const carExpenseSchema: z.ZodType<CarExpense> = sharedMetaSchema.extend({
   id: idSchema,
   vehicleId: idSchema,
   date: isoDate,
@@ -350,14 +362,19 @@ export const carExpenseSchema = sharedMetaSchema.extend({
   mileage: z.number().int().nonnegative().optional(),
   liters: z.number().positive().optional(),
   title: nonEmptyText,
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const vehicleDeadlineSchema = z.object({
+export const vehicleDeadlineSchema: z.ZodType<VehicleDeadline> = z.object({
   id: idSchema,
   vehicleId: idSchema,
+  kind: z.enum(["inspection", "insurance", "custom"]),
   title: nonEmptyText,
   dueDate: isoDate.optional(),
   dueMileage: z.number().int().nonnegative().optional(),
   completed: z.boolean(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
 const fishStockEntrySchema = z.object({
   id: idSchema,
@@ -435,9 +452,6 @@ export const hideAmountsSchema = z.boolean();
 
 export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
   subscriptions: z.array(subscriptionSchema),
-  vehicles: z.array(vehicleSchema),
-  carExpenses: z.array(carExpenseSchema),
-  vehicleDeadlines: z.array(vehicleDeadlineSchema),
   pets: z.array(petSchema),
   petExpenses: z.array(petExpenseSchema),
   petVisits: z.array(petVisitSchema),

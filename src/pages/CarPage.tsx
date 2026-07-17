@@ -14,12 +14,13 @@ import {
 } from "lucide-react";
 import { differenceInCalendarDays, format, isBefore, parseISO, startOfDay } from "date-fns";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import type { CarExpense, Vehicle, VehicleDeadline, Visibility } from "../advancedTypes";
+import type { Visibility } from "../advancedTypes";
+import type { CarExpense, Vehicle, VehicleDeadline } from "../carTypes";
 import { Modal } from "../components/Modal";
 import { dateKey, formatShortDate, relativeDay } from "../lib/date";
-import { generateId } from "../lib/id";
 import { formatMoney, parseMoneyToMinor } from "../lib/money";
 import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useCarStore } from "../store/useCarStore";
 import { useServerAuth } from "../server/AuthGate";
 import "../styles/modules.css";
 
@@ -116,14 +117,18 @@ function deadlineOrder(deadline: VehicleDeadline, vehicle: Vehicle): number {
 export function CarPage({ onToast }: CarPageProps) {
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
-  const vehicles = useAdvancedStore((state) => state.vehicles);
-  const carExpenses = useAdvancedStore((state) => state.carExpenses);
-  const vehicleDeadlines = useAdvancedStore((state) => state.vehicleDeadlines);
+  const vehicles = useCarStore((state) => state.vehicles);
+  const carExpenses = useCarStore((state) => state.carExpenses);
+  const vehicleDeadlines = useCarStore((state) => state.vehicleDeadlines);
   const hideAmounts = useAdvancedStore((state) => state.hideAmounts);
-  const addVehicle = useAdvancedStore((state) => state.addVehicle);
-  const updateVehicle = useAdvancedStore((state) => state.updateVehicle);
-  const addCarExpense = useAdvancedStore((state) => state.addCarExpense);
-  const toggleVehicleDeadline = useAdvancedStore((state) => state.toggleVehicleDeadline);
+  const addVehicle = useCarStore((state) => state.addVehicle);
+  const updateVehicle = useCarStore((state) => state.updateVehicle);
+  const setVehicleMileage = useCarStore((state) => state.setVehicleMileage);
+  const addCarExpense = useCarStore((state) => state.addCarExpense);
+  const removeCarExpense = useCarStore((state) => state.removeCarExpense);
+  const addVehicleDeadline = useCarStore((state) => state.addDeadline);
+  const removeVehicleDeadline = useCarStore((state) => state.removeDeadline);
+  const toggleVehicleDeadline = useCarStore((state) => state.toggleVehicleDeadline);
 
   const [selectedVehicleId, setSelectedVehicleId] = useState(vehicles[0]?.id ?? "");
   const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
@@ -214,79 +219,38 @@ export function CarPage({ onToast }: CarPageProps) {
       onToast("Uzupełnij nazwę, markę i model pojazdu");
       return;
     }
+    const mileage = Math.max(0, Number.parseInt(vehicleDraft.mileage, 10) || 0);
+    // `mileage` NIE idzie przez `vehicle.update` (dedykowana mutacja `vehicle.mileage`, monotoniczna
+    // i bez OCC) — parytet z `balanceMinor` wyciętym z `account.update`. Auto-terminy
+    // inspection/insurance NIE są już wstawiane/aktualizowane lokalnie tutaj — serwer je upsertuje
+    // atomowo w tej samej transakcji co `vehicle.create`/`vehicle.update`, a store adoptuje wynik
+    // (docs/plans/auto-car.md "Projekt terminów").
     const data = {
       name: vehicleDraft.name.trim(),
       make: vehicleDraft.make.trim(),
       model: vehicleDraft.model.trim(),
       year: Number.parseInt(vehicleDraft.year, 10) || new Date().getFullYear(),
       plate: vehicleDraft.plate.trim().toLocaleUpperCase("pl"),
-      mileage: Math.max(0, Number.parseInt(vehicleDraft.mileage, 10) || 0),
       fuelType: vehicleDraft.fuelType,
       inspectionDate: vehicleDraft.inspectionDate,
       insuranceDate: vehicleDraft.insuranceDate,
       color: vehicleDraft.color,
-      visibility: vehicleDraft.visibility,
     };
-    if (editingVehicle && data.mileage < editingVehicle.mileage) {
+    if (editingVehicle && mileage < editingVehicle.mileage) {
       onToast("Przebieg pojazdu nie może być mniejszy niż zapisany wcześniej");
       return;
     }
     if (editingVehicle) {
       updateVehicle(editingVehicle.id, data);
-      const expected = [
-        {
-          title: "Badanie techniczne",
-          dueDate: data.inspectionDate,
-          changed: data.inspectionDate !== editingVehicle.inspectionDate,
-        },
-        {
-          title: "Odnowienie OC/AC",
-          dueDate: data.insuranceDate,
-          changed: data.insuranceDate !== editingVehicle.insuranceDate,
-        },
-      ];
-      useAdvancedStore.setState((state) => {
-        const deadlines = [...state.vehicleDeadlines];
-        for (const item of expected) {
-          const index = deadlines.findIndex(
-            (deadline) => deadline.vehicleId === editingVehicle.id && deadline.title === item.title,
-          );
-          if (index >= 0) {
-            if (item.changed) deadlines[index] = { ...deadlines[index], dueDate: item.dueDate };
-          } else {
-            deadlines.push({
-              id: generateId(),
-              vehicleId: editingVehicle.id,
-              title: item.title,
-              dueDate: item.dueDate,
-              completed: false,
-            });
-          }
-        }
-        return { vehicleDeadlines: deadlines };
-      });
+      if (mileage !== editingVehicle.mileage) setVehicleMileage(editingVehicle.id, mileage);
       onToast("Dane pojazdu zostały zaktualizowane");
     } else {
-      const id = addVehicle({ ...data, ownerId: currentOwnerId });
-      useAdvancedStore.setState((state) => ({
-        vehicleDeadlines: [
-          ...state.vehicleDeadlines,
-          {
-            id: generateId(),
-            vehicleId: id,
-            title: "Badanie techniczne",
-            dueDate: data.inspectionDate,
-            completed: false,
-          },
-          {
-            id: generateId(),
-            vehicleId: id,
-            title: "Odnowienie OC/AC",
-            dueDate: data.insuranceDate,
-            completed: false,
-          },
-        ],
-      }));
+      const id = addVehicle({
+        ...data,
+        mileage,
+        ownerId: currentOwnerId,
+        visibility: vehicleDraft.visibility,
+      });
       setSelectedVehicleId(id);
       onToast("Pojazd został dodany do garażu");
     }
@@ -336,9 +300,7 @@ export function CarPage({ onToast }: CarPageProps) {
 
   const removeExpense = (expense: CarExpense) => {
     if (!window.confirm(`Usunąć wpis „${expense.title}”?`)) return;
-    useAdvancedStore.setState((state) => ({
-      carExpenses: state.carExpenses.filter((item) => item.id !== expense.id),
-    }));
+    removeCarExpense(expense.id);
     onToast("Wpis kosztu został usunięty");
   };
 
@@ -356,11 +318,13 @@ export function CarPage({ onToast }: CarPageProps) {
       setMileageInput(String(selectedVehicle.mileage));
       return;
     }
-    updateVehicle(selectedVehicle.id, { mileage });
+    // Walidacja monotoniczności powyżej jest tylko dla natychmiastowego toastu — źródłem prawdy
+    // jest odpowiedź serwera (atomowy `GREATEST`, docs/plans/auto-car.md "Projekt mileage").
+    setVehicleMileage(selectedVehicle.id, mileage);
     onToast("Przebieg został zaktualizowany");
   };
 
-  const addDeadline = (event: FormEvent) => {
+  const saveDeadline = (event: FormEvent) => {
     event.preventDefault();
     if (
       !selectedVehicle ||
@@ -373,29 +337,20 @@ export function CarPage({ onToast }: CarPageProps) {
     const dueMileage = deadlineDraft.dueMileage
       ? Number.parseInt(deadlineDraft.dueMileage, 10)
       : undefined;
-    useAdvancedStore.setState((state) => ({
-      vehicleDeadlines: [
-        ...state.vehicleDeadlines,
-        {
-          id: generateId(),
-          vehicleId: selectedVehicle.id,
-          title: deadlineDraft.title.trim(),
-          dueDate: deadlineDraft.dueDate || undefined,
-          dueMileage: Number.isFinite(dueMileage) ? dueMileage : undefined,
-          completed: false,
-        },
-      ],
-    }));
+    addVehicleDeadline({
+      vehicleId: selectedVehicle.id,
+      title: deadlineDraft.title.trim(),
+      dueDate: deadlineDraft.dueDate || undefined,
+      dueMileage: Number.isFinite(dueMileage) ? dueMileage : undefined,
+    });
     setDeadlineModalOpen(false);
     setDeadlineDraft({ title: "", dueDate: "", dueMileage: "" });
     onToast("Termin został dodany");
   };
 
-  const removeDeadline = (deadline: VehicleDeadline) => {
+  const deleteDeadline = (deadline: VehicleDeadline) => {
     if (!window.confirm(`Usunąć termin „${deadline.title}”?`)) return;
-    useAdvancedStore.setState((state) => ({
-      vehicleDeadlines: state.vehicleDeadlines.filter((item) => item.id !== deadline.id),
-    }));
+    removeVehicleDeadline(deadline.id);
     onToast("Termin został usunięty");
   };
 
@@ -727,7 +682,7 @@ export function CarPage({ onToast }: CarPageProps) {
                         <button
                           className="icon-button module-danger-icon"
                           type="button"
-                          onClick={() => removeDeadline(deadline)}
+                          onClick={() => deleteDeadline(deadline)}
                           aria-label={`Usuń termin ${deadline.title}`}
                         >
                           <Trash2 size={14} />
@@ -1036,7 +991,7 @@ export function CarPage({ onToast }: CarPageProps) {
         eyebrow={selectedVehicle?.name ?? "Samochód"}
         size="small"
       >
-        <form className="form-grid" onSubmit={addDeadline}>
+        <form className="form-grid" onSubmit={saveDeadline}>
           <label className="field field--prominent">
             <span>Co trzeba zrobić?</span>
             <input
