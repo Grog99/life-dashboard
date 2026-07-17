@@ -84,30 +84,10 @@ describe("advanced health store", () => {
 
   // Rezerwacje podróży żyją teraz w znormalizowanych tabelach SQL / src/store/useTripsStore.ts,
   // nie w tym dokumencie -- patrz docs/plans/podroze-trips.md.
-
-  it("dodaje składniki przepisu do listy zakupów bez duplikatów", () => {
-    useAdvancedStore.setState({
-      recipes: [
-        {
-          id: "recipe-test",
-          name: "Test",
-          minutes: 10,
-          servings: 2,
-          tags: [],
-          ingredients: ["Cebula 1 szt.", "Cebula 2 szt.", "Czosnek 3 ząbki"],
-          favorite: false,
-          ownerId: "me",
-          visibility: "private",
-        },
-      ],
-      shoppingItems: [],
-    });
-    const added = useAdvancedStore.getState().addRecipeIngredientsToShopping("recipe-test");
-    expect(added).toBe(2);
-    expect(useAdvancedStore.getState().shoppingItems).toHaveLength(2);
-    const names = useAdvancedStore.getState().shoppingItems.map((item) => item.name);
-    expect(new Set(names).size).toBe(names.length);
-  });
+  // Posiłki (recipes/mealSlots/shoppingItems, w tym addRecipeIngredientsToShopping) żyją teraz w
+  // znormalizowanych tabelach SQL / src/store/useMealsStore.ts, nie w tym dokumencie -- patrz
+  // docs/plans/lista-zakupow-meals.md. Test dedupu przy generowaniu listy z przepisu przenosi się
+  // do src/store/useMealsStore.test.ts (etap Testy planu).
 
   it("odrzuca tylko uszkodzony rekord przy scalaniu zapisanych danych modułów, zachowując resztę", () => {
     const sample = createAdvancedData();

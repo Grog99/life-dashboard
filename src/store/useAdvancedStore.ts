@@ -11,13 +11,10 @@ import {
   hideAmountsSchema,
   householdMemberSchema,
   householdNameSchema,
-  mealSlotSchema,
   medicationSchema,
   petExpenseSchema,
   petSchema,
   petVisitSchema,
-  recipeSchema,
-  shoppingItemSchema,
   subscriptionSchema,
   vehicleDeadlineSchema,
   vehicleSchema,
@@ -29,12 +26,9 @@ import type {
   HealthAppointment,
   HealthMeasurement,
   Medication,
-  MealSlot,
   Pet,
   PetExpense,
   PetVisit,
-  Recipe,
-  ShoppingItem,
   Subscription,
   Vehicle,
 } from "../advancedTypes";
@@ -69,11 +63,6 @@ interface AdvancedActions {
   addSubscription: (subscription: Omit<Subscription, "id">) => string;
   updateSubscription: (subscriptionId: string, changes: Partial<Subscription>) => void;
   deleteSubscription: (subscriptionId: string) => void;
-  setMealSlot: (slot: Omit<MealSlot, "id"> & { id?: string }) => void;
-  addRecipe: (recipe: Omit<Recipe, "id">) => string;
-  toggleShoppingItem: (itemId: string) => void;
-  addShoppingItem: (item: Omit<ShoppingItem, "id">) => void;
-  addRecipeIngredientsToShopping: (recipeId: string) => number;
   addVehicle: (vehicle: Omit<Vehicle, "id">) => string;
   updateVehicle: (vehicleId: string, changes: Partial<Vehicle>) => void;
   addCarExpense: (expense: Omit<CarExpense, "id">) => string;
@@ -106,7 +95,7 @@ export type AdvancedStore = AdvancedDataWithHealth & AdvancedActions;
 
 export const useAdvancedStore = create<AdvancedStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...createAdvancedData(),
       toggleHideAmounts: () => set((state) => ({ hideAmounts: !state.hideAmounts })),
       addSubscription: (subscription) => {
@@ -126,61 +115,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
             (subscription) => subscription.id !== subscriptionId,
           ),
         })),
-      setMealSlot: (slot) =>
-        set((state) => {
-          const existing = state.mealSlots.find(
-            (item) => item.id === slot.id || (item.date === slot.date && item.type === slot.type),
-          );
-          return {
-            mealSlots: existing
-              ? state.mealSlots.map((item) =>
-                  item.id === existing.id ? { ...item, ...slot, id: existing.id } : item,
-                )
-              : [...state.mealSlots, { ...slot, id: makeId() }],
-          };
-        }),
-      addRecipe: (recipe) => {
-        const id = makeId();
-        set((state) => ({ recipes: [{ ...recipe, id }, ...state.recipes] }));
-        return id;
-      },
-      toggleShoppingItem: (itemId) =>
-        set((state) => ({
-          shoppingItems: state.shoppingItems.map((item) =>
-            item.id === itemId ? { ...item, checked: !item.checked } : item,
-          ),
-        })),
-      addShoppingItem: (item) =>
-        set((state) => ({ shoppingItems: [...state.shoppingItems, { ...item, id: makeId() }] })),
-      addRecipeIngredientsToShopping: (recipeId) => {
-        const recipe = get().recipes.find((item) => item.id === recipeId);
-        if (!recipe) return 0;
-        const normalize = (value: string) => value.trim().toLocaleLowerCase("pl");
-        const seen = new Set(get().shoppingItems.map((item) => normalize(item.name)));
-        const additions = recipe.ingredients
-          .map((ingredient) => {
-            const match = ingredient.match(/^(.+?)\s+(\d.*)$/);
-            return {
-              name: (match?.[1] ?? ingredient).trim(),
-              quantity: (match?.[2] ?? "1 szt.").trim(),
-            };
-          })
-          .filter((ingredient) => {
-            const key = normalize(ingredient.name);
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          })
-          .map((ingredient) => ({
-            ...ingredient,
-            id: makeId(),
-            category: "Z przepisu",
-            checked: false,
-            sourceRecipeId: recipeId,
-          }));
-        set((state) => ({ shoppingItems: [...state.shoppingItems, ...additions] }));
-        return additions.length;
-      },
       addVehicle: (vehicle) => {
         const id = makeId();
         set((state) => ({ vehicles: [...state.vehicles, { ...vehicle, id }] }));
@@ -350,9 +284,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         const state = persistedState as Record<string, unknown>;
 
         const subscriptions = parseArrayField(state.subscriptions, subscriptionSchema);
-        const recipes = parseArrayField(state.recipes, recipeSchema);
-        const mealSlots = parseArrayField(state.mealSlots, mealSlotSchema);
-        const shoppingItems = parseArrayField(state.shoppingItems, shoppingItemSchema);
         const vehicles = parseArrayField(state.vehicles, vehicleSchema);
         const carExpenses = parseArrayField(state.carExpenses, carExpenseSchema);
         const vehicleDeadlines = parseArrayField(state.vehicleDeadlines, vehicleDeadlineSchema);
@@ -382,9 +313,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 
         const arrayFields = [
           subscriptions,
-          recipes,
-          mealSlots,
-          shoppingItems,
           vehicles,
           carExpenses,
           vehicleDeadlines,
@@ -411,9 +339,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         return {
           ...currentState,
           subscriptions: subscriptions.items,
-          recipes: recipes.items,
-          mealSlots: mealSlots.items,
-          shoppingItems: shoppingItems.items,
           vehicles: vehicles.items,
           carExpenses: carExpenses.items,
           vehicleDeadlines: vehicleDeadlines.items,
@@ -430,9 +355,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
       },
       partialize: (state) => ({
         subscriptions: state.subscriptions,
-        recipes: state.recipes,
-        mealSlots: state.mealSlots,
-        shoppingItems: state.shoppingItems,
         vehicles: state.vehicles,
         carExpenses: state.carExpenses,
         vehicleDeadlines: state.vehicleDeadlines,
@@ -454,9 +376,6 @@ export function exportAdvancedData(): AdvancedDataWithHealth {
   const state = useAdvancedStore.getState();
   return {
     subscriptions: state.subscriptions,
-    recipes: state.recipes,
-    mealSlots: state.mealSlots,
-    shoppingItems: state.shoppingItems,
     vehicles: state.vehicles,
     carExpenses: state.carExpenses,
     vehicleDeadlines: state.vehicleDeadlines,

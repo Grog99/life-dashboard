@@ -263,6 +263,11 @@
 .sync-indicator--trips {
   bottom: 92px;
 }
+/* Wskaźnik posiłków (MealsSync) to czwarta niezależna instancja — przesunięty nad podróże, żeby
+   wszystkie cztery (workspace/finance/trips/meals) mogły być widoczne równocześnie bez nakładania się. */
+.sync-indicator--meals {
+  bottom: 130px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -292,6 +297,9 @@
   }
   .sync-indicator--trips {
     bottom: calc(156px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--meals {
+    bottom: calc(198px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;

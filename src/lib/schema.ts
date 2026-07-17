@@ -7,6 +7,7 @@ import type {
   SavingsGoal,
 } from "../financeTypes";
 import type { Trip, TripItineraryItem, TripBooking, PackingItem } from "../tripsTypes";
+import type { Recipe, MealSlot, ShoppingItem } from "../mealsTypes";
 
 export const energySchema = z.enum(["low", "medium", "high"]);
 const energy = energySchema;
@@ -287,7 +288,15 @@ export const subscriptionSchema = sharedMetaSchema.extend({
   color: z.string().max(32),
   cancelUrl: z.string().url().max(2000).optional(),
 });
-export const recipeSchema = sharedMetaSchema.extend({
+// Posiłki (recipes/mealSlots/shoppingItems) nie są już częścią `advancedDataSchema` / dokumentu
+// JSONB workspace — mają własne znormalizowane tabele (server/migrations/008_meals_normalized.sql)
+// i endpoint `/api/v1/meals` (warstwa backend/frontend, patrz docs/plans/lista-zakupow-meals.md).
+// Te schematy walidują snapshot GET-a i payloady mutacji POST-owanych do
+// `/api/v1/meals/mutations`.
+// `Recipe` NIE rozszerza `sharedMetaSchema` -- w odróżnieniu od dzisiejszego stanu, wszystkie
+// trzy kolekcje Meals są zawsze wspólne dla gospodarstwa, bez `ownerId`/`visibility` (parytet z
+// Podróżami, patrz plan "Decyzje ustalone z góry" #5).
+export const recipeSchema: z.ZodType<Recipe> = z.object({
   id: idSchema,
   name: nonEmptyText,
   minutes: z.number().int().positive().max(1440),
@@ -295,16 +304,20 @@ export const recipeSchema = sharedMetaSchema.extend({
   tags: z.array(z.string().max(100)).max(50),
   ingredients: z.array(z.string().max(1000)).max(500),
   favorite: z.boolean(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const mealSlotSchema = z.object({
+export const mealSlotSchema: z.ZodType<MealSlot> = z.object({
   id: idSchema,
   date: isoDate,
   type: z.enum(["breakfast", "lunch", "dinner"]),
   recipeId: idSchema.optional(),
   title: nonEmptyText,
   servings: z.number().int().positive().max(100),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const shoppingItemSchema = z.object({
+export const shoppingItemSchema: z.ZodType<ShoppingItem> = z.object({
   id: idSchema,
   name: nonEmptyText,
   quantity: z.string().max(200),
@@ -312,6 +325,8 @@ export const shoppingItemSchema = z.object({
   checked: z.boolean(),
   assignedTo: z.string().max(200).optional(),
   sourceRecipeId: idSchema.optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
 export const vehicleSchema = sharedMetaSchema.extend({
   id: idSchema,
@@ -420,9 +435,6 @@ export const hideAmountsSchema = z.boolean();
 
 export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
   subscriptions: z.array(subscriptionSchema),
-  recipes: z.array(recipeSchema),
-  mealSlots: z.array(mealSlotSchema),
-  shoppingItems: z.array(shoppingItemSchema),
   vehicles: z.array(vehicleSchema),
   carExpenses: z.array(carExpenseSchema),
   vehicleDeadlines: z.array(vehicleDeadlineSchema),
