@@ -278,11 +278,13 @@ async function tick() {
       query("DELETE FROM oauth_states WHERE expires_at < now()"),
       query("DELETE FROM household_invitations WHERE expires_at < now() - interval '30 days'"),
       query("DELETE FROM notification_deliveries WHERE created_at < now() - interval '180 days'"),
-      // finance_mutations/trip_mutations are idempotency-key dedup windows, not audit logs (see
-      // docs/plans/model-synchronizacji-danych.md "Retencja kluczy idempotencji: 30 dni" and
-      // docs/plans/podroze-trips.md "Worker").
+      // finance_mutations/trip_mutations/meal_mutations are idempotency-key dedup windows, not
+      // audit logs (see docs/plans/model-synchronizacji-danych.md "Retencja kluczy idempotencji:
+      // 30 dni", docs/plans/podroze-trips.md "Worker", and docs/plans/lista-zakupow-meals.md
+      // "Prune retencji meal_mutations w workerze").
       query("DELETE FROM finance_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM trip_mutations WHERE created_at < now() - interval '30 days'"),
+      query("DELETE FROM meal_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }

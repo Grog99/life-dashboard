@@ -12,6 +12,11 @@ export type { Visibility, CurrencyCode, SharedMeta };
 // z typami finance).
 export type { Trip, TripItineraryItem, TripBooking, PackingItem } from "./tripsTypes";
 
+// Posiłki (recipes/mealSlots/shoppingItems) żyją teraz w znormalizowanych tabelach SQL, nie w
+// tym dokumencie — patrz docs/plans/lista-zakupow-meals.md i src/mealsTypes.ts. Re-eksportowane
+// stąd dla plików, które wciąż importują je z `advancedTypes` (jak zrobiono z typami trips).
+export type { Recipe, MealSlot, ShoppingItem } from "./mealsTypes";
+
 export interface Subscription extends SharedMeta {
   id: string;
   name: string;
@@ -25,35 +30,6 @@ export interface Subscription extends SharedMeta {
   reminderDays: number;
   color: string;
   cancelUrl?: string;
-}
-
-export interface Recipe extends SharedMeta {
-  id: string;
-  name: string;
-  minutes: number;
-  servings: number;
-  tags: string[];
-  ingredients: string[];
-  favorite: boolean;
-}
-
-export interface MealSlot {
-  id: string;
-  date: string;
-  type: "breakfast" | "lunch" | "dinner";
-  recipeId?: string;
-  title: string;
-  servings: number;
-}
-
-export interface ShoppingItem {
-  id: string;
-  name: string;
-  quantity: string;
-  category: string;
-  checked: boolean;
-  assignedTo?: string;
-  sourceRecipeId?: string;
 }
 
 export interface Vehicle extends SharedMeta {
@@ -178,9 +154,6 @@ export interface HouseholdMember {
 
 export interface AdvancedData {
   subscriptions: Subscription[];
-  recipes: Recipe[];
-  mealSlots: MealSlot[];
-  shoppingItems: ShoppingItem[];
   vehicles: Vehicle[];
   carExpenses: CarExpense[];
   vehicleDeadlines: VehicleDeadline[];

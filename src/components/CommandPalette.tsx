@@ -22,6 +22,7 @@ import { useLifeStore } from "../store/useLifeStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
+import { useMealsStore } from "../store/useMealsStore";
 import { lockBodyScroll } from "../lib/scrollLock";
 import type { ViewId } from "../types";
 
@@ -115,7 +116,7 @@ export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: Comman
   const financeTransactions = useFinanceStore((state) => state.transactions);
   const trips = useTripsStore((state) => state.trips);
   const subscriptions = useAdvancedStore((state) => state.subscriptions);
-  const recipes = useAdvancedStore((state) => state.recipes);
+  const recipes = useMealsStore((state) => state.recipes);
   const vehicles = useAdvancedStore((state) => state.vehicles);
   const pets = useAdvancedStore((state) => state.pets);
   const healthAppointments = useAdvancedStore((state) => state.healthAppointments);

@@ -18,12 +18,11 @@ import {
 import { addWeeks, format, isSameDay } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useMemo, useState, type FormEvent } from "react";
-import type { MealSlot, Recipe, Visibility } from "../advancedTypes";
+import type { MealSlot, Recipe } from "../mealsTypes";
 import { Modal } from "../components/Modal";
 import { dateKey, formatDayName, weekDays } from "../lib/date";
-import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useMealsStore } from "../store/useMealsStore";
 import { useLifeStore } from "../store/useLifeStore";
-import { useServerAuth } from "../server/AuthGate";
 import "../styles/modules.css";
 
 interface MealsPageProps {
@@ -47,7 +46,6 @@ interface RecipeDraft {
   servings: string;
   tags: string;
   ingredients: string;
-  visibility: Visibility;
 }
 
 const mealLabels: Record<MealType, string> = {
@@ -62,21 +60,24 @@ const newRecipeDraft = (): RecipeDraft => ({
   servings: "2",
   tags: "",
   ingredients: "",
-  visibility: "household",
 });
 
 export function MealsPage({ onToast }: MealsPageProps) {
-  const { snapshot } = useServerAuth();
-  const currentOwnerId = snapshot?.user.id ?? "me";
   const preferences = useLifeStore((state) => state.preferences);
-  const recipes = useAdvancedStore((state) => state.recipes);
-  const mealSlots = useAdvancedStore((state) => state.mealSlots);
-  const shoppingItems = useAdvancedStore((state) => state.shoppingItems);
-  const setMealSlot = useAdvancedStore((state) => state.setMealSlot);
-  const addRecipe = useAdvancedStore((state) => state.addRecipe);
-  const addShoppingItem = useAdvancedStore((state) => state.addShoppingItem);
-  const toggleShoppingItem = useAdvancedStore((state) => state.toggleShoppingItem);
-  const addRecipeIngredientsToShopping = useAdvancedStore(
+  const recipes = useMealsStore((state) => state.recipes);
+  const mealSlots = useMealsStore((state) => state.mealSlots);
+  const shoppingItems = useMealsStore((state) => state.shoppingItems);
+  const setMealSlot = useMealsStore((state) => state.setMealSlot);
+  const addRecipe = useMealsStore((state) => state.addRecipe);
+  const updateRecipe = useMealsStore((state) => state.updateRecipe);
+  const toggleRecipeFavorite = useMealsStore((state) => state.toggleRecipeFavorite);
+  const deleteRecipe = useMealsStore((state) => state.deleteRecipe);
+  const deleteMealSlot = useMealsStore((state) => state.deleteMealSlot);
+  const addShoppingItem = useMealsStore((state) => state.addShoppingItem);
+  const toggleShoppingItem = useMealsStore((state) => state.toggleShoppingItem);
+  const removeShoppingItem = useMealsStore((state) => state.removeShoppingItem);
+  const clearCheckedShoppingItems = useMealsStore((state) => state.clearCheckedShoppingItems);
+  const addRecipeIngredientsToShopping = useMealsStore(
     (state) => state.addRecipeIngredientsToShopping,
   );
 
@@ -172,14 +173,7 @@ export function MealsPage({ onToast }: MealsPageProps) {
 
   const clearMeal = () => {
     if (!editingSlot) return;
-    setMealSlot({
-      id: editingSlot.id,
-      date: editingSlot.date,
-      type: editingSlot.type,
-      title: "",
-      servings: 1,
-      recipeId: undefined,
-    });
+    deleteMealSlot(editingSlot.id);
     setMealModalOpen(false);
     onToast("Posiłek został usunięty z planu");
   };
@@ -198,7 +192,6 @@ export function MealsPage({ onToast }: MealsPageProps) {
       servings: String(recipe.servings),
       tags: recipe.tags.join(", "),
       ingredients: recipe.ingredients.join("\n"),
-      visibility: recipe.visibility,
     });
     setRecipeModalOpen(true);
   };
@@ -223,43 +216,24 @@ export function MealsPage({ onToast }: MealsPageProps) {
         .map((tag) => tag.trim())
         .filter(Boolean),
       ingredients,
-      visibility: recipeDraft.visibility,
     };
     if (editingRecipe) {
-      useAdvancedStore.setState((state) => ({
-        recipes: state.recipes.map((recipe) =>
-          recipe.id === editingRecipe.id ? { ...recipe, ...data } : recipe,
-        ),
-        mealSlots: state.mealSlots.map((slot) =>
-          slot.recipeId === editingRecipe.id && slot.title === editingRecipe.name
-            ? { ...slot, title: name }
-            : slot,
-        ),
-      }));
+      updateRecipe(editingRecipe.id, data);
       onToast("Przepis został zaktualizowany");
     } else {
-      addRecipe({ ...data, favorite: false, ownerId: currentOwnerId });
+      addRecipe({ ...data, favorite: false });
       onToast("Przepis został dodany");
     }
     setRecipeModalOpen(false);
   };
 
   const toggleFavorite = (recipeId: string) => {
-    useAdvancedStore.setState((state) => ({
-      recipes: state.recipes.map((recipe) =>
-        recipe.id === recipeId ? { ...recipe, favorite: !recipe.favorite } : recipe,
-      ),
-    }));
+    toggleRecipeFavorite(recipeId);
   };
 
   const removeRecipe = (recipe: Recipe) => {
     if (!window.confirm(`Usunąć przepis „${recipe.name}”?`)) return;
-    useAdvancedStore.setState((state) => ({
-      recipes: state.recipes.filter((item) => item.id !== recipe.id),
-      mealSlots: state.mealSlots.map((slot) =>
-        slot.recipeId === recipe.id ? { ...slot, recipeId: undefined } : slot,
-      ),
-    }));
+    deleteRecipe(recipe.id);
     onToast("Przepis został usunięty");
   };
 
@@ -296,22 +270,13 @@ export function MealsPage({ onToast }: MealsPageProps) {
     onToast("Produkt został dodany do listy");
   };
 
-  const removeShoppingItem = (itemId: string) => {
-    useAdvancedStore.setState((state) => ({
-      shoppingItems: state.shoppingItems.filter((item) => item.id !== itemId),
-    }));
-  };
-
   const clearChecked = () => {
-    const checked = shoppingItems.filter((item) => item.checked).length;
-    if (!checked) {
+    const removed = clearCheckedShoppingItems();
+    if (!removed) {
       onToast("Nie ma kupionych produktów do usunięcia");
       return;
     }
-    useAdvancedStore.setState((state) => ({
-      shoppingItems: state.shoppingItems.filter((item) => !item.checked),
-    }));
-    onToast(`Usunięto ${checked} kupionych produktów`);
+    onToast(`Usunięto ${removed} kupionych produktów`);
   };
 
   return (
@@ -822,7 +787,7 @@ export function MealsPage({ onToast }: MealsPageProps) {
               placeholder="np. Curry z ciecierzycą"
             />
           </label>
-          <div className="form-grid form-grid--3">
+          <div className="form-grid form-grid--2">
             <label className="field">
               <span>Czas (min)</span>
               <input
@@ -844,18 +809,6 @@ export function MealsPage({ onToast }: MealsPageProps) {
                   setRecipeDraft({ ...recipeDraft, servings: event.target.value })
                 }
               />
-            </label>
-            <label className="field">
-              <span>Widoczność</span>
-              <select
-                value={recipeDraft.visibility}
-                onChange={(event) =>
-                  setRecipeDraft({ ...recipeDraft, visibility: event.target.value as Visibility })
-                }
-              >
-                <option value="household">Domownicy</option>
-                <option value="private">Tylko ja</option>
-              </select>
             </label>
           </div>
           <label className="field">

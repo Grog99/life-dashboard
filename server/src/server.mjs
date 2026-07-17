@@ -25,6 +25,14 @@ import {
   resetTripsForHousehold,
 } from "./trips.mjs";
 import {
+  applyMealMutation,
+  assertMealMutationShape,
+  MAX_MEAL_MUTATIONS_BYTES,
+  MAX_MEAL_MUTATIONS_PER_BATCH,
+  readMealsSnapshot,
+  resetMealsForHousehold,
+} from "./meals.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -752,6 +760,53 @@ app.post("/api/v1/trips/mutations", async (request) => {
 app.post("/api/v1/trips/reset", async (request) => {
   const session = await requireHousehold(request);
   await transaction((client) => resetTripsForHousehold(client, session.household_id));
+  return { serverAt: new Date().toISOString() };
+});
+
+// Meals module (Posiłki): normalized tables, not part of the workspace JSONB document (see
+// docs/plans/lista-zakupow-meals.md and server/src/meals.mjs). GET returns a snapshot, mutations
+// go through a single idempotent batch endpoint mapping 1:1 onto the client's offline queue. Like
+// Trips, meals have no private records at all -- the snapshot and every mutation scope exclusively
+// by household_id.
+app.get("/api/v1/meals", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readMealsSnapshot(pool, session.household_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/meals/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(400, "Nieprawidłowe żądanie mutacji posiłków", "INVALID_MEAL_MUTATIONS");
+  }
+  if (body.mutations.length > MAX_MEAL_MUTATIONS_PER_BATCH) {
+    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "MEAL_MUTATIONS_TOO_LARGE");
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_MEAL_MUTATIONS_BYTES) {
+    throw httpError(413, "Dane mutacji przekraczają dozwolony rozmiar", "MEAL_MUTATIONS_TOO_LARGE");
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see meals.mjs's assertMealMutationShape.
+  for (const mutation of body.mutations) assertMealMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order (e.g.
+    // meal.create/shopping.create after the recipe.create it depends on).
+    const result = await transaction((client) => applyMealMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): meals nie są już częścią
+// dokumentu JSONB, więc nie ma ich czym nadpisać zwykłym PUT /api/v1/workspace. Meals nie mają
+// rekordów prywatnych, więc czyścimy całe gospodarstwo bezwarunkowo.
+app.post("/api/v1/meals/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetMealsForHousehold(client, session.household_id));
   return { serverAt: new Date().toISOString() };
 });
 

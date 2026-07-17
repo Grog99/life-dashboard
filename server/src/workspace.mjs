@@ -1,6 +1,5 @@
 const META_COLLECTIONS = [
   "subscriptions",
-  "recipes",
   "vehicles",
   "carExpenses",
   "healthAppointments",
@@ -12,8 +11,6 @@ const META_COLLECTIONS = [
 ];
 
 const CHILD_RELATIONS = {
-  mealSlots: ["recipeId", "recipes"],
-  shoppingItems: ["sourceRecipeId", "recipes"],
   carExpenses: ["vehicleId", "vehicles"],
   vehicleDeadlines: ["vehicleId", "vehicles"],
   petExpenses: ["petId", "pets"],
@@ -24,9 +21,6 @@ const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
 const LIFE_COLLECTIONS = ["tasks", "events", "reminders", "notes", "habits"];
 const ADVANCED_COLLECTIONS = [
   "subscriptions",
-  "recipes",
-  "mealSlots",
-  "shoppingItems",
   "vehicles",
   "carExpenses",
   "vehicleDeadlines",
