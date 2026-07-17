@@ -45,9 +45,9 @@ faktycznie ruszamy jego migrację.
 | # | Moduł | Kolekcje (dziś JSONB) | Dowód w kodzie | Priorytet | Status |
 |---|-------|------------------------|-----------------|-----------|--------|
 | — | **Finanse** | finance_accounts/transactions/budgets/goals | `balanceMinor` — read-modify-write addytywny | — | ✅ Zrobione (PR #11) |
-| 1 | **Podróże (Trips)** | trips, tripItinerary, tripBookings, packingItems | (a)+(b), patrz niżej | Wysoki | Nie rozpoczęto |
-| 2 | **Lista zakupów (Meals)** | recipes, mealSlots, shoppingItems | (b), patrz niżej | Średni | Nie rozpoczęto |
-| 3 | **Auto (Car)** | vehicles, carExpenses, vehicleDeadlines | (a), niższa częstotliwość | Niski–średni | Nie rozpoczęto |
+| 1 | **Podróże (Trips)** | trips, tripItinerary, tripBookings, packingItems | (a)+(b), patrz niżej | Wysoki | ✅ Zrobione (PR #13) |
+| 2 | **Lista zakupów (Meals)** | recipes, mealSlots, shoppingItems | (b), patrz niżej | Średni | ✅ Zrobione (PR #14) |
+| 3 | **Auto (Car)** | vehicles, carExpenses, vehicleDeadlines | (a), niższa częstotliwość | Niski–średni | W trakcie |
 | — | Zwierzęta (Pets) | pets, petExpenses, petVisits | brak | — | Zostaje na JSONB |
 | — | Zdrowie (Health) | healthAppointments, medications, healthMeasurements | brak | — | Zostaje na JSONB |
 | — | Subskrypcje | subscriptions | brak | — | Zostaje na JSONB |
