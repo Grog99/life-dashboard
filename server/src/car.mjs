@@ -225,7 +225,11 @@ export function validateVehicleCreatePayload(payload) {
     "INVALID_YEAR",
   );
   if (payload.plate !== undefined && payload.plate !== null) {
-    assertShape(isOptionalText(payload.plate, 50), "Nieprawidłowa tablica rejestracyjna", "INVALID_PLATE");
+    assertShape(
+      isOptionalText(payload.plate, 50),
+      "Nieprawidłowa tablica rejestracyjna",
+      "INVALID_PLATE",
+    );
   }
   assertShape(isNonNegativeInteger(payload.mileage), "Nieprawidłowy przebieg", "INVALID_MILEAGE");
   assertShape(FUEL_TYPES.has(payload.fuelType), "Nieprawidłowy rodzaj paliwa", "INVALID_FUEL_TYPE");
@@ -466,7 +470,11 @@ export function validateDeadlineUpdatePayload(payload, baseVersion) {
   const changes = {};
   const c = payload.changes;
   if (c.completed !== undefined) {
-    assertShape(typeof c.completed === "boolean", "Nieprawidłowa flaga ukończenia", "INVALID_COMPLETED");
+    assertShape(
+      typeof c.completed === "boolean",
+      "Nieprawidłowa flaga ukończenia",
+      "INVALID_COMPLETED",
+    );
     changes.completed = c.completed;
   }
   if (c.title !== undefined) {
@@ -776,12 +784,26 @@ async function execVehicleUpdate(client, ctx, payload, baseVersion) {
   const deadlines = [];
   if (changes.inspectionDate !== undefined) {
     deadlines.push(
-      await upsertAutoDeadline(client, ctx, id, "inspection", "Badanie techniczne", changes.inspectionDate),
+      await upsertAutoDeadline(
+        client,
+        ctx,
+        id,
+        "inspection",
+        "Badanie techniczne",
+        changes.inspectionDate,
+      ),
     );
   }
   if (changes.insuranceDate !== undefined) {
     deadlines.push(
-      await upsertAutoDeadline(client, ctx, id, "insurance", "Odnowienie OC/AC", changes.insuranceDate),
+      await upsertAutoDeadline(
+        client,
+        ctx,
+        id,
+        "insurance",
+        "Odnowienie OC/AC",
+        changes.insuranceDate,
+      ),
     );
   }
   return { status: "applied", record, deadlines: deadlines.length ? deadlines : undefined };

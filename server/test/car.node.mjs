@@ -205,7 +205,11 @@ test("validateDeleteIdPayload requires a valid id", () => {
 });
 
 test("assertCarMutationShape validates the whole-request envelope", () => {
-  const valid = { idempotencyKey: randomUUID(), op: "vehicle.create", payload: { id: "vehicle-1" } };
+  const valid = {
+    idempotencyKey: randomUUID(),
+    op: "vehicle.create",
+    payload: { id: "vehicle-1" },
+  };
   assert.doesNotThrow(() => assertCarMutationShape(valid));
   assert.throws(
     () => assertCarMutationShape({ ...valid, idempotencyKey: "not-a-uuid" }),
@@ -453,7 +457,11 @@ dbTest(
       assert.equal(updated.deadlines[0].kind, "inspection");
       assert.equal(updated.deadlines[0].id, inspection.id);
       assert.equal(updated.deadlines[0].dueDate, "2027-01-01");
-      assert.equal(updated.deadlines[0].completed, true, "editing the date must not un-complete it");
+      assert.equal(
+        updated.deadlines[0].completed,
+        true,
+        "editing the date must not un-complete it",
+      );
     });
   },
 );
@@ -487,7 +495,11 @@ dbTest(
         payload: { id: vehicleId, mileage: 1200 },
       });
       assert.equal(rollback.status, "conflict");
-      assert.equal(rollback.record.mileage, 1500, "authoritative (higher) value returned, not lost");
+      assert.equal(
+        rollback.record.mileage,
+        1500,
+        "authoritative (higher) value returned, not lost",
+      );
 
       // vehicle.mileage never bumps `version` (it's not OCC) -- both calls above must leave it at 1.
       assert.equal(first.record.version, 1);
@@ -542,7 +554,11 @@ dbTest(
         },
       });
       assert.equal(lowerExpense.status, "applied");
-      assert.equal(lowerExpense.vehicle.mileage, 1300, "expense.create's mileage bump is monotonic too");
+      assert.equal(
+        lowerExpense.vehicle.mileage,
+        1300,
+        "expense.create's mileage bump is monotonic too",
+      );
 
       // An expense with no mileage reading must not carry a `vehicle` in its result at all.
       const noMileageExpense = await applyCarMutation(client, ctx, {
@@ -614,7 +630,11 @@ dbTest(
       await applyCarMutation(client, ctxOwner, {
         idempotencyKey: randomUUID(),
         op: "vehicle.create",
-        payload: tripVehiclePayload({ id: sharedVehicleId, name: "Wspólne", visibility: "household" }),
+        payload: tripVehiclePayload({
+          id: sharedVehicleId,
+          name: "Wspólne",
+          visibility: "household",
+        }),
       });
       const privateOwnerVehicleId = randomUUID();
       await applyCarMutation(client, ctxOwner, {
@@ -649,7 +669,8 @@ dbTest(
       assert.equal(snapshotForOwner.vehicleDeadlines.length, 4);
       assert.ok(
         snapshotForOwner.vehicleDeadlines.every(
-          (deadline) => deadline.vehicleId === sharedVehicleId || deadline.vehicleId === privateOwnerVehicleId,
+          (deadline) =>
+            deadline.vehicleId === sharedVehicleId || deadline.vehicleId === privateOwnerVehicleId,
         ),
       );
 
@@ -730,24 +751,45 @@ dbTest(
   },
 );
 
-dbTest("upsertAutoDeadline used directly relies on the (vehicle_id, kind) partial unique index", async () => {
-  await withRollback(async (client) => {
-    const { householdId, userId } = await createHouseholdAndUser(client, "owner");
-    const ctx = { householdId, userId };
-    const vehicleId = randomUUID();
-    await applyCarMutation(client, ctx, {
-      idempotencyKey: randomUUID(),
-      op: "vehicle.create",
-      payload: tripVehiclePayload({ id: vehicleId }),
+dbTest(
+  "upsertAutoDeadline used directly relies on the (vehicle_id, kind) partial unique index",
+  async () => {
+    await withRollback(async (client) => {
+      const { householdId, userId } = await createHouseholdAndUser(client, "owner");
+      const ctx = { householdId, userId };
+      const vehicleId = randomUUID();
+      await applyCarMutation(client, ctx, {
+        idempotencyKey: randomUUID(),
+        op: "vehicle.create",
+        payload: tripVehiclePayload({ id: vehicleId }),
+      });
+      const first = await upsertAutoDeadline(
+        client,
+        ctx,
+        vehicleId,
+        "inspection",
+        "Badanie techniczne",
+        "2026-08-01",
+      );
+      const second = await upsertAutoDeadline(
+        client,
+        ctx,
+        vehicleId,
+        "inspection",
+        "Badanie techniczne",
+        "2026-09-01",
+      );
+      assert.equal(
+        first.id,
+        second.id,
+        "the partial unique index keeps a single row per (vehicle_id, kind)",
+      );
+      assert.equal(second.dueDate, "2026-09-01");
+      const count = await client.query(
+        "SELECT count(*)::int AS count FROM vehicle_deadlines WHERE vehicle_id = $1 AND kind = 'inspection'",
+        [vehicleId],
+      );
+      assert.equal(count.rows[0].count, 1);
     });
-    const first = await upsertAutoDeadline(client, ctx, vehicleId, "inspection", "Badanie techniczne", "2026-08-01");
-    const second = await upsertAutoDeadline(client, ctx, vehicleId, "inspection", "Badanie techniczne", "2026-09-01");
-    assert.equal(first.id, second.id, "the partial unique index keeps a single row per (vehicle_id, kind)");
-    assert.equal(second.dueDate, "2026-09-01");
-    const count = await client.query(
-      "SELECT count(*)::int AS count FROM vehicle_deadlines WHERE vehicle_id = $1 AND kind = 'inspection'",
-      [vehicleId],
-    );
-    assert.equal(count.rows[0].count, 1);
-  });
-});
+  },
+);

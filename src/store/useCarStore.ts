@@ -317,7 +317,11 @@ export const useCarStore = create<CarStore>()(
           }),
           pendingMutations: [
             ...state.pendingMutations,
-            { idempotencyKey: makeId(), op: "vehicle.mileage", payload: { id: vehicleId, mileage } },
+            {
+              idempotencyKey: makeId(),
+              op: "vehicle.mileage",
+              payload: { id: vehicleId, mileage },
+            },
           ],
         }));
       },
@@ -352,7 +356,11 @@ export const useCarStore = create<CarStore>()(
             expense.mileage !== undefined
               ? state.vehicles.map((vehicle) =>
                   vehicle.id === expense.vehicleId
-                    ? { ...vehicle, mileage: Math.max(vehicle.mileage, expense.mileage!), updatedAt }
+                    ? {
+                        ...vehicle,
+                        mileage: Math.max(vehicle.mileage, expense.mileage!),
+                        updatedAt,
+                      }
                     : vehicle,
                 )
               : state.vehicles,

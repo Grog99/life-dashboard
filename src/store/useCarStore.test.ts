@@ -224,10 +224,12 @@ describe("useCarStore", () => {
 
     expect(useCarStore.getState().pendingMutations).toHaveLength(0);
     expect(useCarStore.getState().vehicleDeadlines).toHaveLength(2);
-    expect(useCarStore.getState().vehicleDeadlines.map((deadline) => deadline.kind).sort()).toEqual([
-      "inspection",
-      "insurance",
-    ]);
+    expect(
+      useCarStore
+        .getState()
+        .vehicleDeadlines.map((deadline) => deadline.kind)
+        .sort(),
+    ).toEqual(["inspection", "insurance"]);
   });
 
   it("applyMutationResults adoptuje serwerowe deadlines zwrócone z vehicle.update (upsert po kind)", () => {
@@ -253,7 +255,12 @@ describe("useCarStore", () => {
       {
         idempotencyKey: mutation.idempotencyKey,
         status: "applied",
-        record: { ...vehicle(), inspectionDate: "2027-03-01", version: 2, updatedAt: "2026-01-02T00:00:00.000Z" },
+        record: {
+          ...vehicle(),
+          inspectionDate: "2027-03-01",
+          version: 2,
+          updatedAt: "2026-01-02T00:00:00.000Z",
+        },
         deadlines: [
           {
             id: "dl-inspection",
@@ -305,7 +312,12 @@ describe("useCarStore", () => {
         idempotencyKey: originalMutation.idempotencyKey,
         status: "conflict",
         currentVersion: 4,
-        record: { ...vehicle(), color: "#ff0000", version: 4, updatedAt: "2026-01-03T00:00:00.000Z" },
+        record: {
+          ...vehicle(),
+          color: "#ff0000",
+          version: 4,
+          updatedAt: "2026-01-03T00:00:00.000Z",
+        },
       },
     ]);
 
