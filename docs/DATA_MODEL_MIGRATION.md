@@ -47,7 +47,7 @@ faktycznie ruszamy jego migrację.
 | — | **Finanse** | finance_accounts/transactions/budgets/goals | `balanceMinor` — read-modify-write addytywny | — | ✅ Zrobione (PR #11) |
 | 1 | **Podróże (Trips)** | trips, tripItinerary, tripBookings, packingItems | (a)+(b), patrz niżej | Wysoki | ✅ Zrobione (PR #13) |
 | 2 | **Lista zakupów (Meals)** | recipes, mealSlots, shoppingItems | (b), patrz niżej | Średni | ✅ Zrobione (PR #14) |
-| 3 | **Auto (Car)** | vehicles, carExpenses, vehicleDeadlines | (a), niższa częstotliwość | Niski–średni | W trakcie |
+| 3 | **Auto (Car)** | vehicles, carExpenses, vehicleDeadlines | (a), niższa częstotliwość | Niski–średni | ✅ Zrobione (PR #15) |
 | — | Zwierzęta (Pets) | pets, petExpenses, petVisits | brak | — | Zostaje na JSONB |
 | — | Zdrowie (Health) | healthAppointments, medications, healthMeasurements | brak | — | Zostaje na JSONB |
 | — | Subskrypcje | subscriptions | brak | — | Zostaje na JSONB |
