@@ -5,7 +5,6 @@ import { createAdvancedData } from "../data/advancedData";
 import { quarantineRawValue, reportStorageWarning, safeLocalStorage } from "../lib/safeStorage";
 import { generateId as makeId } from "../lib/id";
 import {
-  carExpenseSchema,
   healthAppointmentSchema,
   healthMeasurementSchema,
   hideAmountsSchema,
@@ -16,13 +15,10 @@ import {
   petSchema,
   petVisitSchema,
   subscriptionSchema,
-  vehicleDeadlineSchema,
-  vehicleSchema,
 } from "../lib/schema";
 import type {
   AdvancedData,
   AdvancedDataWithHealth,
-  CarExpense,
   HealthAppointment,
   HealthMeasurement,
   Medication,
@@ -30,7 +26,6 @@ import type {
   PetExpense,
   PetVisit,
   Subscription,
-  Vehicle,
 } from "../advancedTypes";
 
 const STORAGE_NAME = "puls-advanced-dashboard";
@@ -63,10 +58,6 @@ interface AdvancedActions {
   addSubscription: (subscription: Omit<Subscription, "id">) => string;
   updateSubscription: (subscriptionId: string, changes: Partial<Subscription>) => void;
   deleteSubscription: (subscriptionId: string) => void;
-  addVehicle: (vehicle: Omit<Vehicle, "id">) => string;
-  updateVehicle: (vehicleId: string, changes: Partial<Vehicle>) => void;
-  addCarExpense: (expense: Omit<CarExpense, "id">) => string;
-  toggleVehicleDeadline: (deadlineId: string) => void;
   addPet: (pet: Omit<Pet, "id">) => string;
   updatePet: (petId: string, changes: Partial<Pet>) => void;
   deletePet: (petId: string) => void;
@@ -113,35 +104,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         set((state) => ({
           subscriptions: state.subscriptions.filter(
             (subscription) => subscription.id !== subscriptionId,
-          ),
-        })),
-      addVehicle: (vehicle) => {
-        const id = makeId();
-        set((state) => ({ vehicles: [...state.vehicles, { ...vehicle, id }] }));
-        return id;
-      },
-      updateVehicle: (vehicleId, changes) =>
-        set((state) => ({
-          vehicles: state.vehicles.map((vehicle) =>
-            vehicle.id === vehicleId ? { ...vehicle, ...changes } : vehicle,
-          ),
-        })),
-      addCarExpense: (expense) => {
-        const id = makeId();
-        set((state) => ({
-          carExpenses: [{ ...expense, id }, ...state.carExpenses],
-          vehicles: state.vehicles.map((vehicle) =>
-            vehicle.id === expense.vehicleId && expense.mileage && expense.mileage > vehicle.mileage
-              ? { ...vehicle, mileage: expense.mileage }
-              : vehicle,
-          ),
-        }));
-        return id;
-      },
-      toggleVehicleDeadline: (deadlineId) =>
-        set((state) => ({
-          vehicleDeadlines: state.vehicleDeadlines.map((deadline) =>
-            deadline.id === deadlineId ? { ...deadline, completed: !deadline.completed } : deadline,
           ),
         })),
       addPet: (pet) => {
@@ -284,9 +246,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         const state = persistedState as Record<string, unknown>;
 
         const subscriptions = parseArrayField(state.subscriptions, subscriptionSchema);
-        const vehicles = parseArrayField(state.vehicles, vehicleSchema);
-        const carExpenses = parseArrayField(state.carExpenses, carExpenseSchema);
-        const vehicleDeadlines = parseArrayField(state.vehicleDeadlines, vehicleDeadlineSchema);
         const pets = parseArrayField(state.pets, petSchema);
         const petExpenses = parseArrayField(state.petExpenses, petExpenseSchema);
         const petVisits = parseArrayField(state.petVisits, petVisitSchema);
@@ -313,9 +272,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 
         const arrayFields = [
           subscriptions,
-          vehicles,
-          carExpenses,
-          vehicleDeadlines,
           pets,
           petExpenses,
           petVisits,
@@ -339,9 +295,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         return {
           ...currentState,
           subscriptions: subscriptions.items,
-          vehicles: vehicles.items,
-          carExpenses: carExpenses.items,
-          vehicleDeadlines: vehicleDeadlines.items,
           pets: pets.items,
           petExpenses: petExpenses.items,
           petVisits: petVisits.items,
@@ -355,9 +308,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
       },
       partialize: (state) => ({
         subscriptions: state.subscriptions,
-        vehicles: state.vehicles,
-        carExpenses: state.carExpenses,
-        vehicleDeadlines: state.vehicleDeadlines,
         pets: state.pets,
         petExpenses: state.petExpenses,
         petVisits: state.petVisits,
@@ -376,9 +326,6 @@ export function exportAdvancedData(): AdvancedDataWithHealth {
   const state = useAdvancedStore.getState();
   return {
     subscriptions: state.subscriptions,
-    vehicles: state.vehicles,
-    carExpenses: state.carExpenses,
-    vehicleDeadlines: state.vehicleDeadlines,
     pets: state.pets,
     petExpenses: state.petExpenses,
     petVisits: state.petVisits,

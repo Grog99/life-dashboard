@@ -33,6 +33,14 @@ import {
   resetMealsForHousehold,
 } from "./meals.mjs";
 import {
+  applyCarMutation,
+  assertCarMutationShape,
+  MAX_CAR_MUTATIONS_BYTES,
+  MAX_CAR_MUTATIONS_PER_BATCH,
+  readCarSnapshot,
+  resetCarForUser,
+} from "./car.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -807,6 +815,56 @@ app.post("/api/v1/meals/mutations", async (request) => {
 app.post("/api/v1/meals/reset", async (request) => {
   const session = await requireHousehold(request);
   await transaction((client) => resetMealsForHousehold(client, session.household_id));
+  return { serverAt: new Date().toISOString() };
+});
+
+// Car module (Auto): normalized tables, not part of the workspace JSONB document (see
+// docs/plans/auto-car.md and server/src/car.mjs). GET returns a snapshot, mutations go through a
+// single idempotent batch endpoint mapping 1:1 onto the client's offline queue. Unlike Trips/Meals,
+// Auto KEEPS the private/shared distinction (like Finance) -- vehicles/car_expenses scope by
+// `session.user_id`; vehicle_deadlines has no visibility of its own and inherits it from the parent
+// vehicle (see car.mjs's EXISTS-based scoping).
+app.get("/api/v1/car", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readCarSnapshot(pool, session.household_id, session.user_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/car/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(400, "Nieprawidłowe żądanie mutacji samochodu", "INVALID_CAR_MUTATIONS");
+  }
+  if (body.mutations.length > MAX_CAR_MUTATIONS_PER_BATCH) {
+    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "CAR_MUTATIONS_TOO_LARGE");
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_CAR_MUTATIONS_BYTES) {
+    throw httpError(413, "Dane mutacji przekraczają dozwolony rozmiar", "CAR_MUTATIONS_TOO_LARGE");
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see car.mjs's assertCarMutationShape.
+  for (const mutation of body.mutations) assertCarMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order (e.g.
+    // expense.create/deadline.create after the vehicle.create they depend on, vehicle.mileage after
+    // vehicle.create).
+    const result = await transaction((client) => applyCarMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): Auto nie jest już częścią dokumentu
+// JSONB, więc nie ma go czym nadpisać zwykłym PUT /api/v1/workspace -- ten endpoint odtwarza dokładnie
+// ten sam zakres usuwania (wspólne rekordy + WYŁĄCZNIE prywatne rekordy wywołującego, nigdy prywatne
+// rekordy innych domowników), analogicznie do /api/v1/finance/reset.
+app.post("/api/v1/car/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetCarForUser(client, session.household_id, session.user_id));
   return { serverAt: new Date().toISOString() };
 });
 

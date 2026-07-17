@@ -167,20 +167,6 @@ function derivedReminders(data, nowKey) {
       });
     }
   }
-  for (const deadline of Array.isArray(advanced.vehicleDeadlines)
-    ? advanced.vehicleDeadlines
-    : []) {
-    if (!deadline?.id || deadline.completed || !deadline.dueDate) continue;
-    const dueKey = shiftLocalDateTime(deadline.dueDate, "09:00", -14 * 24 * 60);
-    if (withinDeliveryWindow(dueKey, nowKey, 14)) {
-      reminders.push({
-        id: `vehicle:${deadline.id}`,
-        title: `Samochód: ${deadline.title}`,
-        date: deadline.dueDate,
-        time: "09:00",
-      });
-    }
-  }
   for (const appointment of Array.isArray(advanced.healthAppointments)
     ? advanced.healthAppointments
     : []) {
@@ -256,6 +242,39 @@ async function tripReminders(householdId, nowKey) {
   return reminders;
 }
 
+// Car (Auto) deadlines are no longer part of the workspace JSONB document (server/migrations/
+// 009_car_normalized.sql, docs/plans/auto-car.md "Worker"): they live in `vehicle_deadlines`, joined to
+// `vehicles` for visibility/ownership. Unlike tripReminders (always household-wide), Auto keeps the
+// private/shared distinction -- each row also carries a `targetUserId`: null for a household-visible
+// vehicle (deliverReminder fans out to every member), or the owner's user id for a private vehicle
+// (deliverReminder narrows to that one member). Same 14-day window / completed/dueDate guard as the
+// JSONB loop this replaces.
+async function carDeadlineReminders(householdId, nowKey) {
+  const result = await query(
+    `SELECT d.id, d.title, d.due_date::text AS due_date, v.visibility, v.owner_id
+       FROM vehicle_deadlines d
+       JOIN vehicles v ON v.id = d.vehicle_id
+      WHERE d.household_id = $1 AND d.completed = false AND d.due_date IS NOT NULL`,
+    [householdId],
+  );
+  const reminders = [];
+  for (const row of result.rows) {
+    const dueKey = shiftLocalDateTime(row.due_date, "09:00", -14 * 24 * 60);
+    if (withinDeliveryWindow(dueKey, nowKey, 14)) {
+      reminders.push({
+        reminder: {
+          id: `vehicle:${row.id}`,
+          title: `Samochód: ${row.title}`,
+          date: row.due_date,
+          time: "09:00",
+        },
+        targetUserId: row.visibility === "private" ? row.owner_id : null,
+      });
+    }
+  }
+  return reminders;
+}
+
 async function deliverDerived(workspace, data, targetUserId = null) {
   const nowKey = localNowKey(workspace.timezone);
   for (const reminder of derivedReminders(data, nowKey)) {
@@ -285,6 +304,7 @@ async function tick() {
       query("DELETE FROM finance_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM trip_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM meal_mutations WHERE created_at < now() - interval '30 days'"),
+      query("DELETE FROM car_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }
@@ -302,6 +322,20 @@ async function tick() {
           await deliverReminder(workspace, reminder);
         } catch (error) {
           console.error("Trip reminder failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
+      for (const { reminder, targetUserId } of await carDeadlineReminders(
+        workspace.household_id,
+        nowKey,
+      )) {
+        try {
+          await deliverReminder(workspace, reminder, targetUserId);
+        } catch (error) {
+          console.error("Car deadline reminder failed", {
             householdId: workspace.household_id,
             reminderId: reminder.id,
             error,

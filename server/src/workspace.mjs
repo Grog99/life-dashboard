@@ -1,7 +1,10 @@
+// Auto (vehicles/carExpenses/vehicleDeadlines) is no longer part of the workspace JSONB document
+// (server/migrations/009_car_normalized.sql, docs/plans/auto-car.md) -- it has its own normalized
+// tables and endpoint (/api/v1/car, server/src/car.mjs). Removed from META_COLLECTIONS/
+// CHILD_RELATIONS/ADVANCED_COLLECTIONS below, which automatically excludes it from
+// splitWorkspaceData/mergeWorkspaceData and workspaceDocumentIsValid.
 const META_COLLECTIONS = [
   "subscriptions",
-  "vehicles",
-  "carExpenses",
   "healthAppointments",
   "medications",
   "healthMeasurements",
@@ -11,8 +14,6 @@ const META_COLLECTIONS = [
 ];
 
 const CHILD_RELATIONS = {
-  carExpenses: ["vehicleId", "vehicles"],
-  vehicleDeadlines: ["vehicleId", "vehicles"],
   petExpenses: ["petId", "pets"],
   petVisits: ["petId", "pets"],
 };
@@ -21,9 +22,6 @@ const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
 const LIFE_COLLECTIONS = ["tasks", "events", "reminders", "notes", "habits"];
 const ADVANCED_COLLECTIONS = [
   "subscriptions",
-  "vehicles",
-  "carExpenses",
-  "vehicleDeadlines",
   "healthAppointments",
   "medications",
   "healthMeasurements",

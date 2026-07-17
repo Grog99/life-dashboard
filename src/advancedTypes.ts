@@ -17,6 +17,11 @@ export type { Trip, TripItineraryItem, TripBooking, PackingItem } from "./tripsT
 // stąd dla plików, które wciąż importują je z `advancedTypes` (jak zrobiono z typami trips).
 export type { Recipe, MealSlot, ShoppingItem } from "./mealsTypes";
 
+// Auto (vehicles/carExpenses/vehicleDeadlines) żyje teraz w znormalizowanych tabelach SQL, nie
+// w tym dokumencie — patrz docs/plans/auto-car.md i src/carTypes.ts. Re-eksportowane stąd dla
+// plików, które wciąż importują je z `advancedTypes` (jak zrobiono z typami trips/meals).
+export type { Vehicle, CarExpense, VehicleDeadline } from "./carTypes";
+
 export interface Subscription extends SharedMeta {
   id: string;
   name: string;
@@ -30,40 +35,6 @@ export interface Subscription extends SharedMeta {
   reminderDays: number;
   color: string;
   cancelUrl?: string;
-}
-
-export interface Vehicle extends SharedMeta {
-  id: string;
-  name: string;
-  make: string;
-  model: string;
-  year: number;
-  plate: string;
-  mileage: number;
-  fuelType: "petrol" | "diesel" | "hybrid" | "electric";
-  inspectionDate: string;
-  insuranceDate: string;
-  color: string;
-}
-
-export interface CarExpense extends SharedMeta {
-  id: string;
-  vehicleId: string;
-  date: string;
-  type: "fuel" | "service" | "insurance" | "parking" | "other";
-  amountMinor: number;
-  mileage?: number;
-  liters?: number;
-  title: string;
-}
-
-export interface VehicleDeadline {
-  id: string;
-  vehicleId: string;
-  title: string;
-  dueDate?: string;
-  dueMileage?: number;
-  completed: boolean;
 }
 
 export type PetKind = "rabbit" | "dog" | "cat" | "guinea_pig" | "aquarium" | "other";
@@ -154,9 +125,6 @@ export interface HouseholdMember {
 
 export interface AdvancedData {
   subscriptions: Subscription[];
-  vehicles: Vehicle[];
-  carExpenses: CarExpense[];
-  vehicleDeadlines: VehicleDeadline[];
   pets: Pet[];
   petExpenses: PetExpense[];
   petVisits: PetVisit[];

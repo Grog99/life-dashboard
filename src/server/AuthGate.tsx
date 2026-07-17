@@ -13,12 +13,14 @@ import { WorkspaceSync } from "./WorkspaceSync";
 import { FinanceSync } from "./FinanceSync";
 import { TripsSync } from "./TripsSync";
 import { MealsSync } from "./MealsSync";
+import { CarSync } from "./CarSync";
 import { removeCurrentPushSubscription } from "./push";
 import { useLifeStore } from "../store/useLifeStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
 import { useMealsStore } from "../store/useMealsStore";
+import { useCarStore } from "../store/useCarStore";
 import {
   reportStorageWarning,
   safeGetStorageItem,
@@ -68,11 +70,13 @@ function bindLocalStorageTo(snapshot: AuthSnapshot) {
     useFinanceStore.getState().resetFinanceData();
     useTripsStore.getState().resetTripsData();
     useMealsStore.getState().resetMealsData();
+    useCarStore.getState().resetCarData();
     safeRemoveStorageItem("puls-life-dashboard");
     safeRemoveStorageItem("puls-advanced-dashboard");
     safeRemoveStorageItem("puls-finance");
     safeRemoveStorageItem("puls-trips");
     safeRemoveStorageItem("puls-meals");
+    safeRemoveStorageItem("puls-car");
   }
   safeSetStorageItem(STORAGE_OWNER_KEY, scope);
 }
@@ -83,6 +87,7 @@ function clearLocalUserData() {
   useFinanceStore.getState().resetFinanceData();
   useTripsStore.getState().resetTripsData();
   useMealsStore.getState().resetMealsData();
+  useCarStore.getState().resetCarData();
   safeRemoveStorageItem(STORAGE_OWNER_KEY);
   safeRemoveStorageItem(AUTH_SNAPSHOT_KEY);
   safeRemoveStorageItem("puls-life-dashboard");
@@ -90,6 +95,7 @@ function clearLocalUserData() {
   safeRemoveStorageItem("puls-finance");
   safeRemoveStorageItem("puls-trips");
   safeRemoveStorageItem("puls-meals");
+  safeRemoveStorageItem("puls-car");
   safeRemoveStoragePrefix("puls-sync-");
 }
 
@@ -104,7 +110,8 @@ function hasUnsyncedChanges(): boolean {
   return (
     useFinanceStore.getState().pendingMutations.length > 0 ||
     useTripsStore.getState().pendingMutations.length > 0 ||
-    useMealsStore.getState().pendingMutations.length > 0
+    useMealsStore.getState().pendingMutations.length > 0 ||
+    useCarStore.getState().pendingMutations.length > 0
   );
 }
 
@@ -341,7 +348,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
               key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
               onSessionExpired={() => endLocalSession(true, "expired")}
             >
-              {children}
+              <CarSync
+                key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
+                onSessionExpired={() => endLocalSession(true, "expired")}
+              >
+                {children}
+              </CarSync>
             </MealsSync>
           </TripsSync>
         </FinanceSync>
