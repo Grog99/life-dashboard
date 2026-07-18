@@ -267,18 +267,30 @@ export function validatePetCreatePayload(payload) {
     "INVALID_COLOR",
   );
   if (payload.species !== undefined && payload.species !== null) {
-    assertShape(isOptionalText(payload.species, 500), "Nieprawidłowy gatunek/rasa", "INVALID_SPECIES");
+    assertShape(
+      isOptionalText(payload.species, 500),
+      "Nieprawidłowy gatunek/rasa",
+      "INVALID_SPECIES",
+    );
   }
   if (payload.birthDate !== undefined && payload.birthDate !== null) {
     assertShape(isIsoDate(payload.birthDate), "Nieprawidłowa data urodzenia", "INVALID_BIRTH_DATE");
   }
   if (payload.fishStock !== undefined && payload.fishStock !== null) {
-    assertShape(isFishStockArray(payload.fishStock), "Nieprawidłowa obsada akwarium", "INVALID_FISH_STOCK");
+    assertShape(
+      isFishStockArray(payload.fishStock),
+      "Nieprawidłowa obsada akwarium",
+      "INVALID_FISH_STOCK",
+    );
   }
   if (payload.notes !== undefined && payload.notes !== null) {
     assertShape(isOptionalText(payload.notes, 5000), "Nieprawidłowe notatki", "INVALID_NOTES");
   }
-  assertShape(VISIBILITIES.has(payload.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
+  assertShape(
+    VISIBILITIES.has(payload.visibility),
+    "Nieprawidłowa widoczność",
+    "INVALID_VISIBILITY",
+  );
   return {
     id: payload.id,
     name: payload.name.trim(),
@@ -396,7 +408,11 @@ export function validatePetExpenseCreatePayload(payload) {
     assertShape(isOptionalText(payload.notes, 5000), "Nieprawidłowe notatki", "INVALID_NOTES");
   }
   if (payload.visibility !== undefined) {
-    assertShape(VISIBILITIES.has(payload.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
+    assertShape(
+      VISIBILITIES.has(payload.visibility),
+      "Nieprawidłowa widoczność",
+      "INVALID_VISIBILITY",
+    );
   }
   return {
     id: payload.id,
@@ -415,21 +431,37 @@ export function validatePetVisitCreatePayload(payload) {
   assertShape(isId(payload.id), "Nieprawidłowy identyfikator wizyty", "INVALID_ID");
   assertShape(isId(payload.petId), "Nieprawidłowy identyfikator zwierzęcia", "INVALID_PET_ID");
   assertShape(isNonEmptyText(payload.title, 500), "Nieprawidłowy tytuł wizyty", "INVALID_TITLE");
-  assertShape(isNonEmptyText(payload.clinician, 500), "Nieprawidłowy weterynarz/placówka", "INVALID_CLINICIAN");
+  assertShape(
+    isNonEmptyText(payload.clinician, 500),
+    "Nieprawidłowy weterynarz/placówka",
+    "INVALID_CLINICIAN",
+  );
   if (payload.specialty !== undefined && payload.specialty !== null) {
-    assertShape(isOptionalText(payload.specialty, 500), "Nieprawidłowa specjalizacja", "INVALID_SPECIALTY");
+    assertShape(
+      isOptionalText(payload.specialty, 500),
+      "Nieprawidłowa specjalizacja",
+      "INVALID_SPECIALTY",
+    );
   }
   assertShape(isIsoDate(payload.date), "Nieprawidłowa data wizyty", "INVALID_DATE");
   assertShape(isClockTime(payload.time), "Nieprawidłowa godzina wizyty", "INVALID_TIME");
   if (payload.location !== undefined && payload.location !== null) {
-    assertShape(isOptionalText(payload.location, 1000), "Nieprawidłowa lokalizacja", "INVALID_LOCATION");
+    assertShape(
+      isOptionalText(payload.location, 1000),
+      "Nieprawidłowa lokalizacja",
+      "INVALID_LOCATION",
+    );
   }
   assertShape(VISIT_STATUSES.has(payload.status), "Nieprawidłowy status wizyty", "INVALID_STATUS");
   if (payload.notes !== undefined && payload.notes !== null) {
     assertShape(isOptionalText(payload.notes, 5000), "Nieprawidłowe notatki", "INVALID_NOTES");
   }
   if (payload.visibility !== undefined) {
-    assertShape(VISIBILITIES.has(payload.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
+    assertShape(
+      VISIBILITIES.has(payload.visibility),
+      "Nieprawidłowa widoczność",
+      "INVALID_VISIBILITY",
+    );
   }
   return {
     id: payload.id,
@@ -639,7 +671,14 @@ export async function resetPetsForUser(client, householdId, userId) {
 // widoczności").
 // ---------------------------------------------------------------------------
 
-async function resolveConflictOrError(client, query, params, mapper, notFoundMessage, notFoundCode) {
+async function resolveConflictOrError(
+  client,
+  query,
+  params,
+  mapper,
+  notFoundMessage,
+  notFoundCode,
+) {
   const existing = await client.query(query, params);
   if (existing.rowCount) {
     const row = existing.rows[0];
@@ -715,7 +754,14 @@ async function execPetCreate(client, ctx, payload) {
 // a profile turned private must not leave previously-shared expenses/visits visible to the rest of
 // the household). Only touches rows whose visibility actually differs from the new value, so it
 // doesn't needlessly bump the version of children that already match.
-async function cascadePetVisibility(client, householdId, petId, petOwnerId, newVisibility, actorId) {
+async function cascadePetVisibility(
+  client,
+  householdId,
+  petId,
+  petOwnerId,
+  newVisibility,
+  actorId,
+) {
   await client.query(
     `UPDATE pet_expenses
         SET visibility = $1, owner_id = $2, version = version + 1, updated_at = now(), updated_by = $3
@@ -797,7 +843,14 @@ async function execPetUpdate(client, ctx, payload, baseVersion) {
   }
   const record = petRowToDto(updated.rows[0]);
   if (changes.visibility !== undefined) {
-    await cascadePetVisibility(client, ctx.householdId, id, record.ownerId, record.visibility, ownerId);
+    await cascadePetVisibility(
+      client,
+      ctx.householdId,
+      id,
+      record.ownerId,
+      record.visibility,
+      ownerId,
+    );
   }
   return { status: "applied", record };
 }
@@ -835,7 +888,11 @@ async function execPetExpenseCreate(client, ctx, payload) {
     [data.petId, ctx.householdId, ownerId],
   );
   if (!petResult.rowCount) {
-    return { status: "error", error: "Zwierzę nie istnieje lub jest niedostępne", code: "PET_NOT_FOUND" };
+    return {
+      status: "error",
+      error: "Zwierzę nie istnieje lub jest niedostępne",
+      code: "PET_NOT_FOUND",
+    };
   }
   const visibility = resolveExpenseVisibility(data.visibility, petResult.rows[0].visibility);
   try {
@@ -908,7 +965,11 @@ async function execPetVisitCreate(client, ctx, payload) {
     [data.petId, ctx.householdId, ownerId],
   );
   if (!petResult.rowCount) {
-    return { status: "error", error: "Zwierzę nie istnieje lub jest niedostępne", code: "PET_NOT_FOUND" };
+    return {
+      status: "error",
+      error: "Zwierzę nie istnieje lub jest niedostępne",
+      code: "PET_NOT_FOUND",
+    };
   }
   const visibility = resolveVisitVisibility(data.visibility, petResult.rows[0].visibility);
   try {

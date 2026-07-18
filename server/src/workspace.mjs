@@ -5,7 +5,12 @@
 // server/src/pets.mjs). Removed from META_COLLECTIONS/CHILD_RELATIONS/ADVANCED_COLLECTIONS below,
 // which automatically excludes them from splitWorkspaceData/mergeWorkspaceData and
 // workspaceDocumentIsValid.
-const META_COLLECTIONS = ["subscriptions", "healthAppointments", "medications", "healthMeasurements"];
+const META_COLLECTIONS = [
+  "subscriptions",
+  "healthAppointments",
+  "medications",
+  "healthMeasurements",
+];
 
 // Pets was the last module with an entry here -- CHILD_RELATIONS is now empty. splitWorkspaceData/
 // mergeWorkspaceData iterate it via Object.entries/Object.keys, which degrade to a no-op loop on an

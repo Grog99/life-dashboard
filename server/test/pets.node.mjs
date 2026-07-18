@@ -319,7 +319,11 @@ test("assertPetsMutationShape validates the whole-request envelope", () => {
     () => assertPetsMutationShape({ ...valid, payload: "nope" }),
     (error) => error.statusCode === 400,
   );
-  assert.equal(SUPPORTED_PETS_OPS.has("expense.update"), false, "expense.update is out of scope (YAGNI)");
+  assert.equal(
+    SUPPORTED_PETS_OPS.has("expense.update"),
+    false,
+    "expense.update is out of scope (YAGNI)",
+  );
 });
 
 test("row->DTO mappers convert snake_case/bigint-as-string/Date columns to the frontend shape", () => {
@@ -601,49 +605,54 @@ dbTest(
   },
 );
 
-dbTest(
-  "pet.update normalizes variant fields by kind in both directions, server-side",
-  async () => {
-    await withRollback(async (client) => {
-      const { householdId, userId } = await createHouseholdAndUser(client, "owner");
-      const ctx = { householdId, userId };
-      const petId = randomUUID();
-      await applyPetsMutation(client, ctx, {
-        idempotencyKey: randomUUID(),
-        op: "pet.create",
-        payload: dbPetPayload({ id: petId, kind: "cat", species: "Brytyjski", birthDate: "2020-01-01" }),
-      });
-
-      // cat -> aquarium: species/birthDate must be zeroed even though the client didn't say so, and
-      // fishStock (sent in this same update) must be stored.
-      const toAquarium = await applyPetsMutation(client, ctx, {
-        idempotencyKey: randomUUID(),
-        op: "pet.update",
-        payload: {
-          id: petId,
-          changes: { kind: "aquarium", fishStock: [{ id: "f1", species: "Neon", count: 3 }] },
-        },
-        baseVersion: 1,
-      });
-      assert.equal(toAquarium.status, "applied");
-      assert.equal(toAquarium.record.species, undefined);
-      assert.equal(toAquarium.record.birthDate, undefined);
-      assert.deepEqual(toAquarium.record.fishStock, [{ id: "f1", species: "Neon", count: 3 }]);
-
-      // aquarium -> dog: fishStock must be zeroed even though the client didn't explicitly clear it.
-      const toDog = await applyPetsMutation(client, ctx, {
-        idempotencyKey: randomUUID(),
-        op: "pet.update",
-        payload: { id: petId, changes: { kind: "dog", species: "Owczarek", birthDate: "2019-05-01" } },
-        baseVersion: 2,
-      });
-      assert.equal(toDog.status, "applied");
-      assert.equal(toDog.record.fishStock, undefined);
-      assert.equal(toDog.record.species, "Owczarek");
-      assert.equal(toDog.record.birthDate, "2019-05-01");
+dbTest("pet.update normalizes variant fields by kind in both directions, server-side", async () => {
+  await withRollback(async (client) => {
+    const { householdId, userId } = await createHouseholdAndUser(client, "owner");
+    const ctx = { householdId, userId };
+    const petId = randomUUID();
+    await applyPetsMutation(client, ctx, {
+      idempotencyKey: randomUUID(),
+      op: "pet.create",
+      payload: dbPetPayload({
+        id: petId,
+        kind: "cat",
+        species: "Brytyjski",
+        birthDate: "2020-01-01",
+      }),
     });
-  },
-);
+
+    // cat -> aquarium: species/birthDate must be zeroed even though the client didn't say so, and
+    // fishStock (sent in this same update) must be stored.
+    const toAquarium = await applyPetsMutation(client, ctx, {
+      idempotencyKey: randomUUID(),
+      op: "pet.update",
+      payload: {
+        id: petId,
+        changes: { kind: "aquarium", fishStock: [{ id: "f1", species: "Neon", count: 3 }] },
+      },
+      baseVersion: 1,
+    });
+    assert.equal(toAquarium.status, "applied");
+    assert.equal(toAquarium.record.species, undefined);
+    assert.equal(toAquarium.record.birthDate, undefined);
+    assert.deepEqual(toAquarium.record.fishStock, [{ id: "f1", species: "Neon", count: 3 }]);
+
+    // aquarium -> dog: fishStock must be zeroed even though the client didn't explicitly clear it.
+    const toDog = await applyPetsMutation(client, ctx, {
+      idempotencyKey: randomUUID(),
+      op: "pet.update",
+      payload: {
+        id: petId,
+        changes: { kind: "dog", species: "Owczarek", birthDate: "2019-05-01" },
+      },
+      baseVersion: 2,
+    });
+    assert.equal(toDog.status, "applied");
+    assert.equal(toDog.record.fishStock, undefined);
+    assert.equal(toDog.record.species, "Owczarek");
+    assert.equal(toDog.record.birthDate, "2019-05-01");
+  });
+});
 
 dbTest(
   "pet.update changing visibility cascades visibility/owner_id onto all of the pet's expenses and " +
@@ -932,7 +941,11 @@ dbTest(
       await applyPetsMutation(client, ctxOwner, {
         idempotencyKey: randomUUID(),
         op: "pet.create",
-        payload: dbPetPayload({ id: ownerPrivatePetId, name: "Prywatny właściciela", visibility: "private" }),
+        payload: dbPetPayload({
+          id: ownerPrivatePetId,
+          name: "Prywatny właściciela",
+          visibility: "private",
+        }),
       });
       await applyPetsMutation(client, ctxOwner, {
         idempotencyKey: randomUUID(),
@@ -950,7 +963,11 @@ dbTest(
       await applyPetsMutation(client, ctxOther, {
         idempotencyKey: randomUUID(),
         op: "pet.create",
-        payload: dbPetPayload({ id: otherPrivatePetId, name: "Prywatny innego", visibility: "private" }),
+        payload: dbPetPayload({
+          id: otherPrivatePetId,
+          name: "Prywatny innego",
+          visibility: "private",
+        }),
       });
       await applyPetsMutation(client, ctxOther, {
         idempotencyKey: randomUUID(),
