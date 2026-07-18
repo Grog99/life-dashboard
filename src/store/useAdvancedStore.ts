@@ -52,7 +52,13 @@ export const useAdvancedStore = create<AdvancedStore>()(
       version: 1,
       storage: createJSONStorage(() => safeLocalStorage),
       merge: (persistedState, currentState) => {
-        if (!persistedState || typeof persistedState !== "object") {
+        // `persistedState` is `undefined` on a genuinely fresh install (localStorage never had
+        // this key) -- zustand's persist middleware calls `merge` unconditionally, even when
+        // there was nothing to deserialize. That's the normal first-run case, not corruption, so
+        // it must stay silent; only an actually-present-but-wrong-shape value is a real
+        // "niezgodny format" warning (patrz useFinanceStore.ts/useCarStore.ts -- ta sama luka #3).
+        if (persistedState === undefined) return currentState;
+        if (persistedState === null || typeof persistedState !== "object") {
           reportStorageWarning(
             "Zapis modułów miał niezgodny format — zachowano bezpieczne dane startowe",
           );
