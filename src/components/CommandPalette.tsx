@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useSubscriptionsStore } from "../store/useSubscriptionsStore";
 import { useHealthStore } from "../store/useHealthStore";
 import { useFinanceStore } from "../store/useFinanceStore";
@@ -113,9 +113,9 @@ const destinations: Array<{
 ];
 
 export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: CommandPaletteProps) {
-  const tasks = useLifeStore((state) => state.tasks);
-  const notes = useLifeStore((state) => state.notes);
-  const events = useLifeStore((state) => state.events);
+  const tasks = useLifeRecordsStore((state) => state.tasks);
+  const notes = useLifeRecordsStore((state) => state.notes);
+  const events = useLifeRecordsStore((state) => state.events);
   const financeTransactions = useFinanceStore((state) => state.transactions);
   const trips = useTripsStore((state) => state.trips);
   const subscriptions = useSubscriptionsStore((state) => state.subscriptions);

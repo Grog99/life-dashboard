@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { formatMinutes, isOverdue, relativeDay } from "../lib/date";
-import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import type { Task } from "../types";
 
 interface TaskItemProps {
@@ -42,10 +42,10 @@ export function TaskItem({
   const menuId = useId();
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const toggleTask = useLifeStore((state) => state.toggleTask);
-  const toggleFocus = useLifeStore((state) => state.toggleFocus);
-  const moveTaskToTomorrow = useLifeStore((state) => state.moveTaskToTomorrow);
-  const deleteTask = useLifeStore((state) => state.deleteTask);
+  const toggleTask = useLifeRecordsStore((state) => state.toggleTask);
+  const toggleFocus = useLifeRecordsStore((state) => state.toggleFocus);
+  const moveTaskToTomorrow = useLifeRecordsStore((state) => state.moveTaskToTomorrow);
+  const deleteTask = useLifeRecordsStore((state) => state.deleteTask);
   const overdue = isOverdue(task.date, task.status);
 
   const handleFocus = () => {

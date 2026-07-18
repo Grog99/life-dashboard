@@ -23,6 +23,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import { format } from "date-fns";
 import { backupEnvelopeSchema, backupEnvelopeV2Schema, lifeDataSchema } from "../lib/schema";
 import { exportData, useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { exportAdvancedData, useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
@@ -44,8 +45,9 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   const preferences = useLifeStore((state) => state.preferences);
   const updatePreferences = useLifeStore((state) => state.updatePreferences);
   const replaceData = useLifeStore((state) => state.replaceData);
-  const tasks = useLifeStore((state) => state.tasks);
-  const events = useLifeStore((state) => state.events);
+  const tasks = useLifeRecordsStore((state) => state.tasks);
+  const events = useLifeRecordsStore((state) => state.events);
+  const resetLifeRecordsData = useLifeRecordsStore((state) => state.resetLifeRecordsData);
   const replaceAdvancedData = useAdvancedStore((state) => state.replaceAdvancedData);
   const resetFinanceData = useFinanceStore((state) => state.resetFinanceData);
   const financeTransactions = useFinanceStore((state) => state.transactions);
@@ -176,12 +178,13 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       )
     )
       return;
-    // Finanse, Podróże, Posiłki, Auto, Zwierzęta, Zdrowie i Subskrypcje nie są już częścią
-    // dokumentu JSONB, więc nie da się ich wyczyścić samym lokalnym replaceAdvancedData -- trzeba
-    // jawnie poprosić serwer o usunięcie znormalizowanych rekordów. Robimy to PRZED czyszczeniem
-    // reszty i przerywamy przy błędzie sieci, żeby nie pokazać "wyczyszczono", gdy
-    // finanse/podróże/posiłki/samochód/zwierzęta/zdrowie/subskrypcje w rzeczywistości przetrwały
-    // na serwerze i wrócą przy kolejnej synchronizacji.
+    // Finanse, Podróże, Posiłki, Auto, Zwierzęta, Zdrowie, Subskrypcje i Life (zadania/kalendarz/
+    // przypomnienia/notatki/nawyki) nie są już częścią dokumentu JSONB, więc nie da się ich
+    // wyczyścić samym lokalnym replaceAdvancedData -- trzeba jawnie poprosić serwer o usunięcie
+    // znormalizowanych rekordów. Robimy to PRZED czyszczeniem reszty i przerywamy przy błędzie
+    // sieci, żeby nie pokazać "wyczyszczono", gdy finanse/podróże/posiłki/samochód/zwierzęta/
+    // zdrowie/subskrypcje/life w rzeczywistości przetrwały na serwerze i wrócą przy kolejnej
+    // synchronizacji.
     setClearingData(true);
     try {
       await apiRequest("/api/v1/finance/reset", { method: "POST", json: {} });
@@ -191,6 +194,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       await apiRequest("/api/v1/pets/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/health/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/subscriptions/reset", { method: "POST", json: {} });
+      await apiRequest("/api/v1/life/reset", { method: "POST", json: {} });
     } catch (error) {
       onToast(
         error instanceof Error
@@ -202,11 +206,6 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       setClearingData(false);
     }
     replaceData({
-      tasks: [],
-      events: [],
-      reminders: [],
-      notes: [],
-      habits: [],
       scratchpad: "",
       intention: "",
       energy: "medium",
@@ -217,6 +216,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       hideAmounts: false,
       householdMembers: [],
     });
+    resetLifeRecordsData();
     resetFinanceData();
     resetTripsData();
     resetMealsData();

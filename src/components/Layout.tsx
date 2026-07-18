@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
 import { lockBodyScroll } from "../lib/scrollLock";
 import type { Theme, ViewId } from "../types";
@@ -85,7 +86,7 @@ export function Layout({ view, onViewChange, onQuickAdd, onCommand, children }: 
   const theme = useLifeStore((state) => state.preferences.theme);
   const profileName = useLifeStore((state) => state.preferences.name);
   const updatePreferences = useLifeStore((state) => state.updatePreferences);
-  const reminders = useLifeStore((state) => state.reminders);
+  const reminders = useLifeRecordsStore((state) => state.reminders);
   const householdName = useAdvancedStore((state) => state.householdName);
   const householdMembers = useAdvancedStore((state) => state.householdMembers);
   const pendingReminders = reminders.filter((reminder) => !reminder.done).length;

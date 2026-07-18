@@ -12,6 +12,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { TasksPage } from "./pages/TasksPage";
 import { TodayPage } from "./pages/TodayPage";
 import { useLifeStore } from "./store/useLifeStore";
+import { useLifeRecordsStore } from "./store/useLifeRecordsStore";
 import { useAdvancedStore } from "./store/useAdvancedStore";
 import type { QuickAddType, ViewId } from "./types";
 
@@ -166,6 +167,7 @@ export default function App() {
   useEffect(() => {
     const syncOtherTabs = (event: StorageEvent) => {
       if (event.key === "puls-life-dashboard") void useLifeStore.persist.rehydrate();
+      if (event.key === "puls-life-records") void useLifeRecordsStore.persist.rehydrate();
       if (event.key === "puls-advanced-dashboard") void useAdvancedStore.persist.rehydrate();
     };
     window.addEventListener("storage", syncOtherTabs);
@@ -174,11 +176,13 @@ export default function App() {
 
   // Dosuwa okno przyszłych wystąpień serii powtarzalnych zadań/wydarzeń — przy montażu
   // i przy powrocie do aplikacji (zmiana dnia w tle). Sama akcja jest no-op, gdy okno
-  // jest już pełne (patrz src/store/useLifeStore.ts, docs/plans/zadania-wydarzenia-powtarzalne.md).
+  // jest już pełne (patrz src/store/useLifeRecordsStore.ts,
+  // docs/plans/zadania-wydarzenia-powtarzalne.md).
   useEffect(() => {
-    useLifeStore.getState().expandRecurringSeries();
+    useLifeRecordsStore.getState().expandRecurringSeries();
     const handleVisible = () => {
-      if (document.visibilityState === "visible") useLifeStore.getState().expandRecurringSeries();
+      if (document.visibilityState === "visible")
+        useLifeRecordsStore.getState().expandRecurringSeries();
     };
     window.addEventListener("focus", handleVisible);
     document.addEventListener("visibilitychange", handleVisible);

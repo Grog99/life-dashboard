@@ -27,14 +27,27 @@ const localData = (): WorkspaceData => ({
   advanced: exportAdvancedData(),
 });
 
+// Ekran migracji Puls 1.0 (niżej) pokazuje liczniki zadań/wydarzeń/notatek z lokalnej kopii
+// sprzed migracji tych 5 kolekcji na SQL. `useLifeStore` (po odchudzeniu do pól osobistych) już
+// ich nie trzyma — te liczby czytamy więc bezpośrednio z surowego zapisu localStorage sprzed
+// odchudzenia (ten sam klucz `puls-life-dashboard`, format zustand persist `{state, version}`),
+// best-effort i tylko do wyświetlenia (docs/plans/…"Ryzyka — legacy import Puls 1.0").
+function legacyLifeCounts(): { tasks: number; events: number; notes: number } {
+  const count = (value: unknown) => (Array.isArray(value) ? value.length : 0);
+  try {
+    const raw = safeGetStorageItem("puls-life-dashboard");
+    if (!raw) return { tasks: 0, events: 0, notes: 0 };
+    const parsed = JSON.parse(raw) as { state?: Record<string, unknown> };
+    const state = parsed.state ?? {};
+    return { tasks: count(state.tasks), events: count(state.events), notes: count(state.notes) };
+  } catch {
+    return { tasks: 0, events: 0, notes: 0 };
+  }
+}
+
 function replaceWithEmptyWorkspace() {
   const life = exportData();
   useLifeStore.getState().replaceData({
-    tasks: [],
-    events: [],
-    reminders: [],
-    notes: [],
-    habits: [],
     scratchpad: "",
     intention: "",
     energy: "medium",
@@ -369,13 +382,13 @@ export function WorkspaceSync({
           </p>
           <div className="migration-summary">
             <span>
-              Zadania <strong>{useLifeStore.getState().tasks.length}</strong>
+              Zadania <strong>{legacyLifeCounts().tasks}</strong>
             </span>
             <span>
-              Wydarzenia <strong>{useLifeStore.getState().events.length}</strong>
+              Wydarzenia <strong>{legacyLifeCounts().events}</strong>
             </span>
             <span>
-              Notatki <strong>{useLifeStore.getState().notes.length}</strong>
+              Notatki <strong>{legacyLifeCounts().notes}</strong>
             </span>
           </div>
           <button

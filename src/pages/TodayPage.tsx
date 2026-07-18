@@ -46,6 +46,7 @@ import {
   toDateTime,
 } from "../lib/date";
 import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
 import { useSubscriptionsStore } from "../store/useSubscriptionsStore";
 import { useHealthStore } from "../store/useHealthStore";
@@ -83,21 +84,21 @@ const habitIcons = {
 };
 
 export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
-  const tasks = useLifeStore((state) => state.tasks);
-  const events = useLifeStore((state) => state.events);
-  const reminders = useLifeStore((state) => state.reminders);
-  const habits = useLifeStore((state) => state.habits);
+  const tasks = useLifeRecordsStore((state) => state.tasks);
+  const events = useLifeRecordsStore((state) => state.events);
+  const reminders = useLifeRecordsStore((state) => state.reminders);
+  const habits = useLifeRecordsStore((state) => state.habits);
   const scratchpad = useLifeStore((state) => state.scratchpad);
   const intention = useLifeStore((state) => state.intention);
   const energy = useLifeStore((state) => state.energy);
   const name = useLifeStore((state) => state.preferences.name);
-  const toggleReminder = useLifeStore((state) => state.toggleReminder);
-  const snoozeReminder = useLifeStore((state) => state.snoozeReminder);
-  const toggleHabit = useLifeStore((state) => state.toggleHabit);
+  const toggleReminder = useLifeRecordsStore((state) => state.toggleReminder);
+  const snoozeReminder = useLifeRecordsStore((state) => state.snoozeReminder);
+  const toggleHabit = useLifeRecordsStore((state) => state.toggleHabit);
   const setScratchpad = useLifeStore((state) => state.setScratchpad);
   const setIntention = useLifeStore((state) => state.setIntention);
   const setEnergy = useLifeStore((state) => state.setEnergy);
-  const addTask = useLifeStore((state) => state.addTask);
+  const addTask = useLifeRecordsStore((state) => state.addTask);
   const financeTransactions = useFinanceStore((state) => state.transactions);
   const financeBudgets = useFinanceStore((state) => state.budgets);
   const trips = useTripsStore((state) => state.trips);

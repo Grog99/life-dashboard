@@ -43,6 +43,11 @@ const timestamp = z
 // reużywane też niżej przez sharedMetaSchema (kolekcje advanced).
 const idSchema = z.string().min(1).max(200);
 const visibilitySchema = z.enum(["private", "household"]);
+// Kolumna OCC per rekord (server/migrations/006_finance_normalized.sql): `version` startuje na 1
+// i rośnie tylko przy edycji pól opisowych (patrz docs/plans/model-synchronizacji-danych.md).
+// Wyhoistowane ponad schematy life -- od docs/plans/zadania-kalendarz-notatki-nawyki-sql.md
+// wszystkie 5 kolekcji Life mają też znormalizowane tabele SQL z `version` per rekord.
+const recordVersion = z.number().int().min(1);
 
 // Powtarzalność zadań/wydarzeń (patrz docs/plans/zadania-wydarzenia-powtarzalne.md).
 // Reużywa istniejących helperów `isoDate`/`clockTime` zamiast duplikować walidację dat/godzin.
@@ -68,6 +73,7 @@ export const taskSchema = z.object({
   isFocus: z.boolean(),
   energy,
   createdAt: timestamp,
+  version: recordVersion,
   updatedAt: timestamp,
   completedAt: timestamp.optional(),
   ownerId: idSchema.optional(),
@@ -89,6 +95,7 @@ export const eventSchema = z.object({
   source: z.enum(["manual", "google"]).optional(),
   externalId: z.string().max(500).optional(),
   externalUpdatedAt: timestamp.optional(),
+  version: recordVersion,
   updatedAt: timestamp,
   ownerId: idSchema.optional(),
   visibility: visibilitySchema.optional(),
@@ -104,6 +111,7 @@ export const reminderSchema = z.object({
   time: clockTime,
   done: z.boolean(),
   notifiedAt: timestamp.optional(),
+  version: recordVersion,
   updatedAt: timestamp,
   ownerId: idSchema.optional(),
   visibility: visibilitySchema.optional(),
@@ -116,6 +124,7 @@ export const noteSchema = z.object({
   color: z.enum(["cream", "mint", "sky", "lilac"]),
   pinned: z.boolean(),
   createdAt: timestamp,
+  version: recordVersion,
   updatedAt: timestamp,
   ownerId: idSchema.optional(),
   visibility: visibilitySchema.optional(),
@@ -127,6 +136,7 @@ export const habitSchema = z.object({
   icon: z.enum(["water", "walk", "read", "stretch", "meditate"]),
   targetLabel: nonEmptyText,
   completedDates: z.array(isoDate),
+  version: recordVersion,
   updatedAt: timestamp,
   ownerId: idSchema.optional(),
   visibility: visibilitySchema.optional(),
@@ -139,16 +149,30 @@ export const preferencesSchema = z.object({
   weekStartsOnMonday: z.boolean(),
 });
 
+// `lifeDataSchema` waliduje wyłącznie 4 pola osobiste zostające w dokumencie JSONB
+// (`scratchpad`/`intention`/`energy`/`preferences`) -- od
+// docs/plans/zadania-kalendarz-notatki-nawyki-sql.md pięć kolekcji Life
+// (`tasks`/`events`/`reminders`/`notes`/`habits`) ma własne znormalizowane tabele SQL
+// (server/migrations/013_life_normalized.sql) i jest walidowane osobno przez
+// `lifeRecordsSnapshotSchema` niżej (wzór GET-a `/api/v1/life`, analogiczne do
+// `z.array(healthAppointmentSchema)` itd. w `useHealthStore`). **Uwaga**: `backupEnvelopeSchema`
+// (v1) i `backupEnvelopeV2Schema` niżej używają tego zawężonego schematu -- backupy przestają
+// zawierać 5 kolekcji Life (parytet z modułami advanced, patrz plan "Ryzyka"/"Pytania").
 export const lifeDataSchema = z.object({
+  scratchpad: z.string(),
+  intention: z.string(),
+  energy,
+  preferences: preferencesSchema,
+});
+
+// Snapshot znormalizowanych kolekcji Life (`GET /api/v1/life`), każdy rekord z `version`. Wzór:
+// `useHealthStore` waliduje snapshot per-kolekcja z `z.array(healthAppointmentSchema)` itd.
+export const lifeRecordsSnapshotSchema = z.object({
   tasks: z.array(taskSchema),
   events: z.array(eventSchema),
   reminders: z.array(reminderSchema),
   notes: z.array(noteSchema),
   habits: z.array(habitSchema),
-  scratchpad: z.string(),
-  intention: z.string(),
-  energy,
-  preferences: preferencesSchema,
 });
 
 export const BACKUP_SCHEMA_VERSION = 1 as const;
@@ -164,9 +188,6 @@ export const backupEnvelopeSchema = z.object({
 const currencySchema = z.enum(["PLN", "EUR", "USD", "GBP"]);
 const safeMoney = z.number().int().safe();
 const sharedMetaSchema = z.object({ ownerId: idSchema, visibility: visibilitySchema });
-// Kolumna OCC per rekord (server/migrations/006_finance_normalized.sql): `version` startuje na 1
-// i rośnie tylko przy edycji pól opisowych (patrz docs/plans/model-synchronizacji-danych.md).
-const recordVersion = z.number().int().min(1);
 
 // Finanse (konta/transakcje/budżety/cele) nie są już częścią `advancedDataSchema` /
 // dokumentu JSONB workspace — mają własne znormalizowane tabele i endpoint `/api/v1/finance`.

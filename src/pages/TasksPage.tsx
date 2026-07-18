@@ -22,7 +22,7 @@ import { Modal } from "../components/Modal";
 import { TaskItem } from "../components/TaskItem";
 import { dateKey, formatShortDate, isOverdue } from "../lib/date";
 import { RecurrenceFields, useRecurrenceForm } from "../components/RecurrenceFields";
-import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import type { Visibility } from "../advancedTypes";
 import type { Energy, Priority, Task } from "../types";
 
@@ -42,11 +42,11 @@ const filters: Array<{ id: TaskFilter; label: string; icon: typeof Inbox }> = [
 ];
 
 export function TasksPage({ onQuickAdd, onToast }: TasksPageProps) {
-  const tasks = useLifeStore((state) => state.tasks);
-  const updateTask = useLifeStore((state) => state.updateTask);
-  const deleteTask = useLifeStore((state) => state.deleteTask);
-  const updateSeries = useLifeStore((state) => state.updateSeries);
-  const deleteSeries = useLifeStore((state) => state.deleteSeries);
+  const tasks = useLifeRecordsStore((state) => state.tasks);
+  const updateTask = useLifeRecordsStore((state) => state.updateTask);
+  const deleteTask = useLifeRecordsStore((state) => state.deleteTask);
+  const updateSeries = useLifeRecordsStore((state) => state.updateSeries);
+  const deleteSeries = useLifeRecordsStore((state) => state.deleteSeries);
   const [filter, setFilter] = useState<TaskFilter>("today");
   const [query, setQuery] = useState("");
   const [energyFilter, setEnergyFilter] = useState<Energy | "all">("all");

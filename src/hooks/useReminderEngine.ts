@@ -1,13 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { toDateTime } from "../lib/date";
 import type { Reminder } from "../types";
 
 export function useReminderEngine(onDue: (reminder: Reminder) => void): void {
   const delivered = useRef(new Set<string>());
-  const reminders = useLifeStore((state) => state.reminders);
+  const reminders = useLifeRecordsStore((state) => state.reminders);
   const notificationsEnabled = useLifeStore((state) => state.preferences.notificationsEnabled);
-  const markReminderNotified = useLifeStore((state) => state.markReminderNotified);
+  const markReminderNotified = useLifeRecordsStore((state) => state.markReminderNotified);
 
   useEffect(() => {
     const check = () => {

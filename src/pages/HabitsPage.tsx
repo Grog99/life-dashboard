@@ -16,7 +16,7 @@ import { addDays, format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Modal } from "../components/Modal";
 import { dateKey, formatDayName } from "../lib/date";
-import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useServerAuth } from "../server/AuthGate";
 import type { Visibility } from "../advancedTypes";
 import type { Habit } from "../types";
@@ -30,10 +30,10 @@ const icons = {
 };
 
 export function HabitsPage({ onToast }: { onToast: (message: string) => void }) {
-  const habits = useLifeStore((state) => state.habits);
-  const toggleHabit = useLifeStore((state) => state.toggleHabit);
-  const addHabit = useLifeStore((state) => state.addHabit);
-  const deleteHabit = useLifeStore((state) => state.deleteHabit);
+  const habits = useLifeRecordsStore((state) => state.habits);
+  const toggleHabit = useLifeRecordsStore((state) => state.toggleHabit);
+  const addHabit = useLifeRecordsStore((state) => state.addHabit);
+  const deleteHabit = useLifeRecordsStore((state) => state.deleteHabit);
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
   const [addOpen, setAddOpen] = useState(false);
@@ -226,7 +226,7 @@ function AddHabitModal({
   open: boolean;
   onClose: () => void;
   ownerId: string;
-  onAdd: (habit: Omit<Habit, "id" | "completedDates" | "updatedAt">) => void;
+  onAdd: (habit: Omit<Habit, "id" | "completedDates" | "updatedAt" | "version">) => void;
 }) {
   const [name, setName] = useState("");
   const [targetLabel, setTargetLabel] = useState("");

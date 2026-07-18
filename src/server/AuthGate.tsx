@@ -17,8 +17,10 @@ import { CarSync } from "./CarSync";
 import { PetsSync } from "./PetsSync";
 import { HealthSync } from "./HealthSync";
 import { SubscriptionsSync } from "./SubscriptionsSync";
+import { LifeRecordsSync } from "./LifeRecordsSync";
 import { removeCurrentPushSubscription } from "./push";
 import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
@@ -72,6 +74,7 @@ function bindLocalStorageTo(snapshot: AuthSnapshot) {
   const previous = safeGetStorageItem(STORAGE_OWNER_KEY);
   if (previous && previous !== scope) {
     useLifeStore.getState().resetData();
+    useLifeRecordsStore.getState().resetLifeRecordsData();
     useAdvancedStore.getState().resetAdvancedData();
     useFinanceStore.getState().resetFinanceData();
     useTripsStore.getState().resetTripsData();
@@ -81,6 +84,7 @@ function bindLocalStorageTo(snapshot: AuthSnapshot) {
     useHealthStore.getState().resetHealthData();
     useSubscriptionsStore.getState().resetSubscriptionsData();
     safeRemoveStorageItem("puls-life-dashboard");
+    safeRemoveStorageItem("puls-life-records");
     safeRemoveStorageItem("puls-advanced-dashboard");
     safeRemoveStorageItem("puls-finance");
     safeRemoveStorageItem("puls-trips");
@@ -95,6 +99,7 @@ function bindLocalStorageTo(snapshot: AuthSnapshot) {
 
 function clearLocalUserData() {
   useLifeStore.getState().resetData();
+  useLifeRecordsStore.getState().resetLifeRecordsData();
   useAdvancedStore.getState().resetAdvancedData();
   useFinanceStore.getState().resetFinanceData();
   useTripsStore.getState().resetTripsData();
@@ -106,6 +111,7 @@ function clearLocalUserData() {
   safeRemoveStorageItem(STORAGE_OWNER_KEY);
   safeRemoveStorageItem(AUTH_SNAPSHOT_KEY);
   safeRemoveStorageItem("puls-life-dashboard");
+  safeRemoveStorageItem("puls-life-records");
   safeRemoveStorageItem("puls-advanced-dashboard");
   safeRemoveStorageItem("puls-finance");
   safeRemoveStorageItem("puls-trips");
@@ -126,6 +132,7 @@ function hasUnsyncedChanges(): boolean {
     return false;
   }
   return (
+    useLifeRecordsStore.getState().pendingMutations.length > 0 ||
     useFinanceStore.getState().pendingMutations.length > 0 ||
     useTripsStore.getState().pendingMutations.length > 0 ||
     useMealsStore.getState().pendingMutations.length > 0 ||
@@ -385,7 +392,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
                       onSessionExpired={() => endLocalSession(true, "expired")}
                     >
-                      {children}
+                      <LifeRecordsSync
+                        key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
+                        onSessionExpired={() => endLocalSession(true, "expired")}
+                      >
+                        {children}
+                      </LifeRecordsSync>
                     </SubscriptionsSync>
                   </HealthSync>
                 </PetsSync>
