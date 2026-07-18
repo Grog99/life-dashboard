@@ -6,7 +6,14 @@ import {
   workspaceDocumentIsValid,
 } from "../src/workspace.mjs";
 
-test("private advanced records and their children are stored per user", () => {
+test("private life preferences and advanced hideAmounts are stored per user", () => {
+  // Subscriptions (and every other former META_COLLECTIONS entry: car, pets, health) now live in
+  // their own normalized SQL tables (server/src/subscriptions.mjs et al.) and are never part of
+  // the workspace JSONB document anymore, so the private/shared split for a META_COLLECTIONS-style
+  // advanced record is no longer exercised through this document -- see the META_COLLECTIONS
+  // comment at the top of server/src/workspace.mjs. This test now covers only what still flows
+  // through splitWorkspaceData: private life fields (scratchpad, preferences) and the advanced
+  // hideAmounts flag.
   const source = {
     schemaVersion: 2,
     life: {
@@ -15,28 +22,17 @@ test("private advanced records and their children are stored per user", () => {
       preferences: { theme: "dark", notificationsEnabled: true },
     },
     advanced: {
-      subscriptions: [
-        { id: "private-sub", ownerId: "me", visibility: "private" },
-        { id: "shared-sub", ownerId: "me", visibility: "household" },
-      ],
       hideAmounts: true,
       householdMembers: [{ id: "demo" }],
     },
   };
 
   const { sharedData, privateData } = splitWorkspaceData(source, "user-1");
-  assert.deepEqual(
-    sharedData.advanced.subscriptions.map((item) => item.id),
-    ["shared-sub"],
-  );
-  assert.deepEqual(
-    privateData.advanced.subscriptions.map((item) => item.id),
-    ["private-sub"],
-  );
-  assert.equal(privateData.advanced.subscriptions[0].ownerId, "user-1");
   assert.equal(sharedData.life.scratchpad, undefined);
   assert.equal(privateData.life.scratchpad, "sekret");
   assert.equal(privateData.life.preferences.notificationsEnabled, undefined);
+  assert.equal(privateData.advanced.hideAmounts, true);
+  assert.equal(sharedData.advanced.hideAmounts, undefined);
 });
 
 test("private life records are split per user while legacy records stay shared", () => {

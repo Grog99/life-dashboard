@@ -11,6 +11,7 @@ import type { Recipe, MealSlot, ShoppingItem } from "../mealsTypes";
 import type { Vehicle, CarExpense, VehicleDeadline } from "../carTypes";
 import type { Pet, PetExpense, PetVisit } from "../petsTypes";
 import type { HealthAppointment, Medication, HealthMeasurement } from "../healthTypes";
+import type { Subscription } from "../subscriptionsTypes";
 
 export const energySchema = z.enum(["low", "medium", "high"]);
 const energy = energySchema;
@@ -277,7 +278,15 @@ export const packingItemSchema: z.ZodType<PackingItem> = z.object({
   version: recordVersion,
   updatedAt: timestamp,
 });
-export const subscriptionSchema = sharedMetaSchema.extend({
+// Subskrypcje (subscriptions) nie są już częścią `advancedDataSchema` / dokumentu JSONB
+// workspace — mają własną znormalizowaną tabelę (server/migrations/012_subscriptions_normalized.sql)
+// i endpoint `/api/v1/subscriptions` (warstwa backend/frontend, patrz
+// docs/plans/subskrypcje-sql.md). Ten schemat waliduje snapshot GET-a i payloady mutacji
+// POST-owanych do `/api/v1/subscriptions/mutations`.
+// `Subscription` NADAL rozszerza `sharedMetaSchema` -- jak Zdrowie/Zwierzęta/Auto, Subskrypcje
+// zachowują rozróżnienie prywatne/wspólne per rekord. Jedna płaska kolekcja, bez relacji
+// rodzic/dziecko.
+export const subscriptionSchema: z.ZodType<Subscription> = sharedMetaSchema.extend({
   id: idSchema,
   name: nonEmptyText,
   category: nonEmptyText,
@@ -290,6 +299,8 @@ export const subscriptionSchema = sharedMetaSchema.extend({
   reminderDays: z.number().int().min(0).max(365),
   color: z.string().max(32),
   cancelUrl: z.string().url().max(2000).optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
 // Posiłki (recipes/mealSlots/shoppingItems) nie są już częścią `advancedDataSchema` / dokumentu
 // JSONB workspace — mają własne znormalizowane tabele (server/migrations/008_meals_normalized.sql)
@@ -485,7 +496,6 @@ export const householdNameSchema = z.string().min(1).max(500);
 export const hideAmountsSchema = z.boolean();
 
 export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
-  subscriptions: z.array(subscriptionSchema),
   householdMembers: z.array(householdMemberSchema),
   householdName: householdNameSchema,
   hideAmounts: hideAmountsSchema,

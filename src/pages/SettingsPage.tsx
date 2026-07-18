@@ -30,6 +30,7 @@ import { useMealsStore } from "../store/useMealsStore";
 import { useCarStore } from "../store/useCarStore";
 import { usePetsStore } from "../store/usePetsStore";
 import { useHealthStore } from "../store/useHealthStore";
+import { useSubscriptionsStore } from "../store/useSubscriptionsStore";
 import { apiRequest, serverMode } from "../server/api";
 import { useServerAuth } from "../server/AuthGate";
 import { removeCurrentPushSubscription } from "../server/push";
@@ -54,6 +55,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   const resetCarData = useCarStore((state) => state.resetCarData);
   const resetPetsData = usePetsStore((state) => state.resetPetsData);
   const resetHealthData = useHealthStore((state) => state.resetHealthData);
+  const resetSubscriptionsData = useSubscriptionsStore((state) => state.resetSubscriptionsData);
   const householdMembers = useAdvancedStore((state) => state.householdMembers);
   const { snapshot, logout } = useServerAuth();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -174,12 +176,12 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       )
     )
       return;
-    // Finanse, Podróże, Posiłki, Auto, Zwierzęta i Zdrowie nie są już częścią dokumentu JSONB,
-    // więc nie da się ich wyczyścić samym lokalnym replaceAdvancedData -- trzeba jawnie poprosić
-    // serwer o usunięcie znormalizowanych rekordów. Robimy to PRZED czyszczeniem reszty i
-    // przerywamy przy błędzie sieci, żeby nie pokazać "wyczyszczono", gdy
-    // finanse/podróże/posiłki/samochód/zwierzęta/zdrowie w rzeczywistości przetrwały na serwerze i
-    // wrócą przy kolejnej synchronizacji.
+    // Finanse, Podróże, Posiłki, Auto, Zwierzęta, Zdrowie i Subskrypcje nie są już częścią
+    // dokumentu JSONB, więc nie da się ich wyczyścić samym lokalnym replaceAdvancedData -- trzeba
+    // jawnie poprosić serwer o usunięcie znormalizowanych rekordów. Robimy to PRZED czyszczeniem
+    // reszty i przerywamy przy błędzie sieci, żeby nie pokazać "wyczyszczono", gdy
+    // finanse/podróże/posiłki/samochód/zwierzęta/zdrowie/subskrypcje w rzeczywistości przetrwały
+    // na serwerze i wrócą przy kolejnej synchronizacji.
     setClearingData(true);
     try {
       await apiRequest("/api/v1/finance/reset", { method: "POST", json: {} });
@@ -188,6 +190,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       await apiRequest("/api/v1/car/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/pets/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/health/reset", { method: "POST", json: {} });
+      await apiRequest("/api/v1/subscriptions/reset", { method: "POST", json: {} });
     } catch (error) {
       onToast(
         error instanceof Error
@@ -213,7 +216,6 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       householdName: "Dom",
       hideAmounts: false,
       householdMembers: [],
-      subscriptions: [],
     });
     resetFinanceData();
     resetTripsData();
@@ -221,6 +223,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
     resetCarData();
     resetPetsData();
     resetHealthData();
+    resetSubscriptionsData();
     onToast("Dane aplikacji zostały całkowicie wyczyszczone");
   };
 

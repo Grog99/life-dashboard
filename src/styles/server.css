@@ -290,6 +290,12 @@
 .sync-indicator--health {
   bottom: 244px;
 }
+/* Wskaźnik subskrypcji (SubscriptionsSync) to ósma niezależna instancja — przesunięty nad zdrowie,
+   żeby wszystkie osiem (workspace/finance/trips/meals/car/pets/health/subscriptions) mogły być
+   widoczne równocześnie bez nakładania się. */
+.sync-indicator--subscriptions {
+  bottom: 282px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -331,6 +337,9 @@
   }
   .sync-indicator--health {
     bottom: calc(324px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--subscriptions {
+    bottom: calc(366px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;

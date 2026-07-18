@@ -35,11 +35,14 @@ describe("lifeDataSchema", () => {
   });
 
   it("waliduje wszystkie moduły zaawansowane", () => {
+    // Subskrypcje nie są już częścią advancedDataSchema (docs/plans/subskrypcje-sql.md) — mają
+    // własny schemat (subscriptionSchema) walidujący snapshot/mutacje `/api/v1/subscriptions`,
+    // pokryty w src/store/useSubscriptionsStore.test.ts (etap Testy planu).
     const data = createAdvancedData();
     expect(advancedDataSchema.safeParse(data).success).toBe(true);
-    expect(advancedDataSchema.safeParse({ ...data, subscriptions: [{ id: "bad" }] }).success).toBe(
-      false,
-    );
+    expect(
+      advancedDataSchema.safeParse({ ...data, householdMembers: [{ id: "bad" }] }).success,
+    ).toBe(false);
   });
 });
 

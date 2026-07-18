@@ -19,6 +19,7 @@ import { Modal } from "../components/Modal";
 import { formatShortDate, relativeDay } from "../lib/date";
 import { formatMoney, monthlySubscriptionCost, parseMoneyToMinor } from "../lib/money";
 import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useSubscriptionsStore } from "../store/useSubscriptionsStore";
 import { useServerAuth } from "../server/AuthGate";
 import "../styles/modules.css";
 
@@ -92,11 +93,11 @@ function moneyTotalsLabel(totals: Map<CurrencyCode, number>, hideAmounts: boolea
 export function SubscriptionsPage({ onToast }: SubscriptionsPageProps) {
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
-  const subscriptions = useAdvancedStore((state) => state.subscriptions);
+  const subscriptions = useSubscriptionsStore((state) => state.subscriptions);
   const hideAmounts = useAdvancedStore((state) => state.hideAmounts);
-  const addSubscription = useAdvancedStore((state) => state.addSubscription);
-  const updateSubscription = useAdvancedStore((state) => state.updateSubscription);
-  const deleteSubscription = useAdvancedStore((state) => state.deleteSubscription);
+  const addSubscription = useSubscriptionsStore((state) => state.addSubscription);
+  const updateSubscription = useSubscriptionsStore((state) => state.updateSubscription);
+  const deleteSubscription = useSubscriptionsStore((state) => state.deleteSubscription);
 
   const [filter, setFilter] = useState<SubscriptionFilter>("all");
   const [formOpen, setFormOpen] = useState(false);
