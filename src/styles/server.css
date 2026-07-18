@@ -246,6 +246,11 @@
   border-radius: 8px;
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(10px);
+  /* role="status", czysto informacyjny (bez onClick) -- z siedmioma skumulowanymi instancjami
+     (workspace/finance/trips/meals/car/pets/health) stos zasięga wystarczająco wysoko, by na
+     niektórych stronach (np. Zdrowie -> "Nowy pomiar") przesłaniać klikalne elementy pod spodem.
+     pointer-events: none przepuszcza kliknięcia do treści strony, zachowując widoczność wskaźnika. */
+  pointer-events: none;
 }
 .sync-indicator--offline {
   color: var(--amber);
