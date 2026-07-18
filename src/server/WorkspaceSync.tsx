@@ -45,7 +45,6 @@ function replaceWithEmptyWorkspace() {
     ...advanced,
     householdName: "Dom",
     householdMembers: [],
-    subscriptions: [],
     hideAmounts: false,
   });
 }

@@ -16,6 +16,7 @@ import { MealsSync } from "./MealsSync";
 import { CarSync } from "./CarSync";
 import { PetsSync } from "./PetsSync";
 import { HealthSync } from "./HealthSync";
+import { SubscriptionsSync } from "./SubscriptionsSync";
 import { removeCurrentPushSubscription } from "./push";
 import { useLifeStore } from "../store/useLifeStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
@@ -25,6 +26,7 @@ import { useMealsStore } from "../store/useMealsStore";
 import { useCarStore } from "../store/useCarStore";
 import { usePetsStore } from "../store/usePetsStore";
 import { useHealthStore } from "../store/useHealthStore";
+import { useSubscriptionsStore } from "../store/useSubscriptionsStore";
 import {
   reportStorageWarning,
   safeGetStorageItem,
@@ -77,6 +79,7 @@ function bindLocalStorageTo(snapshot: AuthSnapshot) {
     useCarStore.getState().resetCarData();
     usePetsStore.getState().resetPetsData();
     useHealthStore.getState().resetHealthData();
+    useSubscriptionsStore.getState().resetSubscriptionsData();
     safeRemoveStorageItem("puls-life-dashboard");
     safeRemoveStorageItem("puls-advanced-dashboard");
     safeRemoveStorageItem("puls-finance");
@@ -85,6 +88,7 @@ function bindLocalStorageTo(snapshot: AuthSnapshot) {
     safeRemoveStorageItem("puls-car");
     safeRemoveStorageItem("puls-pets");
     safeRemoveStorageItem("puls-health");
+    safeRemoveStorageItem("puls-subscriptions");
   }
   safeSetStorageItem(STORAGE_OWNER_KEY, scope);
 }
@@ -98,6 +102,7 @@ function clearLocalUserData() {
   useCarStore.getState().resetCarData();
   usePetsStore.getState().resetPetsData();
   useHealthStore.getState().resetHealthData();
+  useSubscriptionsStore.getState().resetSubscriptionsData();
   safeRemoveStorageItem(STORAGE_OWNER_KEY);
   safeRemoveStorageItem(AUTH_SNAPSHOT_KEY);
   safeRemoveStorageItem("puls-life-dashboard");
@@ -108,6 +113,7 @@ function clearLocalUserData() {
   safeRemoveStorageItem("puls-car");
   safeRemoveStorageItem("puls-pets");
   safeRemoveStorageItem("puls-health");
+  safeRemoveStorageItem("puls-subscriptions");
   safeRemoveStoragePrefix("puls-sync-");
 }
 
@@ -125,7 +131,8 @@ function hasUnsyncedChanges(): boolean {
     useMealsStore.getState().pendingMutations.length > 0 ||
     useCarStore.getState().pendingMutations.length > 0 ||
     usePetsStore.getState().pendingMutations.length > 0 ||
-    useHealthStore.getState().pendingMutations.length > 0
+    useHealthStore.getState().pendingMutations.length > 0 ||
+    useSubscriptionsStore.getState().pendingMutations.length > 0
   );
 }
 
@@ -374,7 +381,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
                     key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
                     onSessionExpired={() => endLocalSession(true, "expired")}
                   >
-                    {children}
+                    <SubscriptionsSync
+                      key={`${snapshot.user.id}:${snapshot.activeHouseholdId}`}
+                      onSessionExpired={() => endLocalSession(true, "expired")}
+                    >
+                      {children}
+                    </SubscriptionsSync>
                   </HealthSync>
                 </PetsSync>
               </CarSync>

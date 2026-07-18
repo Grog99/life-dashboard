@@ -1,13 +1,19 @@
-// Auto (vehicles/carExpenses/vehicleDeadlines), Pets (pets/petExpenses/petVisits) and Zdrowie
-// (healthAppointments/medications/healthMeasurements) are no longer part of the workspace JSONB
-// document (server/migrations/009_car_normalized.sql, server/migrations/010_pets_normalized.sql,
-// server/migrations/011_health_normalized.sql, docs/plans/auto-car.md,
-// docs/plans/zwierzeta-sql.md, docs/plans/zdrowie-sql.md) -- they have their own normalized
-// tables and endpoints (/api/v1/car, server/src/car.mjs; /api/v1/pets, server/src/pets.mjs;
-// /api/v1/health, server/src/health.mjs). Removed from
-// META_COLLECTIONS/CHILD_RELATIONS/ADVANCED_COLLECTIONS below, which automatically excludes them
-// from splitWorkspaceData/mergeWorkspaceData and workspaceDocumentIsValid.
-const META_COLLECTIONS = ["subscriptions"];
+// Auto (vehicles/carExpenses/vehicleDeadlines), Pets (pets/petExpenses/petVisits), Zdrowie
+// (healthAppointments/medications/healthMeasurements) and Subskrypcje (subscriptions) are no
+// longer part of the workspace JSONB document (server/migrations/009_car_normalized.sql,
+// server/migrations/010_pets_normalized.sql, server/migrations/011_health_normalized.sql,
+// server/migrations/012_subscriptions_normalized.sql, docs/plans/auto-car.md,
+// docs/plans/zwierzeta-sql.md, docs/plans/zdrowie-sql.md, docs/plans/subskrypcje-sql.md) -- they
+// have their own normalized tables and endpoints (/api/v1/car, server/src/car.mjs; /api/v1/pets,
+// server/src/pets.mjs; /api/v1/health, server/src/health.mjs; /api/v1/subscriptions,
+// server/src/subscriptions.mjs). Removed from META_COLLECTIONS/CHILD_RELATIONS/
+// ADVANCED_COLLECTIONS below, which automatically excludes them from
+// splitWorkspaceData/mergeWorkspaceData and workspaceDocumentIsValid.
+//
+// Subskrypcje was the last entry in META_COLLECTIONS -- it is now an empty array. splitWorkspaceData/
+// mergeWorkspaceData iterate it via `for…of`, which degrades to a no-op loop on an empty array, so
+// this is safe (see docs/plans/subskrypcje-sql.md "Ryzyka": "Pusty META_COLLECTIONS po wycięciu").
+const META_COLLECTIONS = [];
 
 // Pets was the last module with an entry here -- CHILD_RELATIONS is now empty. splitWorkspaceData/
 // mergeWorkspaceData iterate it via Object.entries/Object.keys, which degrade to a no-op loop on an
@@ -17,7 +23,11 @@ const CHILD_RELATIONS = {};
 
 const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
 const LIFE_COLLECTIONS = ["tasks", "events", "reminders", "notes", "habits"];
-const ADVANCED_COLLECTIONS = ["subscriptions", "householdMembers"];
+// `householdMembers` is the only remaining entry -- it is household metadata (set from context in
+// mergeWorkspaceData, stripped from sharedAdvanced in splitWorkspaceData), not a user collection,
+// so it keeps flowing through this list even though there is no user-owned collection left
+// (docs/plans/subskrypcje-sql.md "Ryzyka": "Pusty META_COLLECTIONS po wycięciu").
+const ADVANCED_COLLECTIONS = ["householdMembers"];
 
 const asObject = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};

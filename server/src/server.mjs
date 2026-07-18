@@ -57,6 +57,14 @@ import {
   resetHealthForUser,
 } from "./health.mjs";
 import {
+  applySubscriptionMutation,
+  assertSubscriptionMutationShape,
+  MAX_SUBSCRIPTION_MUTATIONS_BYTES,
+  MAX_SUBSCRIPTION_MUTATIONS_PER_BATCH,
+  readSubscriptionsSnapshot,
+  resetSubscriptionsForUser,
+} from "./subscriptions.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -984,6 +992,68 @@ app.post("/api/v1/health/mutations", async (request) => {
 app.post("/api/v1/health/reset", async (request) => {
   const session = await requireHousehold(request);
   await transaction((client) => resetHealthForUser(client, session.household_id, session.user_id));
+  return { serverAt: new Date().toISOString() };
+});
+
+// Subscriptions module (Subskrypcje): normalized table, not part of the workspace JSONB document
+// (see docs/plans/subskrypcje-sql.md and server/src/subscriptions.mjs). GET returns a snapshot,
+// mutations go through a single idempotent batch endpoint mapping 1:1 onto the client's offline
+// queue. Simplest module in the series: ONE flat table with its own visibility/owner_id, no
+// EXISTS-on-parent scoping and no visibility cascade anywhere in subscriptions.mjs.
+app.get("/api/v1/subscriptions", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readSubscriptionsSnapshot(pool, session.household_id, session.user_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/subscriptions/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(
+      400,
+      "Nieprawidłowe żądanie mutacji subskrypcji",
+      "INVALID_SUBSCRIPTIONS_MUTATIONS",
+    );
+  }
+  if (body.mutations.length > MAX_SUBSCRIPTION_MUTATIONS_PER_BATCH) {
+    throw httpError(
+      413,
+      "Zbyt wiele mutacji w jednym żądaniu",
+      "SUBSCRIPTIONS_MUTATIONS_TOO_LARGE",
+    );
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_SUBSCRIPTION_MUTATIONS_BYTES) {
+    throw httpError(
+      413,
+      "Dane mutacji przekraczają dozwolony rozmiar",
+      "SUBSCRIPTIONS_MUTATIONS_TOO_LARGE",
+    );
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see subscriptions.mjs's
+  // assertSubscriptionMutationShape.
+  for (const mutation of body.mutations) assertSubscriptionMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order.
+    const result = await transaction((client) => applySubscriptionMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): Subskrypcje nie są już częścią
+// dokumentu JSONB, więc nie ma ich czym nadpisać zwykłym PUT /api/v1/workspace -- ten endpoint
+// odtwarza dokładnie ten sam zakres usuwania (wspólne rekordy + WYŁĄCZNIE prywatne rekordy
+// wywołującego, nigdy prywatne rekordy innych domowników), analogicznie do /api/v1/health/reset.
+app.post("/api/v1/subscriptions/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) =>
+    resetSubscriptionsForUser(client, session.household_id, session.user_id),
+  );
   return { serverAt: new Date().toISOString() };
 });
 

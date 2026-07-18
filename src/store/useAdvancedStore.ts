@@ -3,14 +3,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { z } from "zod";
 import { createAdvancedData } from "../data/advancedData";
 import { quarantineRawValue, reportStorageWarning, safeLocalStorage } from "../lib/safeStorage";
-import { generateId as makeId } from "../lib/id";
-import {
-  hideAmountsSchema,
-  householdMemberSchema,
-  householdNameSchema,
-  subscriptionSchema,
-} from "../lib/schema";
-import type { AdvancedData, AdvancedDataWithHealth, Subscription } from "../advancedTypes";
+import { hideAmountsSchema, householdMemberSchema, householdNameSchema } from "../lib/schema";
+import type { AdvancedData, AdvancedDataWithHealth } from "../advancedTypes";
 
 const STORAGE_NAME = "puls-advanced-dashboard";
 
@@ -39,9 +33,6 @@ function parseScalarField<T>(
 
 interface AdvancedActions {
   toggleHideAmounts: () => void;
-  addSubscription: (subscription: Omit<Subscription, "id">) => string;
-  updateSubscription: (subscriptionId: string, changes: Partial<Subscription>) => void;
-  deleteSubscription: (subscriptionId: string) => void;
   replaceAdvancedData: (data: AdvancedData) => void;
   resetAdvancedData: () => void;
 }
@@ -53,23 +44,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
     (set) => ({
       ...createAdvancedData(),
       toggleHideAmounts: () => set((state) => ({ hideAmounts: !state.hideAmounts })),
-      addSubscription: (subscription) => {
-        const id = makeId();
-        set((state) => ({ subscriptions: [{ ...subscription, id }, ...state.subscriptions] }));
-        return id;
-      },
-      updateSubscription: (subscriptionId, changes) =>
-        set((state) => ({
-          subscriptions: state.subscriptions.map((subscription) =>
-            subscription.id === subscriptionId ? { ...subscription, ...changes } : subscription,
-          ),
-        })),
-      deleteSubscription: (subscriptionId) =>
-        set((state) => ({
-          subscriptions: state.subscriptions.filter(
-            (subscription) => subscription.id !== subscriptionId,
-          ),
-        })),
       replaceAdvancedData: (data) => set({ ...data }),
       resetAdvancedData: () => set(createAdvancedData()),
     }),
@@ -86,7 +60,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         }
         const state = persistedState as Record<string, unknown>;
 
-        const subscriptions = parseArrayField(state.subscriptions, subscriptionSchema);
         const householdMembers = parseArrayField(state.householdMembers, householdMemberSchema);
         const householdName = parseScalarField(
           state.householdName,
@@ -99,11 +72,7 @@ export const useAdvancedStore = create<AdvancedStore>()(
           currentState.hideAmounts,
         );
 
-        const arrayFields = [subscriptions, householdMembers];
-        const droppedCount =
-          arrayFields.reduce((sum, field) => sum + field.dropped, 0) +
-          householdName.dropped +
-          hideAmounts.dropped;
+        const droppedCount = householdMembers.dropped + householdName.dropped + hideAmounts.dropped;
 
         if (droppedCount > 0) {
           reportStorageWarning(
@@ -114,14 +83,12 @@ export const useAdvancedStore = create<AdvancedStore>()(
 
         return {
           ...currentState,
-          subscriptions: subscriptions.items,
           householdMembers: householdMembers.items,
           householdName: householdName.value,
           hideAmounts: hideAmounts.value,
         };
       },
       partialize: (state) => ({
-        subscriptions: state.subscriptions,
         householdMembers: state.householdMembers,
         householdName: state.householdName,
         hideAmounts: state.hideAmounts,
@@ -133,7 +100,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 export function exportAdvancedData(): AdvancedDataWithHealth {
   const state = useAdvancedStore.getState();
   return {
-    subscriptions: state.subscriptions,
     householdMembers: state.householdMembers,
     householdName: state.householdName,
     hideAmounts: state.hideAmounts,

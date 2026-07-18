@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLifeStore } from "../store/useLifeStore";
-import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useSubscriptionsStore } from "../store/useSubscriptionsStore";
 import { useHealthStore } from "../store/useHealthStore";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
@@ -118,7 +118,7 @@ export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: Comman
   const events = useLifeStore((state) => state.events);
   const financeTransactions = useFinanceStore((state) => state.transactions);
   const trips = useTripsStore((state) => state.trips);
-  const subscriptions = useAdvancedStore((state) => state.subscriptions);
+  const subscriptions = useSubscriptionsStore((state) => state.subscriptions);
   const vehicles = useCarStore((state) => state.vehicles);
   const recipes = useMealsStore((state) => state.recipes);
   const pets = usePetsStore((state) => state.pets);

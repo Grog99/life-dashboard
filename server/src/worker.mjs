@@ -134,8 +134,12 @@ function withinDeliveryWindow(dueKey, nowKey, days = 7) {
   return Boolean(oldest && dueKey >= oldest);
 }
 
+// Subskrypcje (subscriptions) are no longer part of `data.advanced` -- they moved to the
+// normalized `subscriptions` table (server/migrations/012_subscriptions_normalized.sql,
+// docs/plans/subskrypcje-sql.md "Worker"). See subscriptionReminders below, which replaces the
+// loop that used to live here. `derivedReminders` now only handles `life.events`, which stays in
+// the JSONB document.
 function derivedReminders(data, nowKey) {
-  const advanced = data?.advanced ?? {};
   const life = data?.life ?? {};
   const reminders = [];
   for (const event of Array.isArray(life.events) ? life.events : []) {
@@ -146,24 +150,6 @@ function derivedReminders(data, nowKey) {
         title: `Za 30 min: ${event.title}`,
         date: event.date,
         time: event.startTime,
-      });
-    }
-  }
-  for (const subscription of Array.isArray(advanced.subscriptions) ? advanced.subscriptions : []) {
-    const days = Number.isFinite(subscription?.reminderDays)
-      ? Math.max(0, subscription.reminderDays)
-      : 1;
-    const dueKey = shiftLocalDateTime(subscription?.nextPayment, "09:00", -days * 24 * 60);
-    if (
-      subscription?.id &&
-      subscription.status !== "cancelled" &&
-      withinDeliveryWindow(dueKey, nowKey)
-    ) {
-      reminders.push({
-        id: `subscription:${subscription.id}`,
-        title: `Nadchodzi płatność: ${subscription.name}`,
-        date: subscription.nextPayment,
-        time: "09:00",
       });
     }
   }
@@ -325,6 +311,42 @@ async function medicationReminders(householdId, nowKey) {
   return reminders;
 }
 
+// Subscriptions (Subskrypcje): `subscriptions` is a normalized table, not part of the workspace
+// JSONB document (see docs/plans/subskrypcje-sql.md and server/src/subscriptions.mjs) -- this
+// replaces the `advanced.subscriptions` loop that used to live in derivedReminders. No JOIN --
+// each row already carries its own visibility/owner_id. Unlike petVisitReminders/
+// healthAppointmentReminders, the offset is PER-ROW (`reminder_days`), not a fixed constant, and
+// the delivery window is the default 7 days (`withinDeliveryWindow` called WITHOUT a third
+// argument) -- both must stay 1:1 with the pre-migration JSONB loop (docs/plans/subskrypcje-sql.md
+// "Ryzyka": "Regresja pushu subskrypcji"). Same targeting rule: null = every household member,
+// owner_id = only that member. `time: "09:00"` and `date: next_payment` are kept 1:1 so the
+// `notification_deliveries` dedup key (`occurrence`) is unchanged.
+async function subscriptionReminders(householdId, nowKey) {
+  const result = await query(
+    `SELECT id, name, next_payment::text AS next_payment, reminder_days, visibility, owner_id
+       FROM subscriptions
+      WHERE household_id = $1 AND status <> 'cancelled'`,
+    [householdId],
+  );
+  const reminders = [];
+  for (const row of result.rows) {
+    const days = Math.max(0, row.reminder_days);
+    const dueKey = shiftLocalDateTime(row.next_payment, "09:00", -days * 24 * 60);
+    if (withinDeliveryWindow(dueKey, nowKey)) {
+      reminders.push({
+        reminder: {
+          id: `subscription:${row.id}`,
+          title: `Nadchodzi płatność: ${row.name}`,
+          date: row.next_payment,
+          time: "09:00",
+        },
+        targetUserId: row.visibility === "private" ? row.owner_id : null,
+      });
+    }
+  }
+  return reminders;
+}
+
 async function deliverDerived(workspace, data, targetUserId = null) {
   const nowKey = localNowKey(workspace.timezone);
   for (const reminder of derivedReminders(data, nowKey)) {
@@ -357,6 +379,7 @@ async function tick() {
       query("DELETE FROM car_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM pet_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM health_mutations WHERE created_at < now() - interval '30 days'"),
+      query("DELETE FROM subscription_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }
@@ -430,6 +453,20 @@ async function tick() {
           await deliverReminder(workspace, reminder, targetUserId);
         } catch (error) {
           console.error("Medication reminder failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
+      for (const { reminder, targetUserId } of await subscriptionReminders(
+        workspace.household_id,
+        nowKey,
+      )) {
+        try {
+          await deliverReminder(workspace, reminder, targetUserId);
+        } catch (error) {
+          console.error("Subscription reminder failed", {
             householdId: workspace.household_id,
             reminderId: reminder.id,
             error,

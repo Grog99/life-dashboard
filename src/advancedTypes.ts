@@ -38,20 +38,10 @@ export type {
   HealthMeasurementType,
 } from "./healthTypes";
 
-export interface Subscription extends SharedMeta {
-  id: string;
-  name: string;
-  category: string;
-  amountMinor: number;
-  currency: CurrencyCode;
-  cycle: "monthly" | "quarterly" | "yearly";
-  nextPayment: string;
-  payer: string;
-  status: "active" | "trial" | "paused" | "cancelled";
-  reminderDays: number;
-  color: string;
-  cancelUrl?: string;
-}
+// Subskrypcje (subscriptions) żyją teraz w znormalizowanej tabeli SQL, nie w tym dokumencie —
+// patrz docs/plans/subskrypcje-sql.md i src/subscriptionsTypes.ts. Re-eksportowane stąd dla
+// plików, które wciąż importują je z `advancedTypes` (jak zrobiono z typami zdrowia).
+export type { Subscription } from "./subscriptionsTypes";
 
 export interface HouseholdMember {
   id: string;
@@ -62,7 +52,6 @@ export interface HouseholdMember {
 }
 
 export interface AdvancedData {
-  subscriptions: Subscription[];
   householdMembers: HouseholdMember[];
   householdName: string;
   hideAmounts: boolean;
