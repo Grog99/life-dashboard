@@ -956,7 +956,11 @@ app.post("/api/v1/health/mutations", async (request) => {
   }
   const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
   if (serializedSize > MAX_HEALTH_MUTATIONS_BYTES) {
-    throw httpError(413, "Dane mutacji przekraczają dozwolony rozmiar", "HEALTH_MUTATIONS_TOO_LARGE");
+    throw httpError(
+      413,
+      "Dane mutacji przekraczają dozwolony rozmiar",
+      "HEALTH_MUTATIONS_TOO_LARGE",
+    );
   }
   // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
   // partially poison sibling mutations' bookkeeping -- see health.mjs's assertHealthMutationShape.

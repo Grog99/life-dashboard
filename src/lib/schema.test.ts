@@ -37,9 +37,9 @@ describe("lifeDataSchema", () => {
   it("waliduje wszystkie moduły zaawansowane", () => {
     const data = createAdvancedData();
     expect(advancedDataSchema.safeParse(data).success).toBe(true);
-    expect(
-      advancedDataSchema.safeParse({ ...data, subscriptions: [{ id: "bad" }] }).success,
-    ).toBe(false);
+    expect(advancedDataSchema.safeParse({ ...data, subscriptions: [{ id: "bad" }] }).success).toBe(
+      false,
+    );
   });
 });
 

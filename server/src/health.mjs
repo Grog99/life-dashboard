@@ -263,7 +263,11 @@ export function validateAppointmentCreatePayload(payload) {
   if (payload.notes !== undefined && payload.notes !== null) {
     assertShape(isOptionalText(payload.notes, 5000), "Nieprawidłowe notatki", "INVALID_NOTES");
   }
-  assertShape(VISIBILITIES.has(payload.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
+  assertShape(
+    VISIBILITIES.has(payload.visibility),
+    "Nieprawidłowa widoczność",
+    "INVALID_VISIBILITY",
+  );
   return {
     id: payload.id,
     title: payload.title.trim(),
@@ -313,7 +317,11 @@ export function validateAppointmentUpdatePayload(payload, baseVersion) {
     changes.title = c.title.trim();
   }
   if (c.clinician !== undefined) {
-    assertShape(isNonEmptyText(c.clinician, 500), "Nieprawidłowy lekarz/placówka", "INVALID_CLINICIAN");
+    assertShape(
+      isNonEmptyText(c.clinician, 500),
+      "Nieprawidłowy lekarz/placówka",
+      "INVALID_CLINICIAN",
+    );
     changes.clinician = c.clinician.trim();
   }
   if (Object.prototype.hasOwnProperty.call(c, "specialty")) {
@@ -341,7 +349,11 @@ export function validateAppointmentUpdatePayload(payload, baseVersion) {
     changes.location = normalizeOptionalText(c.location);
   }
   if (c.status !== undefined) {
-    assertShape(APPOINTMENT_STATUSES.has(c.status), "Nieprawidłowy status wizyty", "INVALID_STATUS");
+    assertShape(
+      APPOINTMENT_STATUSES.has(c.status),
+      "Nieprawidłowy status wizyty",
+      "INVALID_STATUS",
+    );
     changes.status = c.status;
   }
   if (Object.prototype.hasOwnProperty.call(c, "notes")) {
@@ -370,10 +382,22 @@ export function validateMedicationCreatePayload(payload) {
   assertShape(isId(payload.id), "Nieprawidłowy identyfikator leku", "INVALID_ID");
   assertShape(isNonEmptyText(payload.name, 500), "Nieprawidłowa nazwa leku", "INVALID_NAME");
   assertShape(isNonEmptyText(payload.dosage, 200), "Nieprawidłowa dawka", "INVALID_DOSAGE");
-  assertShape(isNonEmptyText(payload.schedule, 500), "Nieprawidłowy harmonogram", "INVALID_SCHEDULE");
-  assertShape(typeof payload.active === "boolean", "Nieprawidłowy status aktywności", "INVALID_ACTIVE");
+  assertShape(
+    isNonEmptyText(payload.schedule, 500),
+    "Nieprawidłowy harmonogram",
+    "INVALID_SCHEDULE",
+  );
+  assertShape(
+    typeof payload.active === "boolean",
+    "Nieprawidłowy status aktywności",
+    "INVALID_ACTIVE",
+  );
   if (payload.lastTakenOn !== undefined && payload.lastTakenOn !== null) {
-    assertShape(isIsoDate(payload.lastTakenOn), "Nieprawidłowa data przyjęcia", "INVALID_LAST_TAKEN_ON");
+    assertShape(
+      isIsoDate(payload.lastTakenOn),
+      "Nieprawidłowa data przyjęcia",
+      "INVALID_LAST_TAKEN_ON",
+    );
   }
   if (payload.reminderTime !== undefined && payload.reminderTime !== null) {
     assertShape(
@@ -382,7 +406,11 @@ export function validateMedicationCreatePayload(payload) {
       "INVALID_REMINDER_TIME",
     );
   }
-  assertShape(VISIBILITIES.has(payload.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
+  assertShape(
+    VISIBILITIES.has(payload.visibility),
+    "Nieprawidłowa widoczność",
+    "INVALID_VISIBILITY",
+  );
   return {
     id: payload.id,
     name: payload.name.trim(),
@@ -482,7 +510,11 @@ export function validateMeasurementCreatePayload(payload) {
   if (payload.notes !== undefined && payload.notes !== null) {
     assertShape(isOptionalText(payload.notes, 5000), "Nieprawidłowe notatki", "INVALID_NOTES");
   }
-  assertShape(VISIBILITIES.has(payload.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
+  assertShape(
+    VISIBILITIES.has(payload.visibility),
+    "Nieprawidłowa widoczność",
+    "INVALID_VISIBILITY",
+  );
   return {
     id: payload.id,
     type: payload.type,
@@ -495,7 +527,14 @@ export function validateMeasurementCreatePayload(payload) {
 }
 
 // `visibility` IS in the update key set (same "Ryzyka" note as the other two).
-const MEASUREMENT_UPDATE_KEYS = new Set(["type", "value", "unit", "measuredAt", "notes", "visibility"]);
+const MEASUREMENT_UPDATE_KEYS = new Set([
+  "type",
+  "value",
+  "unit",
+  "measuredAt",
+  "notes",
+  "visibility",
+]);
 
 export function validateMeasurementUpdatePayload(payload, baseVersion) {
   assertShape(isPlainObject(payload), "Nieprawidłowy ładunek mutacji", "INVALID_PAYLOAD");
@@ -732,10 +771,11 @@ async function execAppointmentCreate(client, ctx, payload) {
 }
 
 async function execAppointmentUpdate(client, ctx, payload, baseVersion) {
-  const { id, changes, baseVersion: version } = validateAppointmentUpdatePayload(
-    payload,
-    baseVersion,
-  );
+  const {
+    id,
+    changes,
+    baseVersion: version,
+  } = validateAppointmentUpdatePayload(payload, baseVersion);
   const ownerId = resolveOwnerId(ctx);
   const hasSpecialty = Object.prototype.hasOwnProperty.call(changes, "specialty");
   const hasLocation = Object.prototype.hasOwnProperty.call(changes, "location");
@@ -853,10 +893,11 @@ async function execMedicationCreate(client, ctx, payload) {
 // `toggleMedicationTaken` (`changes: { lastTakenOn }`) -- all three are plain updates through
 // this op, the client having already computed the (possibly toggled) value locally.
 async function execMedicationUpdate(client, ctx, payload, baseVersion) {
-  const { id, changes, baseVersion: version } = validateMedicationUpdatePayload(
-    payload,
-    baseVersion,
-  );
+  const {
+    id,
+    changes,
+    baseVersion: version,
+  } = validateMedicationUpdatePayload(payload, baseVersion);
   const ownerId = resolveOwnerId(ctx);
   const hasReminderTime = Object.prototype.hasOwnProperty.call(changes, "reminderTime");
   const hasLastTakenOn = Object.prototype.hasOwnProperty.call(changes, "lastTakenOn");
@@ -964,10 +1005,11 @@ async function execMeasurementCreate(client, ctx, payload) {
 }
 
 async function execMeasurementUpdate(client, ctx, payload, baseVersion) {
-  const { id, changes, baseVersion: version } = validateMeasurementUpdatePayload(
-    payload,
-    baseVersion,
-  );
+  const {
+    id,
+    changes,
+    baseVersion: version,
+  } = validateMeasurementUpdatePayload(payload, baseVersion);
   const ownerId = resolveOwnerId(ctx);
   const hasNotes = Object.prototype.hasOwnProperty.call(changes, "notes");
   const updated = await client.query(

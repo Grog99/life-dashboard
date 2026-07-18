@@ -24,9 +24,7 @@ describe("advanced store", () => {
       visibility: "private",
     });
 
-    expect(
-      useAdvancedStore.getState().subscriptions.find((item) => item.id === id),
-    ).toMatchObject({
+    expect(useAdvancedStore.getState().subscriptions.find((item) => item.id === id)).toMatchObject({
       name: "HBO Max",
       visibility: "private",
     });
@@ -36,9 +34,8 @@ describe("advanced store", () => {
     const subscriptionId = useAdvancedStore.getState().subscriptions[0].id;
     useAdvancedStore.getState().updateSubscription(subscriptionId, { visibility: "household" });
     expect(
-      useAdvancedStore
-        .getState()
-        .subscriptions.find((item) => item.id === subscriptionId)?.visibility,
+      useAdvancedStore.getState().subscriptions.find((item) => item.id === subscriptionId)
+        ?.visibility,
     ).toBe("household");
   });
 

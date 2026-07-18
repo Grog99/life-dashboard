@@ -24,11 +24,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { z } from "zod";
 import { generateId as makeId } from "../lib/id";
 import { quarantineRawValue, reportStorageWarning, safeLocalStorage } from "../lib/safeStorage";
-import {
-  healthAppointmentSchema,
-  healthMeasurementSchema,
-  medicationSchema,
-} from "../lib/schema";
+import { healthAppointmentSchema, healthMeasurementSchema, medicationSchema } from "../lib/schema";
 import type { HealthAppointment, HealthMeasurement, Medication } from "../healthTypes";
 
 const STORAGE_NAME = "puls-health";
@@ -152,7 +148,10 @@ function upsertByUpdateOp(op: HealthOp, record: unknown, collections: Collection
         healthAppointments: upsertById(collections.healthAppointments, record as HealthAppointment),
       };
     case "medication.update":
-      return { ...collections, medications: upsertById(collections.medications, record as Medication) };
+      return {
+        ...collections,
+        medications: upsertById(collections.medications, record as Medication),
+      };
     case "measurement.update":
       return {
         ...collections,
@@ -174,11 +173,13 @@ function reconcileTerminal(
   const payload = mutation.payload as { id?: string };
   switch (mutation.op) {
     case "appointment.create":
-      if (result.record) healthAppointments = upsertById(healthAppointments, result.record as HealthAppointment);
+      if (result.record)
+        healthAppointments = upsertById(healthAppointments, result.record as HealthAppointment);
       break;
     case "appointment.update":
       // Trafia tu tylko applied/duplicate (conflict idzie przez rebase powyżej).
-      if (result.record) healthAppointments = upsertById(healthAppointments, result.record as HealthAppointment);
+      if (result.record)
+        healthAppointments = upsertById(healthAppointments, result.record as HealthAppointment);
       break;
     case "appointment.delete":
       healthAppointments = removeById(healthAppointments, String(payload.id));
@@ -193,10 +194,12 @@ function reconcileTerminal(
       medications = removeById(medications, String(payload.id));
       break;
     case "measurement.create":
-      if (result.record) healthMeasurements = upsertById(healthMeasurements, result.record as HealthMeasurement);
+      if (result.record)
+        healthMeasurements = upsertById(healthMeasurements, result.record as HealthMeasurement);
       break;
     case "measurement.update":
-      if (result.record) healthMeasurements = upsertById(healthMeasurements, result.record as HealthMeasurement);
+      if (result.record)
+        healthMeasurements = upsertById(healthMeasurements, result.record as HealthMeasurement);
       break;
     case "measurement.delete":
       healthMeasurements = removeById(healthMeasurements, String(payload.id));
@@ -597,9 +600,15 @@ export const useHealthStore = create<HealthStore>()(
           return currentState;
         }
         const state = persistedState as Record<string, unknown>;
-        const healthAppointments = parseArrayField(state.healthAppointments, healthAppointmentSchema);
+        const healthAppointments = parseArrayField(
+          state.healthAppointments,
+          healthAppointmentSchema,
+        );
         const medications = parseArrayField(state.medications, medicationSchema);
-        const healthMeasurements = parseArrayField(state.healthMeasurements, healthMeasurementSchema);
+        const healthMeasurements = parseArrayField(
+          state.healthMeasurements,
+          healthMeasurementSchema,
+        );
         const pendingMutations = parseArrayField(state.pendingMutations, pendingMutationSchema);
         const droppedCount =
           healthAppointments.dropped +
