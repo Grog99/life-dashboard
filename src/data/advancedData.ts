@@ -8,6 +8,8 @@ const day = (offset = 0) => format(addDays(new Date(), offset), "yyyy-MM-dd");
 // docs/plans/auto-car.md i src/store/useCarStore.ts.
 // Zwierzęta (pets/petExpenses/petVisits) analogicznie nie mają już seedu tutaj — patrz
 // docs/plans/zwierzeta-sql.md i src/store/usePetsStore.ts.
+// Zdrowie (healthAppointments/medications/healthMeasurements) analogicznie nie ma już seedu tutaj
+// — patrz docs/plans/zdrowie-sql.md i src/store/useHealthStore.ts.
 
 export function createAdvancedData(): AdvancedDataWithHealth {
   return {
@@ -91,78 +93,6 @@ export function createAdvancedData(): AdvancedDataWithHealth {
         status: "active",
         reminderDays: 2,
         color: "#8b6ca5",
-        ownerId: "me",
-        visibility: "private",
-      },
-    ],
-    healthAppointments: [
-      {
-        id: "health-appointment-dentist",
-        title: "Kontrola stomatologiczna",
-        clinician: "dr Anna Kowalska",
-        specialty: "Stomatologia",
-        date: day(9),
-        time: "16:30",
-        location: "Dentica, ul. Dobra 12",
-        status: "scheduled",
-        notes: "Zabrać ostatnie zdjęcie RTG.",
-        ownerId: "me",
-        visibility: "private",
-      },
-      {
-        id: "health-appointment-checkup",
-        title: "Badania profilaktyczne",
-        clinician: "Laboratorium",
-        specialty: "Morfologia i lipidogram",
-        date: day(-28),
-        time: "08:00",
-        location: "Punkt pobrań",
-        status: "completed",
-        ownerId: "me",
-        visibility: "private",
-      },
-    ],
-    medications: [
-      {
-        id: "medication-vitamin-d",
-        name: "Witamina D3",
-        dosage: "2000 IU",
-        schedule: "Codziennie po śniadaniu",
-        reminderTime: "08:30",
-        active: true,
-        lastTakenOn: day(),
-        ownerId: "me",
-        visibility: "private",
-      },
-      {
-        id: "medication-magnesium",
-        name: "Magnez",
-        dosage: "1 tabletka",
-        schedule: "Wieczorem",
-        reminderTime: "20:30",
-        active: true,
-        lastTakenOn: day(-1),
-        ownerId: "me",
-        visibility: "private",
-      },
-    ],
-    healthMeasurements: [
-      {
-        id: "health-measurement-weight",
-        type: "weight",
-        value: "78,4",
-        unit: "kg",
-        measuredAt: `${day(-2)}T07:30`,
-        notes: "Pomiar poranny",
-        ownerId: "me",
-        visibility: "private",
-      },
-      {
-        id: "health-measurement-pressure",
-        type: "blood_pressure",
-        value: "122/78",
-        unit: "mmHg",
-        measuredAt: `${day(-5)}T08:10`,
         ownerId: "me",
         visibility: "private",
       },

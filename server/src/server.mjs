@@ -49,6 +49,14 @@ import {
   resetPetsForUser,
 } from "./pets.mjs";
 import {
+  applyHealthMutation,
+  assertHealthMutationShape,
+  MAX_HEALTH_MUTATIONS_BYTES,
+  MAX_HEALTH_MUTATIONS_PER_BATCH,
+  readHealthSnapshot,
+  resetHealthForUser,
+} from "./health.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -922,6 +930,60 @@ app.post("/api/v1/pets/mutations", async (request) => {
 app.post("/api/v1/pets/reset", async (request) => {
   const session = await requireHousehold(request);
   await transaction((client) => resetPetsForUser(client, session.household_id, session.user_id));
+  return { serverAt: new Date().toISOString() };
+});
+
+// Health module (Zdrowie): normalized tables, not part of the workspace JSONB document (see
+// docs/plans/zdrowie-sql.md and server/src/health.mjs). GET returns a snapshot, mutations go
+// through a single idempotent batch endpoint mapping 1:1 onto the client's offline queue. Like
+// Pets, Health KEEPS the private/shared distinction -- but SIMPLER than Pets: all three tables
+// (health_appointments, medications, health_measurements) are completely independent/flat, so
+// there is no EXISTS-on-parent scoping and no visibility cascade anywhere in health.mjs.
+app.get("/api/v1/health", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readHealthSnapshot(pool, session.household_id, session.user_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/health/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(400, "Nieprawidłowe żądanie mutacji zdrowia", "INVALID_HEALTH_MUTATIONS");
+  }
+  if (body.mutations.length > MAX_HEALTH_MUTATIONS_PER_BATCH) {
+    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "HEALTH_MUTATIONS_TOO_LARGE");
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_HEALTH_MUTATIONS_BYTES) {
+    throw httpError(
+      413,
+      "Dane mutacji przekraczają dozwolony rozmiar",
+      "HEALTH_MUTATIONS_TOO_LARGE",
+    );
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see health.mjs's assertHealthMutationShape.
+  for (const mutation of body.mutations) assertHealthMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order (e.g. a
+    // toggle following the create/update it depends on for correct lastTakenOn/active/status
+    // bookkeeping).
+    const result = await transaction((client) => applyHealthMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): Zdrowie nie jest już częścią
+// dokumentu JSONB, więc nie ma go czym nadpisać zwykłym PUT /api/v1/workspace -- ten endpoint
+// odtwarza dokładnie ten sam zakres usuwania (wspólne rekordy + WYŁĄCZNIE prywatne rekordy
+// wywołującego, nigdy prywatne rekordy innych domowników), analogicznie do /api/v1/pets/reset.
+app.post("/api/v1/health/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetHealthForUser(client, session.household_id, session.user_id));
   return { serverAt: new Date().toISOString() };
 });
 

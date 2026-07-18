@@ -167,41 +167,6 @@ function derivedReminders(data, nowKey) {
       });
     }
   }
-  for (const appointment of Array.isArray(advanced.healthAppointments)
-    ? advanced.healthAppointments
-    : []) {
-    const dueKey = shiftLocalDateTime(appointment?.date, appointment?.time, -24 * 60);
-    if (
-      appointment?.id &&
-      appointment.status === "scheduled" &&
-      withinDeliveryWindow(dueKey, nowKey, 2)
-    ) {
-      reminders.push({
-        id: `health-appointment:${appointment.id}`,
-        title: `Nadchodzi wizyta: ${appointment.title}`,
-        date: appointment.date,
-        time: appointment.time,
-      });
-    }
-  }
-  for (const medication of Array.isArray(advanced.medications) ? advanced.medications : []) {
-    const reminderTime = medication?.reminderTime;
-    const today = nowKey.slice(0, 10);
-    if (
-      medication?.id &&
-      medication.active &&
-      medication.lastTakenOn !== today &&
-      /^\d{2}:\d{2}$/.test(reminderTime ?? "") &&
-      `${today} ${reminderTime}` <= nowKey
-    ) {
-      reminders.push({
-        id: `medication:${medication.id}`,
-        title: `Pora przyjąć: ${medication.name} ${medication.dosage}`,
-        date: today,
-        time: reminderTime,
-      });
-    }
-  }
   return reminders;
 }
 
@@ -295,6 +260,71 @@ async function petVisitReminders(householdId, nowKey) {
   return reminders;
 }
 
+// Health (Zdrowie): health_appointments/medications are normalized tables, not part of the
+// workspace JSONB document (see docs/plans/zdrowie-sql.md and server/src/health.mjs) -- these
+// replace the advanced.healthAppointments/advanced.medications loops that used to live in
+// derivedReminders. Same shape as petVisitReminders: no JOIN, each row already carries its own
+// visibility/owner_id, and the reminder time comes from the row's own `time`/`reminder_time`
+// column. Same targeting rule: null = every household member, owner_id = only that member.
+async function healthAppointmentReminders(householdId, nowKey) {
+  const result = await query(
+    `SELECT id, title, date::text AS date, time, visibility, owner_id
+       FROM health_appointments
+      WHERE household_id = $1 AND status = 'scheduled'`,
+    [householdId],
+  );
+  const reminders = [];
+  for (const row of result.rows) {
+    const dueKey = shiftLocalDateTime(row.date, row.time, -24 * 60);
+    if (withinDeliveryWindow(dueKey, nowKey, 2)) {
+      reminders.push({
+        reminder: {
+          id: `health-appointment:${row.id}`,
+          title: `Nadchodzi wizyta: ${row.title}`,
+          date: row.date,
+          time: row.time,
+        },
+        targetUserId: row.visibility === "private" ? row.owner_id : null,
+      });
+    }
+  }
+  return reminders;
+}
+
+// `date: today` (not the medication's own date, it has none) preserves the daily dedup key
+// (`occurrence = today T reminderTime`) 1:1 with the pre-migration JSONB loop -- one push per
+// day, no duplicates/gaps (docs/plans/zdrowie-sql.md "Ryzyka": "Regresja obu pushów zdrowia").
+// The `last_taken_on <> today` filter is done in SQL rather than JS, but is equivalent to the
+// old `medication.lastTakenOn !== today` check (IS DISTINCT FROM also treats NULL as "not today").
+async function medicationReminders(householdId, nowKey) {
+  const today = nowKey.slice(0, 10);
+  const result = await query(
+    `SELECT id, name, dosage, reminder_time, visibility, owner_id
+       FROM medications
+      WHERE household_id = $1 AND active = true AND reminder_time IS NOT NULL
+        AND last_taken_on IS DISTINCT FROM $2::date`,
+    [householdId, today],
+  );
+  const reminders = [];
+  for (const row of result.rows) {
+    if (
+      /^\d{2}:\d{2}$/.test(row.reminder_time ?? "") &&
+      `${today} ${row.reminder_time}` <= nowKey
+    ) {
+      reminders.push({
+        reminder: {
+          id: `medication:${row.id}`,
+          title: `Pora przyjąć: ${row.name} ${row.dosage}`,
+          date: today,
+          time: row.reminder_time,
+        },
+        targetUserId: row.visibility === "private" ? row.owner_id : null,
+      });
+    }
+  }
+  return reminders;
+}
+
 async function deliverDerived(workspace, data, targetUserId = null) {
   const nowKey = localNowKey(workspace.timezone);
   for (const reminder of derivedReminders(data, nowKey)) {
@@ -326,6 +356,7 @@ async function tick() {
       query("DELETE FROM meal_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM car_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM pet_mutations WHERE created_at < now() - interval '30 days'"),
+      query("DELETE FROM health_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }
@@ -371,6 +402,34 @@ async function tick() {
           await deliverReminder(workspace, reminder, targetUserId);
         } catch (error) {
           console.error("Pet visit reminder failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
+      for (const { reminder, targetUserId } of await healthAppointmentReminders(
+        workspace.household_id,
+        nowKey,
+      )) {
+        try {
+          await deliverReminder(workspace, reminder, targetUserId);
+        } catch (error) {
+          console.error("Health appointment reminder failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
+      for (const { reminder, targetUserId } of await medicationReminders(
+        workspace.household_id,
+        nowKey,
+      )) {
+        try {
+          await deliverReminder(workspace, reminder, targetUserId);
+        } catch (error) {
+          console.error("Medication reminder failed", {
             householdId: workspace.household_id,
             reminderId: reminder.id,
             error,

@@ -5,22 +5,12 @@ import { createAdvancedData } from "../data/advancedData";
 import { quarantineRawValue, reportStorageWarning, safeLocalStorage } from "../lib/safeStorage";
 import { generateId as makeId } from "../lib/id";
 import {
-  healthAppointmentSchema,
-  healthMeasurementSchema,
   hideAmountsSchema,
   householdMemberSchema,
   householdNameSchema,
-  medicationSchema,
   subscriptionSchema,
 } from "../lib/schema";
-import type {
-  AdvancedData,
-  AdvancedDataWithHealth,
-  HealthAppointment,
-  HealthMeasurement,
-  Medication,
-  Subscription,
-} from "../advancedTypes";
+import type { AdvancedData, AdvancedDataWithHealth, Subscription } from "../advancedTypes";
 
 const STORAGE_NAME = "puls-advanced-dashboard";
 
@@ -52,17 +42,6 @@ interface AdvancedActions {
   addSubscription: (subscription: Omit<Subscription, "id">) => string;
   updateSubscription: (subscriptionId: string, changes: Partial<Subscription>) => void;
   deleteSubscription: (subscriptionId: string) => void;
-  addHealthAppointment: (appointment: Omit<HealthAppointment, "id">) => string;
-  updateHealthAppointment: (appointmentId: string, changes: Partial<HealthAppointment>) => void;
-  deleteHealthAppointment: (appointmentId: string) => void;
-  addMedication: (medication: Omit<Medication, "id">) => string;
-  updateMedication: (medicationId: string, changes: Partial<Medication>) => void;
-  deleteMedication: (medicationId: string) => void;
-  toggleMedicationTaken: (medicationId: string, date: string) => void;
-  toggleMedicationActive: (medicationId: string) => void;
-  addHealthMeasurement: (measurement: Omit<HealthMeasurement, "id">) => string;
-  updateHealthMeasurement: (measurementId: string, changes: Partial<HealthMeasurement>) => void;
-  deleteHealthMeasurement: (measurementId: string) => void;
   replaceAdvancedData: (data: AdvancedData) => void;
   resetAdvancedData: () => void;
 }
@@ -91,82 +70,7 @@ export const useAdvancedStore = create<AdvancedStore>()(
             (subscription) => subscription.id !== subscriptionId,
           ),
         })),
-      addHealthAppointment: (appointment) => {
-        const id = makeId();
-        set((state) => ({
-          healthAppointments: [...state.healthAppointments, { ...appointment, id }],
-        }));
-        return id;
-      },
-      updateHealthAppointment: (appointmentId, changes) =>
-        set((state) => ({
-          healthAppointments: state.healthAppointments.map((appointment) =>
-            appointment.id === appointmentId ? { ...appointment, ...changes } : appointment,
-          ),
-        })),
-      deleteHealthAppointment: (appointmentId) =>
-        set((state) => ({
-          healthAppointments: state.healthAppointments.filter(
-            (appointment) => appointment.id !== appointmentId,
-          ),
-        })),
-      addMedication: (medication) => {
-        const id = makeId();
-        set((state) => ({ medications: [...state.medications, { ...medication, id }] }));
-        return id;
-      },
-      updateMedication: (medicationId, changes) =>
-        set((state) => ({
-          medications: state.medications.map((medication) =>
-            medication.id === medicationId ? { ...medication, ...changes } : medication,
-          ),
-        })),
-      deleteMedication: (medicationId) =>
-        set((state) => ({
-          medications: state.medications.filter((medication) => medication.id !== medicationId),
-        })),
-      toggleMedicationTaken: (medicationId, date) =>
-        set((state) => ({
-          medications: state.medications.map((medication) =>
-            medication.id === medicationId
-              ? { ...medication, lastTakenOn: medication.lastTakenOn === date ? undefined : date }
-              : medication,
-          ),
-        })),
-      toggleMedicationActive: (medicationId) =>
-        set((state) => ({
-          medications: state.medications.map((medication) =>
-            medication.id === medicationId
-              ? { ...medication, active: !medication.active }
-              : medication,
-          ),
-        })),
-      addHealthMeasurement: (measurement) => {
-        const id = makeId();
-        set((state) => ({
-          healthMeasurements: [{ ...measurement, id }, ...state.healthMeasurements],
-        }));
-        return id;
-      },
-      updateHealthMeasurement: (measurementId, changes) =>
-        set((state) => ({
-          healthMeasurements: state.healthMeasurements.map((measurement) =>
-            measurement.id === measurementId ? { ...measurement, ...changes } : measurement,
-          ),
-        })),
-      deleteHealthMeasurement: (measurementId) =>
-        set((state) => ({
-          healthMeasurements: state.healthMeasurements.filter(
-            (measurement) => measurement.id !== measurementId,
-          ),
-        })),
-      replaceAdvancedData: (data) =>
-        set({
-          ...data,
-          healthAppointments: data.healthAppointments ?? [],
-          medications: data.medications ?? [],
-          healthMeasurements: data.healthMeasurements ?? [],
-        }),
+      replaceAdvancedData: (data) => set({ ...data }),
       resetAdvancedData: () => set(createAdvancedData()),
     }),
     {
@@ -183,15 +87,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         const state = persistedState as Record<string, unknown>;
 
         const subscriptions = parseArrayField(state.subscriptions, subscriptionSchema);
-        const healthAppointments = parseArrayField(
-          state.healthAppointments,
-          healthAppointmentSchema,
-        );
-        const medications = parseArrayField(state.medications, medicationSchema);
-        const healthMeasurements = parseArrayField(
-          state.healthMeasurements,
-          healthMeasurementSchema,
-        );
         const householdMembers = parseArrayField(state.householdMembers, householdMemberSchema);
         const householdName = parseScalarField(
           state.householdName,
@@ -204,13 +99,7 @@ export const useAdvancedStore = create<AdvancedStore>()(
           currentState.hideAmounts,
         );
 
-        const arrayFields = [
-          subscriptions,
-          healthAppointments,
-          medications,
-          healthMeasurements,
-          householdMembers,
-        ];
+        const arrayFields = [subscriptions, householdMembers];
         const droppedCount =
           arrayFields.reduce((sum, field) => sum + field.dropped, 0) +
           householdName.dropped +
@@ -226,9 +115,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         return {
           ...currentState,
           subscriptions: subscriptions.items,
-          healthAppointments: healthAppointments.items,
-          medications: medications.items,
-          healthMeasurements: healthMeasurements.items,
           householdMembers: householdMembers.items,
           householdName: householdName.value,
           hideAmounts: hideAmounts.value,
@@ -236,9 +122,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
       },
       partialize: (state) => ({
         subscriptions: state.subscriptions,
-        healthAppointments: state.healthAppointments,
-        medications: state.medications,
-        healthMeasurements: state.healthMeasurements,
         householdMembers: state.householdMembers,
         householdName: state.householdName,
         hideAmounts: state.hideAmounts,
@@ -251,9 +134,6 @@ export function exportAdvancedData(): AdvancedDataWithHealth {
   const state = useAdvancedStore.getState();
   return {
     subscriptions: state.subscriptions,
-    healthAppointments: state.healthAppointments,
-    medications: state.medications,
-    healthMeasurements: state.healthMeasurements,
     householdMembers: state.householdMembers,
     householdName: state.householdName,
     hideAmounts: state.hideAmounts,

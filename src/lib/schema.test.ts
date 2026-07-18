@@ -34,10 +34,10 @@ describe("lifeDataSchema", () => {
     expect(backupEnvelopeSchema.safeParse({ ...backup, schemaVersion: 99 }).success).toBe(false);
   });
 
-  it("waliduje wszystkie moduły zaawansowane, w tym zdrowie", () => {
+  it("waliduje wszystkie moduły zaawansowane", () => {
     const data = createAdvancedData();
     expect(advancedDataSchema.safeParse(data).success).toBe(true);
-    expect(advancedDataSchema.safeParse({ ...data, medications: [{ id: "bad" }] }).success).toBe(
+    expect(advancedDataSchema.safeParse({ ...data, subscriptions: [{ id: "bad" }] }).success).toBe(
       false,
     );
   });

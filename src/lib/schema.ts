@@ -10,6 +10,7 @@ import type { Trip, TripItineraryItem, TripBooking, PackingItem } from "../trips
 import type { Recipe, MealSlot, ShoppingItem } from "../mealsTypes";
 import type { Vehicle, CarExpense, VehicleDeadline } from "../carTypes";
 import type { Pet, PetExpense, PetVisit } from "../petsTypes";
+import type { HealthAppointment, Medication, HealthMeasurement } from "../healthTypes";
 
 export const energySchema = z.enum(["low", "medium", "high"]);
 const energy = energySchema;
@@ -428,7 +429,15 @@ export const petVisitSchema: z.ZodType<PetVisit> = sharedMetaSchema.extend({
   version: recordVersion,
   updatedAt: timestamp,
 });
-export const healthAppointmentSchema = sharedMetaSchema.extend({
+// Zdrowie (healthAppointments/medications/healthMeasurements) nie jest już częścią
+// `advancedDataSchema` / dokumentu JSONB workspace — ma własne znormalizowane tabele
+// (server/migrations/011_health_normalized.sql) i endpoint `/api/v1/health` (warstwa
+// backend/frontend, patrz docs/plans/zdrowie-sql.md). Te schematy walidują snapshot GET-a i
+// payloady mutacji POST-owanych do `/api/v1/health/mutations`.
+// Wszystkie trzy NADAL rozszerzają `sharedMetaSchema` -- jak Zwierzęta/Auto, Zdrowie zachowuje
+// rozróżnienie prywatne/wspólne per rekord; W ODRÓŻNIENIU od Zwierząt/Auta trzy kolekcje są
+// całkowicie niezależne (brak relacji rodzic/dziecko, brak dziedziczenia widoczności).
+export const healthAppointmentSchema: z.ZodType<HealthAppointment> = sharedMetaSchema.extend({
   id: idSchema,
   title: nonEmptyText,
   clinician: nonEmptyText,
@@ -438,8 +447,10 @@ export const healthAppointmentSchema = sharedMetaSchema.extend({
   location: z.string().max(1000).optional(),
   status: z.enum(["scheduled", "completed", "cancelled"]),
   notes: z.string().max(5000).optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const medicationSchema = sharedMetaSchema.extend({
+export const medicationSchema: z.ZodType<Medication> = sharedMetaSchema.extend({
   id: idSchema,
   name: nonEmptyText,
   dosage: nonEmptyText,
@@ -447,14 +458,21 @@ export const medicationSchema = sharedMetaSchema.extend({
   active: z.boolean(),
   lastTakenOn: isoDate.optional(),
   reminderTime: clockTime.optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const healthMeasurementSchema = sharedMetaSchema.extend({
+// `measuredAt` reużywa `timestamp` (free-form, `Date.parse`-owalny string) -- NIE `isoDate`, bo
+// dziś to `${date}T${time}` bez sekund/strefy (docs/plans/zdrowie-sql.md "Projekt pól
+// specjalnych"). Kolumna SQL to `text`, nie `timestamptz`, dokładnie z tego powodu.
+export const healthMeasurementSchema: z.ZodType<HealthMeasurement> = sharedMetaSchema.extend({
   id: idSchema,
   type: z.enum(["weight", "blood_pressure", "glucose", "temperature", "other"]),
   value: nonEmptyText,
   unit: z.string().max(100),
   measuredAt: timestamp,
   notes: z.string().max(5000).optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
 export const householdMemberSchema = z.object({
   id: idSchema,
@@ -468,9 +486,6 @@ export const hideAmountsSchema = z.boolean();
 
 export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
   subscriptions: z.array(subscriptionSchema),
-  healthAppointments: z.array(healthAppointmentSchema),
-  medications: z.array(medicationSchema),
-  healthMeasurements: z.array(healthMeasurementSchema),
   householdMembers: z.array(householdMemberSchema),
   householdName: householdNameSchema,
   hideAmounts: hideAmountsSchema,

@@ -27,6 +27,17 @@ export type { Vehicle, CarExpense, VehicleDeadline } from "./carTypes";
 // plików, które wciąż importują je z `advancedTypes` (jak zrobiono z typami car).
 export type { Pet, PetExpense, PetVisit, PetKind, FishStockEntry } from "./petsTypes";
 
+// Zdrowie (healthAppointments/medications/healthMeasurements) żyje teraz w znormalizowanych
+// tabelach SQL, nie w tym dokumencie — patrz docs/plans/zdrowie-sql.md i src/healthTypes.ts.
+// Re-eksportowane stąd dla plików, które wciąż importują je z `advancedTypes` (jak zrobiono
+// z typami pets).
+export type {
+  HealthAppointment,
+  Medication,
+  HealthMeasurement,
+  HealthMeasurementType,
+} from "./healthTypes";
+
 export interface Subscription extends SharedMeta {
   id: string;
   name: string;
@@ -42,40 +53,6 @@ export interface Subscription extends SharedMeta {
   cancelUrl?: string;
 }
 
-export interface HealthAppointment extends SharedMeta {
-  id: string;
-  title: string;
-  clinician: string;
-  specialty?: string;
-  date: string;
-  time: string;
-  location?: string;
-  status: "scheduled" | "completed" | "cancelled";
-  notes?: string;
-}
-
-export interface Medication extends SharedMeta {
-  id: string;
-  name: string;
-  dosage: string;
-  schedule: string;
-  active: boolean;
-  lastTakenOn?: string;
-  reminderTime?: string;
-}
-
-export type HealthMeasurementType =
-  "weight" | "blood_pressure" | "glucose" | "temperature" | "other";
-
-export interface HealthMeasurement extends SharedMeta {
-  id: string;
-  type: HealthMeasurementType;
-  value: string;
-  unit: string;
-  measuredAt: string;
-  notes?: string;
-}
-
 export interface HouseholdMember {
   id: string;
   name: string;
@@ -86,12 +63,11 @@ export interface HouseholdMember {
 
 export interface AdvancedData {
   subscriptions: Subscription[];
-  healthAppointments: HealthAppointment[];
-  medications: Medication[];
-  healthMeasurements: HealthMeasurement[];
   householdMembers: HouseholdMember[];
   householdName: string;
   hideAmounts: boolean;
 }
 
+// Po wycięciu Zdrowia z tego dokumentu (docs/plans/zdrowie-sql.md) nazwa jest myląca — zostaje
+// jako alias dla zgodności wsteczna z istniejącymi importami (advancedData.ts, useAdvancedStore.ts).
 export type AdvancedDataWithHealth = AdvancedData;
