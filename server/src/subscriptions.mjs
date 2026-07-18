@@ -203,15 +203,31 @@ export function validateSubscriptionCreatePayload(payload) {
   );
   assertShape(CURRENCIES.has(payload.currency), "Nieprawidłowa waluta", "INVALID_CURRENCY");
   assertShape(CYCLES.has(payload.cycle), "Nieprawidłowy cykl płatności", "INVALID_CYCLE");
-  assertShape(isIsoDate(payload.nextPayment), "Nieprawidłowa data następnej płatności", "INVALID_NEXT_PAYMENT");
+  assertShape(
+    isIsoDate(payload.nextPayment),
+    "Nieprawidłowa data następnej płatności",
+    "INVALID_NEXT_PAYMENT",
+  );
   assertShape(isOptionalText(payload.payer, 200), "Nieprawidłowy płatnik", "INVALID_PAYER");
   assertShape(STATUSES.has(payload.status), "Nieprawidłowy status subskrypcji", "INVALID_STATUS");
-  assertShape(isReminderDays(payload.reminderDays), "Nieprawidłowa liczba dni przypomnienia", "INVALID_REMINDER_DAYS");
+  assertShape(
+    isReminderDays(payload.reminderDays),
+    "Nieprawidłowa liczba dni przypomnienia",
+    "INVALID_REMINDER_DAYS",
+  );
   assertShape(isOptionalText(payload.color, 32), "Nieprawidłowy kolor", "INVALID_COLOR");
   if (payload.cancelUrl !== undefined && payload.cancelUrl !== null) {
-    assertShape(isCancelUrl(payload.cancelUrl), "Nieprawidłowy adres URL anulowania", "INVALID_CANCEL_URL");
+    assertShape(
+      isCancelUrl(payload.cancelUrl),
+      "Nieprawidłowy adres URL anulowania",
+      "INVALID_CANCEL_URL",
+    );
   }
-  assertShape(VISIBILITIES.has(payload.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
+  assertShape(
+    VISIBILITIES.has(payload.visibility),
+    "Nieprawidłowa widoczność",
+    "INVALID_VISIBILITY",
+  );
   return {
     id: payload.id,
     name: payload.name.trim(),
@@ -289,7 +305,11 @@ export function validateSubscriptionUpdatePayload(payload, baseVersion) {
     changes.cycle = c.cycle;
   }
   if (c.nextPayment !== undefined) {
-    assertShape(isIsoDate(c.nextPayment), "Nieprawidłowa data następnej płatności", "INVALID_NEXT_PAYMENT");
+    assertShape(
+      isIsoDate(c.nextPayment),
+      "Nieprawidłowa data następnej płatności",
+      "INVALID_NEXT_PAYMENT",
+    );
     changes.nextPayment = c.nextPayment;
   }
   if (c.payer !== undefined) {
@@ -352,10 +372,18 @@ export const SUPPORTED_SUBSCRIPTION_OPS = new Set([
 // `status: "error"` inside `results` by applySubscriptionMutation instead.
 export function assertSubscriptionMutationShape(mutation) {
   if (!isPlainObject(mutation)) {
-    throw subscriptionRequestError(400, "Nieprawidłowy kształt mutacji", "INVALID_SUBSCRIPTION_MUTATION");
+    throw subscriptionRequestError(
+      400,
+      "Nieprawidłowy kształt mutacji",
+      "INVALID_SUBSCRIPTION_MUTATION",
+    );
   }
   if (typeof mutation.idempotencyKey !== "string" || !UUID_PATTERN.test(mutation.idempotencyKey)) {
-    throw subscriptionRequestError(400, "Nieprawidłowy klucz idempotencji", "INVALID_IDEMPOTENCY_KEY");
+    throw subscriptionRequestError(
+      400,
+      "Nieprawidłowy klucz idempotencji",
+      "INVALID_IDEMPOTENCY_KEY",
+    );
   }
   if (typeof mutation.op !== "string" || !SUPPORTED_SUBSCRIPTION_OPS.has(mutation.op)) {
     throw subscriptionRequestError(400, "Nieobsługiwana operacja mutacji", "UNSUPPORTED_OP");

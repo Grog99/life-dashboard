@@ -1017,7 +1017,11 @@ app.post("/api/v1/subscriptions/mutations", async (request) => {
     );
   }
   if (body.mutations.length > MAX_SUBSCRIPTION_MUTATIONS_PER_BATCH) {
-    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "SUBSCRIPTIONS_MUTATIONS_TOO_LARGE");
+    throw httpError(
+      413,
+      "Zbyt wiele mutacji w jednym żądaniu",
+      "SUBSCRIPTIONS_MUTATIONS_TOO_LARGE",
+    );
   }
   const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
   if (serializedSize > MAX_SUBSCRIPTION_MUTATIONS_BYTES) {

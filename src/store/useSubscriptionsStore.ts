@@ -107,10 +107,14 @@ function reconcileTerminal(
   const payload = mutation.payload as { id?: string };
   switch (mutation.op) {
     case "subscription.create":
-      return result.record ? upsertById(subscriptions, result.record as Subscription) : subscriptions;
+      return result.record
+        ? upsertById(subscriptions, result.record as Subscription)
+        : subscriptions;
     case "subscription.update":
       // Trafia tu tylko applied/duplicate (conflict idzie przez cichy rebase powyżej).
-      return result.record ? upsertById(subscriptions, result.record as Subscription) : subscriptions;
+      return result.record
+        ? upsertById(subscriptions, result.record as Subscription)
+        : subscriptions;
     case "subscription.delete":
       return removeById(subscriptions, String(payload.id));
     default:
@@ -228,7 +232,11 @@ export const useSubscriptionsStore = create<SubscriptionsStore>()(
           ),
           pendingMutations: [
             ...state.pendingMutations,
-            { idempotencyKey: makeId(), op: "subscription.delete", payload: { id: subscriptionId } },
+            {
+              idempotencyKey: makeId(),
+              op: "subscription.delete",
+              payload: { id: subscriptionId },
+            },
           ],
         }));
       },

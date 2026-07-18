@@ -22,9 +22,9 @@ export type SubscriptionsSyncState = "synced" | "saving" | "offline";
 // do najbliższego wyzwalacza (online/focus/kolejna zmiana w store).
 const MAX_FLUSH_ROUNDS = 25;
 
-export function useSubscriptionsSync(
-  onSessionExpired?: () => void,
-): { syncState: SubscriptionsSyncState } {
+export function useSubscriptionsSync(onSessionExpired?: () => void): {
+  syncState: SubscriptionsSyncState;
+} {
   const [syncState, setSyncState] = useState<SubscriptionsSyncState>("saving");
   const mounted = useRef(true);
   const flushing = useRef(false);
