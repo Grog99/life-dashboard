@@ -1,8 +1,12 @@
 // Domain layer for the normalized Life module (Zadania/Kalendarz/Przypomnienia/Notatki/Nawyki).
 //
 // Data model: server/migrations/013_life_normalized.sql (tasks, events, reminders, notes, habits,
-// life_mutations). Design source of truth: docs/plans/zadania-kalendarz-notatki-nawyki-sql.md
-// ("Podejście"/"Ops mutacji"/"Projekt pól specjalnych" sections).
+// life_mutations), redefined for tasks by server/migrations/014_tasks_redefinition.sql (drops
+// date/time/estimated_minutes/category/series_id/series_index/recurrence from `tasks`, adds
+// `tags jsonb`). Design source of truth: docs/plans/zadania-kalendarz-notatki-nawyki-sql.md
+// ("Podejście"/"Ops mutacji"/"Projekt pól specjalnych" sections) and
+// docs/plans/zadania-redefinicja.md (tasks-only redefinition: no date/time, no recurrence, free
+// tags instead of a fixed category).
 //
 // This is the Life analogue of server/src/health.mjs -- structurally the closest precedent in the
 // series (docs/plans/zadania-kalendarz-notatki-nawyki-sql.md "Czym Life RÓŻNI SIĘ"): FIVE
@@ -10,19 +14,23 @@
 // visibility cascade, no visibility inheritance on create (every `*.create` carries an EXPLICIT
 // `visibility`), no aggregate/monotonic field (every update uses per-record OCC, no exceptions).
 //
-// Three complications with no precedent earlier in the series:
-//   1. `recurrence` (jsonb, nullable) + `series_id`/`series_index` (plain columns) on tasks/events.
-//      Window materialization stays client-side (src/lib/recurrence.ts) -- this module writes
-//      these fields 1:1 without interpreting them. Occurrence rows use a DETERMINISTIC id
-//      (`${seriesId}#${seriesIndex}`) -- a collision on `*.create` is EXPECTED (two devices
-//      computing the same id for the same logical occurrence) and is handled the same way as any
-//      other PK conflict: resolveConflictOrError returns `{status:"conflict", record,
-//      currentVersion}` with code `ID_TAKEN` (the frontend then adopts the server's record as if
-//      it were `applied` -- that reconciliation lives in useLifeRecordsStore, not here).
-//   2. `habits.completed_dates` (jsonb array of iso-dates) is overwritten as an ABSOLUTE SET on
-//      every `habit.update` (the client recomputes the whole array locally and sends it), not a
-//      real per-date flip -- same shape as `fish_stock` in pets.mjs, but always present (`NOT
-//      NULL DEFAULT '[]'`) rather than nullable.
+// Complications with no precedent earlier in the series:
+//   1. `recurrence` (jsonb, nullable) + `series_id`/`series_index` (plain columns) on `events`
+//      ONLY (tasks lost these columns in migration 014 -- a task is now just a title/priority/tags
+//      thing to do, no schedule, no repetition). Window materialization stays client-side
+//      (src/lib/recurrence.ts) -- this module writes these fields 1:1 without interpreting them.
+//      Occurrence rows use a DETERMINISTIC id (`${seriesId}#${seriesIndex}`) -- a collision on
+//      `event.create` is EXPECTED (two devices computing the same id for the same logical
+//      occurrence) and is handled the same way as any other PK conflict: resolveConflictOrError
+//      returns `{status:"conflict", record, currentVersion}` with code `ID_TAKEN` (the frontend
+//      then adopts the server's record as if it were `applied` -- that reconciliation lives in
+//      useLifeRecordsStore, not here). `task.create` can still hit the same 23505/ID_TAKEN path on
+//      a plain duplicate `id` (e.g. two offline devices), it just never carries series semantics.
+//   2. `habits.completed_dates` (jsonb array of iso-dates) and `tasks.tags` (jsonb array of
+//      free-form strings) are both overwritten as an ABSOLUTE SET on every update (the client
+//      recomputes the whole array locally and sends it), not a real per-item flip -- same shape as
+//      `fish_stock`/`recipes.tags` in pets.mjs/meals.mjs, always present (`NOT NULL DEFAULT '[]'`)
+//      rather than nullable.
 //   3. `reminders.notified_at` is the only column in this series written by BOTH the worker
 //      (writeback after a successful push, WITHOUT bumping `version` -- see worker.mjs) AND the
 //      client (`snoozeReminder` clears it, `markReminderNotified` sets it, both via
@@ -77,9 +85,23 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 const TIMESTAMP_MAX_LENGTH = 200;
 const NOTE_CONTENT_MAX_LENGTH = 100_000;
 const MAX_COMPLETED_DATES = 5000;
+// `task.tags` -- free-form tags replacing the old fixed `category` (docs/plans/zadania-redefinicja.md
+// "Input tagów": limit 20 tagów × 50 znaków), 1:1 precedent with `recipes.tags` in meals.mjs. That
+// module isn't imported here (each domain module hand-rolls its own primitive validators), so
+// `isStringArray` is duplicated verbatim rather than shared.
+const MAX_TASK_TAGS = 20;
+const MAX_TASK_TAG_LENGTH = 50;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isStringArray(value, maxItems, maxItemLength) {
+  return (
+    Array.isArray(value) &&
+    value.length <= maxItems &&
+    value.every((item) => typeof item === "string" && item.length <= maxItemLength)
+  );
 }
 
 function isId(value) {
@@ -120,10 +142,6 @@ function isParsableTimestamp(value) {
     value.length <= TIMESTAMP_MAX_LENGTH &&
     !Number.isNaN(Date.parse(value))
   );
-}
-
-function isPositiveInteger(value) {
-  return Number.isInteger(value) && value > 0;
 }
 
 export function isSeriesIndex(value) {
@@ -295,16 +313,10 @@ export function taskRowToDto(row) {
     description: row.description ?? undefined,
     status: row.status,
     priority: row.priority,
-    date: row.date ?? undefined,
-    time: row.time ?? undefined,
-    estimatedMinutes: row.estimated_minutes ?? undefined,
-    category: row.category,
+    tags: Array.isArray(row.tags) ? row.tags : [],
     isFocus: row.is_focus,
     energy: row.energy,
     completedAt: row.completed_at ? row.completed_at.toISOString() : undefined,
-    seriesId: row.series_id ?? undefined,
-    seriesIndex: row.series_index ?? undefined,
-    recurrence: row.recurrence ?? undefined,
     version: row.version,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -379,9 +391,8 @@ export function habitRowToDto(row) {
 }
 
 const TASK_SELECT_COLUMNS =
-  "id, owner_id, visibility, title, description, status, priority, date::text AS date, time, " +
-  "estimated_minutes, category, is_focus, energy, completed_at, series_id, series_index, " +
-  "recurrence, version, created_at, updated_at";
+  "id, owner_id, visibility, title, description, status, priority, tags, is_focus, energy, " +
+  "completed_at, version, created_at, updated_at";
 const EVENT_SELECT_COLUMNS =
   "id, owner_id, visibility, title, date::text AS date, start_time, end_time, kind, location, " +
   "notes, source, external_id, external_updated_at, series_id, series_index, recurrence, " +
@@ -417,23 +428,10 @@ export function validateTaskCreatePayload(payload) {
     "Nieprawidłowy priorytet zadania",
     "INVALID_PRIORITY",
   );
-  if (payload.date !== undefined && payload.date !== null) {
-    assertShape(isIsoDate(payload.date), "Nieprawidłowa data zadania", "INVALID_DATE");
-  }
-  if (payload.time !== undefined && payload.time !== null) {
-    assertShape(isClockTime(payload.time), "Nieprawidłowa godzina zadania", "INVALID_TIME");
-  }
-  if (payload.estimatedMinutes !== undefined && payload.estimatedMinutes !== null) {
-    assertShape(
-      isPositiveInteger(payload.estimatedMinutes),
-      "Nieprawidłowy szacowany czas trwania",
-      "INVALID_ESTIMATED_MINUTES",
-    );
-  }
   assertShape(
-    isNonEmptyText(payload.category, 500),
-    "Nieprawidłowa kategoria zadania",
-    "INVALID_CATEGORY",
+    isStringArray(payload.tags ?? [], MAX_TASK_TAGS, MAX_TASK_TAG_LENGTH),
+    "Nieprawidłowa lista tagów",
+    "INVALID_TAGS",
   );
   assertShape(
     typeof payload.isFocus === "boolean",
@@ -453,47 +451,35 @@ export function validateTaskCreatePayload(payload) {
     "Nieprawidłowa widoczność",
     "INVALID_VISIBILITY",
   );
-  const series = validateSeriesFields(payload);
   return {
     id: payload.id,
     title: payload.title.trim(),
     description: normalizeOptionalText(payload.description),
     status: payload.status,
     priority: payload.priority,
-    date: payload.date ?? null,
-    time: payload.time ?? null,
-    estimatedMinutes: payload.estimatedMinutes ?? null,
-    category: payload.category.trim(),
+    tags: Array.isArray(payload.tags) ? payload.tags : [],
     isFocus: payload.isFocus,
     energy: payload.energy,
     completedAt: payload.completedAt ?? null,
     visibility: payload.visibility,
-    seriesId: series.seriesId,
-    seriesIndex: series.seriesIndex,
-    recurrence: series.recurrence,
   };
 }
 
 // `visibility` IS in the update key set (docs/plans/…"Ryzyka": modale edycji pozwalają zmienić
 // widoczność po utworzeniu -- pominięcie tego pola byłoby regresją klasy "goal visibility" z
-// Finansów). `toggleTask`/`toggleFocus`/`moveTaskToTomorrow` all send `changes: {...}` through
-// this same op, the client having already computed the toggled value locally.
+// Finansów). `toggleTask`/`toggleFocus` send `changes: {...}` through this same op, the client
+// having already computed the toggled value locally; `tags` is the absolute-set replacement
+// described in the module header (item 2).
 const TASK_UPDATE_KEYS = new Set([
   "title",
   "description",
   "status",
   "priority",
-  "date",
-  "time",
-  "estimatedMinutes",
-  "category",
+  "tags",
   "isFocus",
   "energy",
   "completedAt",
   "visibility",
-  "seriesId",
-  "seriesIndex",
-  "recurrence",
 ]);
 
 export function validateTaskUpdatePayload(payload, baseVersion) {
@@ -526,33 +512,13 @@ export function validateTaskUpdatePayload(payload, baseVersion) {
     assertShape(PRIORITIES.has(c.priority), "Nieprawidłowy priorytet zadania", "INVALID_PRIORITY");
     changes.priority = c.priority;
   }
-  if (Object.prototype.hasOwnProperty.call(c, "date")) {
-    assertShape(c.date === null || isIsoDate(c.date), "Nieprawidłowa data zadania", "INVALID_DATE");
-    changes.date = c.date ?? null;
-  }
-  if (Object.prototype.hasOwnProperty.call(c, "time")) {
+  if (c.tags !== undefined) {
     assertShape(
-      c.time === null || isClockTime(c.time),
-      "Nieprawidłowa godzina zadania",
-      "INVALID_TIME",
+      isStringArray(c.tags, MAX_TASK_TAGS, MAX_TASK_TAG_LENGTH),
+      "Nieprawidłowa lista tagów",
+      "INVALID_TAGS",
     );
-    changes.time = c.time ?? null;
-  }
-  if (Object.prototype.hasOwnProperty.call(c, "estimatedMinutes")) {
-    assertShape(
-      c.estimatedMinutes === null || isPositiveInteger(c.estimatedMinutes),
-      "Nieprawidłowy szacowany czas trwania",
-      "INVALID_ESTIMATED_MINUTES",
-    );
-    changes.estimatedMinutes = c.estimatedMinutes ?? null;
-  }
-  if (c.category !== undefined) {
-    assertShape(
-      isNonEmptyText(c.category, 500),
-      "Nieprawidłowa kategoria zadania",
-      "INVALID_CATEGORY",
-    );
-    changes.category = c.category.trim();
+    changes.tags = c.tags;
   }
   if (c.isFocus !== undefined) {
     assertShape(typeof c.isFocus === "boolean", "Nieprawidłowa flaga fokusu", "INVALID_IS_FOCUS");
@@ -573,28 +539,6 @@ export function validateTaskUpdatePayload(payload, baseVersion) {
   if (c.visibility !== undefined) {
     assertShape(VISIBILITIES.has(c.visibility), "Nieprawidłowa widoczność", "INVALID_VISIBILITY");
     changes.visibility = c.visibility;
-  }
-  if (Object.prototype.hasOwnProperty.call(c, "seriesId")) {
-    assertShape(
-      c.seriesId === null || isId(c.seriesId),
-      "Nieprawidłowy identyfikator serii",
-      "INVALID_SERIES_ID",
-    );
-    changes.seriesId = c.seriesId ?? null;
-  }
-  if (Object.prototype.hasOwnProperty.call(c, "seriesIndex")) {
-    assertShape(
-      c.seriesIndex === null || isSeriesIndex(c.seriesIndex),
-      "Nieprawidłowy indeks wystąpienia serii",
-      "INVALID_SERIES_INDEX",
-    );
-    changes.seriesIndex = c.seriesIndex ?? null;
-  }
-  // `recurrence`/`seriesId`/`seriesIndex` are independently editable on update (no "all three or
-  // none" group check here -- that only applies to `*.create`, see validateSeriesFields):
-  // `updateSeries` may rewrite the recurrence rule alone.
-  if (Object.prototype.hasOwnProperty.call(c, "recurrence")) {
-    changes.recurrence = c.recurrence === null ? null : validateRecurrence(c.recurrence);
   }
   return { id: payload.id, changes, baseVersion: version };
 }
@@ -1228,11 +1172,9 @@ async function execTaskCreate(client, ctx, payload) {
   try {
     const inserted = await client.query(
       `INSERT INTO tasks
-         (id, household_id, owner_id, visibility, title, description, status, priority, date, time,
-          estimated_minutes, category, is_focus, energy, completed_at, series_id, series_index,
-          recurrence, version, updated_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::date, $10, $11, $12, $13, $14, $15::timestamptz,
-               $16, $17, $18::jsonb, 1, $3)
+         (id, household_id, owner_id, visibility, title, description, status, priority, tags,
+          is_focus, energy, completed_at, version, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12::timestamptz, 1, $3)
        RETURNING ${TASK_SELECT_COLUMNS}`,
       [
         data.id,
@@ -1243,16 +1185,10 @@ async function execTaskCreate(client, ctx, payload) {
         data.description,
         data.status,
         data.priority,
-        data.date,
-        data.time,
-        data.estimatedMinutes,
-        data.category,
+        JSON.stringify(data.tags),
         data.isFocus,
         data.energy,
         data.completedAt,
-        data.seriesId,
-        data.seriesIndex,
-        data.recurrence === null ? null : JSON.stringify(data.recurrence),
       ],
     );
     return { status: "applied", record: taskRowToDto(inserted.rows[0]) };
@@ -1278,63 +1214,35 @@ async function execTaskUpdate(client, ctx, payload, baseVersion) {
   const { id, changes, baseVersion: version } = validateTaskUpdatePayload(payload, baseVersion);
   const ownerId = resolveOwnerId(ctx);
   const hasDescription = Object.prototype.hasOwnProperty.call(changes, "description");
-  const hasDate = Object.prototype.hasOwnProperty.call(changes, "date");
-  const hasTime = Object.prototype.hasOwnProperty.call(changes, "time");
-  const hasEstimatedMinutes = Object.prototype.hasOwnProperty.call(changes, "estimatedMinutes");
   const hasCompletedAt = Object.prototype.hasOwnProperty.call(changes, "completedAt");
-  const hasSeriesId = Object.prototype.hasOwnProperty.call(changes, "seriesId");
-  const hasSeriesIndex = Object.prototype.hasOwnProperty.call(changes, "seriesIndex");
-  const hasRecurrence = Object.prototype.hasOwnProperty.call(changes, "recurrence");
   const updated = await client.query(
     `UPDATE tasks
         SET title = COALESCE($1, title),
             status = COALESCE($2, status),
             priority = COALESCE($3, priority),
-            category = COALESCE($4, category),
+            tags = COALESCE($4::jsonb, tags),
             is_focus = COALESCE($5, is_focus),
             energy = COALESCE($6, energy),
             description = CASE WHEN $7 THEN $8 ELSE description END,
-            date = CASE WHEN $9 THEN $10::date ELSE date END,
-            time = CASE WHEN $11 THEN $12 ELSE time END,
-            estimated_minutes = CASE WHEN $13 THEN $14 ELSE estimated_minutes END,
-            completed_at = CASE WHEN $15 THEN $16::timestamptz ELSE completed_at END,
-            series_id = CASE WHEN $17 THEN $18 ELSE series_id END,
-            series_index = CASE WHEN $19 THEN $20 ELSE series_index END,
-            recurrence = CASE WHEN $21 THEN $22::jsonb ELSE recurrence END,
-            visibility = COALESCE($23, visibility),
+            completed_at = CASE WHEN $9 THEN $10::timestamptz ELSE completed_at END,
+            visibility = COALESCE($11, visibility),
             version = version + 1,
             updated_at = now(),
-            updated_by = $24
-      WHERE id = $25 AND household_id = $26 AND version = $27
-        AND (visibility = 'household' OR owner_id = $24)
+            updated_by = $12
+      WHERE id = $13 AND household_id = $14 AND version = $15
+        AND (visibility = 'household' OR owner_id = $12)
       RETURNING ${TASK_SELECT_COLUMNS}`,
     [
       changes.title ?? null,
       changes.status ?? null,
       changes.priority ?? null,
-      changes.category ?? null,
+      changes.tags !== undefined ? JSON.stringify(changes.tags) : null,
       changes.isFocus ?? null,
       changes.energy ?? null,
       hasDescription,
       hasDescription ? changes.description : null,
-      hasDate,
-      hasDate ? changes.date : null,
-      hasTime,
-      hasTime ? changes.time : null,
-      hasEstimatedMinutes,
-      hasEstimatedMinutes ? changes.estimatedMinutes : null,
       hasCompletedAt,
       hasCompletedAt ? changes.completedAt : null,
-      hasSeriesId,
-      hasSeriesId ? changes.seriesId : null,
-      hasSeriesIndex,
-      hasSeriesIndex ? changes.seriesIndex : null,
-      hasRecurrence,
-      hasRecurrence
-        ? changes.recurrence === null
-          ? null
-          : JSON.stringify(changes.recurrence)
-        : null,
       changes.visibility ?? null,
       ownerId,
       id,

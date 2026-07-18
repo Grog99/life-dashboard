@@ -166,13 +166,13 @@ export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: Comman
     return [
       ...tasks
         .filter((task) =>
-          `${task.title} ${task.category}`.toLocaleLowerCase("pl").includes(normalized),
+          `${task.title} ${task.tags.join(" ")}`.toLocaleLowerCase("pl").includes(normalized),
         )
         .slice(0, 3)
         .map((task) => ({
           id: task.id,
           label: task.title,
-          meta: `Zadanie · ${task.category}`,
+          meta: task.tags.length ? `Zadanie · ${task.tags.join(", ")}` : "Zadanie",
           view: "tasks" as ViewId,
           icon: CheckSquare2,
         })),

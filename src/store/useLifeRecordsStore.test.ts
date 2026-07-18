@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { addDays, format } from "date-fns";
+import { addDays } from "date-fns";
 import { dateKey } from "../lib/date";
 import { SERIES_WINDOW } from "../lib/recurrence";
 import { useLifeRecordsStore, type LifeMutationResult } from "./useLifeRecordsStore";
 import type { CalendarEvent, Habit, Note, Reminder, Task } from "../types";
 
-const key = (offset = 0) => format(addDays(new Date(), offset), "yyyy-MM-dd");
 const now = new Date().toISOString();
 
 function sampleTasks(): Task[] {
@@ -16,10 +15,7 @@ function sampleTasks(): Task[] {
       description: "Sprawdzić ostatnie slajdy i wysłać wersję do komentarzy.",
       status: "todo",
       priority: "high",
-      date: key(),
-      time: "10:30",
-      estimatedMinutes: 60,
-      category: "Praca",
+      tags: ["Praca"],
       isFocus: true,
       energy: "high",
       createdAt: now,
@@ -31,9 +27,7 @@ function sampleTasks(): Task[] {
       title: "Umówić przegląd auta",
       status: "todo",
       priority: "medium",
-      date: key(),
-      estimatedMinutes: 15,
-      category: "Dom",
+      tags: ["Dom"],
       isFocus: true,
       energy: "low",
       createdAt: now,
@@ -45,10 +39,7 @@ function sampleTasks(): Task[] {
       title: "30 minut spaceru bez telefonu",
       status: "todo",
       priority: "low",
-      date: key(),
-      time: "18:30",
-      estimatedMinutes: 30,
-      category: "Zdrowie",
+      tags: ["Zdrowie"],
       isFocus: true,
       energy: "medium",
       createdAt: now,
@@ -60,9 +51,7 @@ function sampleTasks(): Task[] {
       title: "Opłacić rachunek za internet",
       status: "todo",
       priority: "medium",
-      date: key(1),
-      estimatedMinutes: 10,
-      category: "Finanse",
+      tags: ["Finanse"],
       isFocus: false,
       energy: "low",
       createdAt: now,
@@ -74,9 +63,7 @@ function sampleTasks(): Task[] {
       title: "Zrobić listę zakupów na weekend",
       status: "done",
       priority: "low",
-      date: key(),
-      estimatedMinutes: 10,
-      category: "Dom",
+      tags: ["Dom"],
       isFocus: false,
       energy: "low",
       createdAt: now,
@@ -89,7 +76,7 @@ function sampleTasks(): Task[] {
       title: "Zamówić książkę dla mamy",
       status: "todo",
       priority: "low",
-      category: "Prywatne",
+      tags: [],
       isFocus: false,
       energy: "low",
       createdAt: now,
@@ -149,7 +136,7 @@ describe("life records store", () => {
     const taskId = useLifeRecordsStore.getState().addTask({
       title: "Nowa rzecz",
       priority: "medium",
-      category: "Prywatne",
+      tags: [],
       isFocus: false,
       energy: "low",
     });
@@ -163,7 +150,7 @@ describe("life records store", () => {
     const taskId = useLifeRecordsStore.getState().addTask({
       title: "Nowa rzecz",
       priority: "medium",
-      category: "Prywatne",
+      tags: [],
       isFocus: false,
       energy: "low",
       visibility: "household",
@@ -184,7 +171,7 @@ describe("life records store", () => {
     const taskId = useLifeRecordsStore.getState().addTask({
       title: "Zadanie bez widoczności",
       priority: "medium",
-      category: "Prywatne",
+      tags: [],
       isFocus: false,
       energy: "low",
     });
@@ -240,7 +227,7 @@ describe("life records store", () => {
     const taskId = useLifeRecordsStore.getState().addTask({
       title: "Wspólne zadanie",
       priority: "medium",
-      category: "Dom",
+      tags: ["Dom"],
       isFocus: false,
       energy: "low",
       visibility: "household",
@@ -280,32 +267,6 @@ describe("serie powtarzalne w store", () => {
     seedTasks();
   });
 
-  it("addRecurringTask materializuje okno wystąpień z deterministycznymi id", () => {
-    const seriesId = useLifeRecordsStore
-      .getState()
-      .addRecurringTask(
-        { title: "Sprzątanie", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
-        { freq: "weekly", interval: 1, anchorDate: dateKey() },
-      );
-    const occ = useLifeRecordsStore.getState().tasks.filter((task) => task.seriesId === seriesId);
-    expect(occ).toHaveLength(SERIES_WINDOW);
-    expect(occ.every((task) => task.status === "todo")).toBe(true);
-    expect(new Set(occ.map((task) => task.id)).size).toBe(SERIES_WINDOW); // unikalne
-    expect(occ.some((task) => task.id === `${seriesId}#0`)).toBe(true);
-  });
-
-  it("addRecurringTask respektuje limit count", () => {
-    const seriesId = useLifeRecordsStore
-      .getState()
-      .addRecurringTask(
-        { title: "Trzy razy", priority: "low", category: "Dom", isFocus: false, energy: "low" },
-        { freq: "daily", interval: 1, count: 3, anchorDate: dateKey() },
-      );
-    expect(
-      useLifeRecordsStore.getState().tasks.filter((task) => task.seriesId === seriesId),
-    ).toHaveLength(3);
-  });
-
   it("addRecurringEvent zachowuje czas trwania wydarzenia w każdym wystąpieniu", () => {
     const seriesId = useLifeRecordsStore.getState().addRecurringEvent(
       {
@@ -326,58 +287,29 @@ describe("serie powtarzalne w store", () => {
     );
   });
 
-  it("deleteSeries kasuje wszystkie wystąpienia serii", () => {
+  it("deleteEventSeries kasuje wszystkie wystąpienia serii", () => {
     const seriesId = useLifeRecordsStore
       .getState()
-      .addRecurringTask(
-        { title: "Do usunięcia", priority: "low", category: "Dom", isFocus: false, energy: "low" },
+      .addRecurringEvent(
+        { title: "Do usunięcia", date: dateKey(), startTime: "09:00", endTime: "09:30", kind: "personal" },
         { freq: "daily", interval: 1, anchorDate: dateKey() },
       );
-    useLifeRecordsStore.getState().deleteSeries(seriesId);
+    useLifeRecordsStore.getState().deleteEventSeries(seriesId);
     expect(
-      useLifeRecordsStore.getState().tasks.filter((task) => task.seriesId === seriesId),
+      useLifeRecordsStore.getState().events.filter((event) => event.seriesId === seriesId),
     ).toHaveLength(0);
-  });
-
-  it("updateSeries zmienia tylko przyszłe/dzisiejsze wystąpienia, nie rusza przeszłych", () => {
-    const past = dateKey(addDays(new Date(), -3));
-    const future = dateKey(addDays(new Date(), 3));
-    const recurrence = { freq: "daily" as const, interval: 1, anchorDate: past };
-    const timestamp = new Date().toISOString();
-    const shared = {
-      title: "Stary tytuł",
-      status: "todo" as const,
-      priority: "medium" as const,
-      category: "Dom",
-      isFocus: false,
-      energy: "low" as const,
-      createdAt: timestamp,
-      version: 1,
-      updatedAt: timestamp,
-      seriesId: "s-hist",
-      recurrence,
-    };
-    seedTasks([
-      { ...shared, id: "s-hist#0", date: past, seriesIndex: 0 },
-      { ...shared, id: "s-hist#5", date: future, seriesIndex: 5 },
-    ]);
-
-    useLifeRecordsStore.getState().updateSeries("s-hist", { title: "Nowy tytuł" });
-    const tasks = useLifeRecordsStore.getState().tasks;
-    expect(tasks.find((task) => task.id === "s-hist#0")?.title).toBe("Stary tytuł"); // przeszłe nietknięte
-    expect(tasks.find((task) => task.id === "s-hist#5")?.title).toBe("Nowy tytuł"); // przyszłe zmienione
   });
 
   it("expandRecurringSeries jest no-op, gdy okno jest pełne (bez zbędnego zapisu)", () => {
     useLifeRecordsStore
       .getState()
-      .addRecurringTask(
-        { title: "Pełne okno", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+      .addRecurringEvent(
+        { title: "Pełne okno", date: dateKey(), startTime: "09:00", endTime: "09:30", kind: "personal" },
         { freq: "daily", interval: 1, anchorDate: dateKey() },
       );
-    const before = useLifeRecordsStore.getState().tasks;
+    const before = useLifeRecordsStore.getState().events;
     useLifeRecordsStore.getState().expandRecurringSeries();
-    expect(useLifeRecordsStore.getState().tasks).toBe(before); // ta sama referencja = brak zapisu
+    expect(useLifeRecordsStore.getState().events).toBe(before); // ta sama referencja = brak zapisu
   });
 
   it("updateEventSeries zmienia godzinę serii (anchorTime) na przyszłych wystąpieniach", () => {
@@ -403,53 +335,55 @@ describe("serie powtarzalne w store", () => {
     );
   });
 
-  it("updateSeries zmniejsza limit count i przycina przyszłe wystąpienia ponad limit", () => {
+  it("updateEventSeries zmniejsza limit count i przycina przyszłe wystąpienia ponad limit", () => {
     const today = dateKey();
     const seriesId = useLifeRecordsStore
       .getState()
-      .addRecurringTask(
-        { title: "Limit", priority: "medium", category: "Dom", isFocus: false, energy: "low" },
+      .addRecurringEvent(
+        { title: "Limit", date: today, startTime: "09:00", endTime: "09:30", kind: "personal" },
         { freq: "daily", interval: 1, anchorDate: today },
       );
     expect(
-      useLifeRecordsStore.getState().tasks.filter((task) => task.seriesId === seriesId),
+      useLifeRecordsStore.getState().events.filter((event) => event.seriesId === seriesId),
     ).toHaveLength(SERIES_WINDOW);
-    useLifeRecordsStore.getState().updateSeries(seriesId, {
+    useLifeRecordsStore.getState().updateEventSeries(seriesId, {
       title: "Limit",
+      startTime: "09:00",
+      endTime: "09:30",
       recurrence: { freq: "daily", interval: 1, anchorDate: today, count: 3 },
     });
     expect(
-      useLifeRecordsStore.getState().tasks.filter((task) => task.seriesId === seriesId),
+      useLifeRecordsStore.getState().events.filter((event) => event.seriesId === seriesId),
     ).toHaveLength(3);
   });
 
-  it("updateSeries propaguje zmianę widoczności na całą serię, także przeszłe wystąpienia", () => {
+  it("updateEventSeries propaguje zmianę widoczności na całą serię, także przeszłe wystąpienia", () => {
     const past = dateKey(addDays(new Date(), -3));
     const future = dateKey(addDays(new Date(), 3));
     const recurrence = { freq: "daily" as const, interval: 1, anchorDate: past };
     const timestamp = new Date().toISOString();
     const shared = {
       title: "Widoczność",
-      status: "todo" as const,
-      priority: "medium" as const,
-      category: "Dom",
-      isFocus: false,
-      energy: "low" as const,
-      createdAt: timestamp,
+      startTime: "09:00",
+      endTime: "09:30",
+      kind: "personal" as const,
       version: 1,
       updatedAt: timestamp,
       seriesId: "s-vis",
       recurrence,
       visibility: "household" as const,
     };
-    seedTasks([
-      { ...shared, id: "s-vis#0", date: past, seriesIndex: 0 },
-      { ...shared, id: "s-vis#5", date: future, seriesIndex: 5 },
-    ]);
-    useLifeRecordsStore.getState().updateSeries("s-vis", { visibility: "private" });
-    const tasks = useLifeRecordsStore.getState().tasks;
-    expect(tasks.find((task) => task.id === "s-vis#0")?.visibility).toBe("private"); // przeszłe też
-    expect(tasks.find((task) => task.id === "s-vis#5")?.visibility).toBe("private");
+    seedTasks([]);
+    useLifeRecordsStore.setState({
+      events: [
+        { ...shared, id: "s-vis#0", date: past, seriesIndex: 0 },
+        { ...shared, id: "s-vis#5", date: future, seriesIndex: 5 },
+      ],
+    });
+    useLifeRecordsStore.getState().updateEventSeries("s-vis", { visibility: "private" });
+    const events = useLifeRecordsStore.getState().events;
+    expect(events.find((event) => event.id === "s-vis#0")?.visibility).toBe("private"); // przeszłe też
+    expect(events.find((event) => event.id === "s-vis#5")?.visibility).toBe("private");
   });
 });
 
@@ -549,7 +483,7 @@ describe("kolejka mutacji: idempotencja i kształt pendingMutations", () => {
     useLifeRecordsStore.getState().addTask({
       title: "Zadanie 1",
       priority: "medium",
-      category: "Dom",
+      tags: ["Dom"],
       isFocus: false,
       energy: "low",
     });
@@ -600,7 +534,7 @@ function sampleTaskShape(): Task {
     title: "Zadanie",
     status: "todo",
     priority: "medium",
-    category: "Dom",
+    tags: ["Dom"],
     isFocus: false,
     energy: "low",
     createdAt: isoNow,
@@ -861,7 +795,7 @@ describe("applyMutationResults: cichy rebase na *.update, adopcja conflict/ID_TA
           ...sampleTaskShape(),
           id: "task-1",
           title: "Ktoś inny zmienił",
-          category: "Zmieniona kategoria gdzie indziej",
+          tags: ["Zmienione gdzie indziej"],
           version: 4,
           updatedAt: "2026-01-02T00:00:00.000Z",
         },
@@ -869,10 +803,10 @@ describe("applyMutationResults: cichy rebase na *.update, adopcja conflict/ID_TA
     ]);
 
     const task = useLifeRecordsStore.getState().tasks.find((item) => item.id === "task-1");
-    // Delta ("Mój nowy tytuł") wygrywa, ale pola zmienione gdzie indziej ("Zmieniona kategoria...")
-    // są zachowane -- to jest silent rebase, nie zwykłe last-write-wins.
+    // Delta ("Mój nowy tytuł") wygrywa, ale pola zmienione gdzie indziej ("Zmienione gdzie
+    // indziej") są zachowane -- to jest silent rebase, nie zwykłe last-write-wins.
     expect(task?.title).toBe("Mój nowy tytuł");
-    expect(task?.category).toBe("Zmieniona kategoria gdzie indziej");
+    expect(task?.tags).toEqual(["Zmienione gdzie indziej"]);
     expect(task?.version).toBe(4);
 
     const rebased = useLifeRecordsStore.getState().pendingMutations;
@@ -969,25 +903,15 @@ describe("applyMutationResults: cichy rebase na *.update, adopcja conflict/ID_TA
     ).toBe("2026-01-02T00:00:00.000Z");
   });
 
-  it("applyMutationResults na conflict/ID_TAKEN (*.create, kolizja deterministycznego id serii) ADOPTUJE zwrócony serwerowy rekord dokładnie tak jak przy 'applied' -- to NIE trafia do ścieżki cichego rebase'u update'ów", () => {
-    const seriesId = "series-1";
-    const occurrenceId = `${seriesId}#0`;
+  it("applyMutationResults na conflict/ID_TAKEN (*.create, kolizja id) ADOPTUJE zwrócony serwerowy rekord dokładnie tak jak przy 'applied' -- to NIE trafia do ścieżki cichego rebase'u update'ów", () => {
+    const taskId = "task-collide";
     seedAll({
-      tasks: [
-        {
-          ...sampleTaskShape(),
-          id: occurrenceId,
-          title: "Moja lokalna wersja",
-          seriesId,
-          seriesIndex: 0,
-          recurrence: { freq: "daily", interval: 1, anchorDate: "2026-07-18" },
-        },
-      ],
+      tasks: [{ ...sampleTaskShape(), id: taskId, title: "Moja lokalna wersja" }],
       pendingMutations: [
         {
           idempotencyKey: "key-1",
           op: "task.create",
-          payload: { id: occurrenceId, title: "Moja lokalna wersja" },
+          payload: { id: taskId, title: "Moja lokalna wersja" },
         },
       ],
     });
@@ -999,10 +923,8 @@ describe("applyMutationResults: cichy rebase na *.update, adopcja conflict/ID_TA
       currentVersion: 1,
       record: {
         ...sampleTaskShape(),
-        id: occurrenceId,
+        id: taskId,
         title: "Wersja z innego urządzenia (serwer)",
-        seriesId,
-        seriesIndex: 0,
         version: 1,
       },
     };
@@ -1011,7 +933,7 @@ describe("applyMutationResults: cichy rebase na *.update, adopcja conflict/ID_TA
     // The queue drains (this is treated as terminal, not rebased/retried)...
     expect(useLifeRecordsStore.getState().pendingMutations).toHaveLength(0);
     // ...and the server's record (not the local attempt) wins outright, exactly like `applied`.
-    const task = useLifeRecordsStore.getState().tasks.find((item) => item.id === occurrenceId);
+    const task = useLifeRecordsStore.getState().tasks.find((item) => item.id === taskId);
     expect(task?.title).toBe("Wersja z innego urządzenia (serwer)");
   });
 });

@@ -23,7 +23,7 @@ describe("App", () => {
           title: "Dokończyć prezentację projektu",
           status: "todo",
           priority: "high",
-          category: "Praca",
+          tags: ["Praca"],
           isFocus: true,
           energy: "high",
           ownerId: "me",

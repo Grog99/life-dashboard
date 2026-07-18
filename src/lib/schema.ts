@@ -60,16 +60,24 @@ export const recurrenceSchema = z.object({
   anchorTime: clockTime.optional(),
 });
 
+// `Task` straciła datę/godzinę/czas trwania/sztywną kategorię/powtarzalność
+// (docs/plans/zadania-redefinicja.md) -- zamiast `category` ma wolne `tags: string[]` (wzór
+// `recipes.tags` w meals.mjs: max 20 elementów × 50 znaków). `.catch([])` (nie `.default([])`)
+// zapewnia kompatybilność wsteczną: stare rekordy z localStorage bez `tags` ALBO z `tags` złego
+// kształtu cicho dostają pustą tablicę zamiast wywalać całą hydratację (parseArrayField w
+// useLifeRecordsStore.ts liczyłby je inaczej jako "dropped"). Usunięte pola (`date`/`time`/
+// `estimatedMinutes`/`category`/`seriesId`/`seriesIndex`/`recurrence`) znikają cicho -- zod
+// `.object()` domyślnie odrzuca nadmiarowe klucze zamiast rzucać błąd.
 export const taskSchema = z.object({
   id: z.string(),
   title: nonEmptyText,
   description: z.string().max(5000).optional(),
   status: z.enum(["todo", "done"]),
   priority: z.enum(["low", "medium", "high"]),
-  date: isoDate.optional(),
-  time: clockTime.optional(),
-  estimatedMinutes: z.number().positive().optional(),
-  category: nonEmptyText,
+  tags: z
+    .array(z.string().trim().max(50))
+    .max(20)
+    .catch([]),
   isFocus: z.boolean(),
   energy,
   createdAt: timestamp,
@@ -78,9 +86,6 @@ export const taskSchema = z.object({
   completedAt: timestamp.optional(),
   ownerId: idSchema.optional(),
   visibility: visibilitySchema.optional(),
-  seriesId: idSchema.optional(),
-  seriesIndex: z.number().int().min(0).optional(),
-  recurrence: recurrenceSchema.optional(),
 });
 
 export const eventSchema = z.object({

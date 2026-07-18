@@ -67,12 +67,15 @@ describe("recurrence (powtarzalność serii)", () => {
     anchorDate: "2026-03-02",
     anchorTime: "09:00",
   };
+  // Zadania straciły powtarzalność (docs/plans/zadania-redefinicja.md) — `recurrence`/`seriesId`/
+  // `seriesIndex` istnieją WYŁĄCZNIE na `CalendarEvent`, więc `baseTask` niżej ma wolne `tags`
+  // zamiast sztywnej `category`, bez żadnych pól serii.
   const baseTask = {
     id: "t1",
     title: "Sprzątanie",
     status: "todo" as const,
     priority: "medium" as const,
-    category: "Dom",
+    tags: ["Dom"],
     isFocus: false,
     energy: "low" as const,
     createdAt: timestamp,
@@ -90,16 +93,8 @@ describe("recurrence (powtarzalność serii)", () => {
     updatedAt: timestamp,
   };
 
-  it("przyjmuje poprawną regułę i pola serii na zadaniu oraz wydarzeniu", () => {
+  it("przyjmuje poprawną regułę i pola serii na wydarzeniu", () => {
     expect(recurrenceSchema.safeParse(validRecurrence).success).toBe(true);
-    expect(
-      taskSchema.safeParse({
-        ...baseTask,
-        seriesId: "s1",
-        seriesIndex: 0,
-        recurrence: validRecurrence,
-      }).success,
-    ).toBe(true);
     expect(
       eventSchema.safeParse({
         ...baseEvent,
@@ -115,10 +110,34 @@ describe("recurrence (powtarzalność serii)", () => {
     expect(eventSchema.safeParse(baseEvent).success).toBe(true);
   });
 
+  // `taskSchema` odrzuca nadmiarowe klucze CICHO (zod `.object()` domyślnie je ignoruje) --
+  // stare zadania z localStorage niosące `date`/`category`/`seriesId`/`seriesIndex`/`recurrence`
+  // (sprzed tej redefinicji) nadal parsują się poprawnie, po prostu bez tych pól w wyniku.
+  it("ignoruje ciszej usunięte pola zadania (date/category/seriesId/seriesIndex/recurrence)", () => {
+    const legacyTask = {
+      ...baseTask,
+      date: "2026-03-02",
+      time: "09:00",
+      estimatedMinutes: 30,
+      category: "Dom",
+      seriesId: "s1",
+      seriesIndex: 0,
+      recurrence: validRecurrence,
+    };
+    const result = taskSchema.safeParse(legacyTask);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("date");
+      expect(result.data).not.toHaveProperty("category");
+      expect(result.data).not.toHaveProperty("seriesId");
+      expect(result.data.tags).toEqual(["Dom"]);
+    }
+  });
+
   it("odrzuca interval < 1", () => {
     expect(recurrenceSchema.safeParse({ ...validRecurrence, interval: 0 }).success).toBe(false);
     expect(
-      taskSchema.safeParse({ ...baseTask, recurrence: { ...validRecurrence, interval: 0 } })
+      eventSchema.safeParse({ ...baseEvent, recurrence: { ...validRecurrence, interval: 0 } })
         .success,
     ).toBe(false);
   });
