@@ -36,4 +36,23 @@ describe("advanced store", () => {
     expect(merged.householdMembers[0].id).toBe(sample.householdMembers[0].id);
     expect(merged.householdName).toEqual(sample.householdName);
   });
+
+  it("merge nie pokazuje fałszywego ostrzeżenia o uszkodzonych danych na czystej instalacji (persistedState === undefined)", () => {
+    const warnings: string[] = [];
+    const onWarning = (event: Event) => warnings.push((event as CustomEvent<string>).detail);
+    window.addEventListener("puls:storage-warning", onWarning);
+    try {
+      const merge = useAdvancedStore.persist.getOptions().merge!;
+      const currentState = useAdvancedStore.getState();
+      const merged = merge(undefined, currentState);
+      expect(merged).toBe(currentState);
+      expect(warnings).toHaveLength(0);
+
+      merge("not-an-object", currentState);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain("niezgodny format");
+    } finally {
+      window.removeEventListener("puls:storage-warning", onWarning);
+    }
+  });
 });
