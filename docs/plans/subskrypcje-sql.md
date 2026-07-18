@@ -568,3 +568,32 @@ są **rozstrzygnięte**:
 - **Default `reminder_days` w migracji = 1** (defensywnie, dla rekordów bez pola — parytet z dawnym
   fallbackiem workera; kolumna i tak jest `NOT NULL`, a UI zawsze ustawia wartość). Rozstrzygnięte jako
   detal migracji, nie otwarte.
+
+## Status po wdrożeniu
+
+Zaimplementowano warstwami (dane → backend → frontend, `implement-layered`) + osobny etap testów.
+Zweryfikowano end-to-end przeciw prawdziwemu Postgresowi (lokalny klaster, nie mocki):
+
+- `npm run build`, `npm test` (192/192), `npm run test:server` — **z lokalnym Postgresem podpiętym**
+  (216/216, w tym wszystkie 72 testy DB-backed w `subscriptions.node.mjs`/innych, które w środowisku
+  bez bazy są pomijane) — zielone.
+- Migracja `012` uruchomiona od zera (razem z `001`-`011`) na czystej bazie bez błędów.
+- Pełny cykl CRUD ręcznie w przeglądarce (Playwright, prawdziwy backend + realna sesja): dodanie
+  (widoczność „Domownicy") → weryfikacja wiersza w Postgresie (`amount_minor`, `visibility`, `version`)
+  → „Oznacz odnowienie" → „Wstrzymaj"/"Wznów" → edycja (zmiana widoczności na „Tylko ja", stat
+  „Współdzielone" poprawnie spada do 0) → usunięcie (z potwierdzeniem `window.confirm`) → wiersz
+  faktycznie znika z tabeli. Każda mutacja: `200` na `POST /api/v1/subscriptions/mutations` + kolejny
+  `GET` hydratujący, zero błędów w konsoli, zero requestów `4xx/5xx`.
+  Kafelek „Subskrypcje" na stronie Dzisiaj i wynik w Command Palette (szukanie „Spotify") również
+  potwierdzone na żywych danych z nowego store'u. Formularz dodawania sprawdzony też przy 375px
+  (mobile/PWA) — poprawny układ jednokolumnowy.
+- **Znalezisko poza zakresem tego PR-a (nie naprawione tutaj)**: `useAdvancedStore.ts`'s `merge()`
+  ma fałszywie pozytywny toast „Zapis modułów miał niezgodny format" przy KAŻDYM zupełnie czystym
+  `localStorage` (brak klucza `puls-advanced-dashboard`), bo guard `!persistedState` traktuje
+  `undefined` (pierwsze uruchomienie) tak samo jak realnie uszkodzony JSON — brakuje osobnej gałęzi
+  `persistedState === undefined` (wzór już zastosowany w innych store'ach, np. `useCarStore.ts`, wg
+  własnego komentarza w kodzie). Potwierdzone jako **pre-existing na `main`** (`git show
+  33e1932:src/store/useAdvancedStore.ts`), niezwiązane z migracją Subskrypcji — `useAdvancedStore` nie
+  jest nawet częścią zakresu tego modułu. Zgłoszone użytkownikowi do osobnej naprawy.
+- Bez nowych luk specyficznych dla Subskrypcji znalezionych podczas E2E (w odróżnieniu od planu
+  Finansów, który znalazł trzy).
