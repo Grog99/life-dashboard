@@ -1,16 +1,13 @@
-// Auto (vehicles/carExpenses/vehicleDeadlines) and Pets (pets/petExpenses/petVisits) are no longer
-// part of the workspace JSONB document (server/migrations/009_car_normalized.sql,
-// server/migrations/010_pets_normalized.sql, docs/plans/auto-car.md, docs/plans/zwierzeta-sql.md) --
-// they have their own normalized tables and endpoints (/api/v1/car, server/src/car.mjs; /api/v1/pets,
-// server/src/pets.mjs). Removed from META_COLLECTIONS/CHILD_RELATIONS/ADVANCED_COLLECTIONS below,
-// which automatically excludes them from splitWorkspaceData/mergeWorkspaceData and
-// workspaceDocumentIsValid.
-const META_COLLECTIONS = [
-  "subscriptions",
-  "healthAppointments",
-  "medications",
-  "healthMeasurements",
-];
+// Auto (vehicles/carExpenses/vehicleDeadlines), Pets (pets/petExpenses/petVisits) and Zdrowie
+// (healthAppointments/medications/healthMeasurements) are no longer part of the workspace JSONB
+// document (server/migrations/009_car_normalized.sql, server/migrations/010_pets_normalized.sql,
+// server/migrations/011_health_normalized.sql, docs/plans/auto-car.md,
+// docs/plans/zwierzeta-sql.md, docs/plans/zdrowie-sql.md) -- they have their own normalized
+// tables and endpoints (/api/v1/car, server/src/car.mjs; /api/v1/pets, server/src/pets.mjs;
+// /api/v1/health, server/src/health.mjs). Removed from
+// META_COLLECTIONS/CHILD_RELATIONS/ADVANCED_COLLECTIONS below, which automatically excludes them
+// from splitWorkspaceData/mergeWorkspaceData and workspaceDocumentIsValid.
+const META_COLLECTIONS = ["subscriptions"];
 
 // Pets was the last module with an entry here -- CHILD_RELATIONS is now empty. splitWorkspaceData/
 // mergeWorkspaceData iterate it via Object.entries/Object.keys, which degrade to a no-op loop on an
@@ -20,13 +17,7 @@ const CHILD_RELATIONS = {};
 
 const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
 const LIFE_COLLECTIONS = ["tasks", "events", "reminders", "notes", "habits"];
-const ADVANCED_COLLECTIONS = [
-  "subscriptions",
-  "healthAppointments",
-  "medications",
-  "healthMeasurements",
-  "householdMembers",
-];
+const ADVANCED_COLLECTIONS = ["subscriptions", "householdMembers"];
 
 const asObject = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};

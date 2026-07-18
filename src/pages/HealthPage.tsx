@@ -17,16 +17,16 @@ import {
 import { addDays, format, parseISO } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useMemo, useState, type FormEvent } from "react";
+import type { Visibility } from "../advancedTypes";
 import type {
   HealthAppointment,
   HealthMeasurement,
   HealthMeasurementType,
   Medication,
-  Visibility,
-} from "../advancedTypes";
+} from "../healthTypes";
 import { Modal } from "../components/Modal";
 import { dateKey, relativeDay } from "../lib/date";
-import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useHealthStore } from "../store/useHealthStore";
 import { useServerAuth } from "../server/AuthGate";
 import "../styles/health.css";
 
@@ -105,20 +105,20 @@ const newMedicationDraft = (): MedicationDraft => ({
 export function HealthPage({ onToast }: HealthPageProps) {
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
-  const healthAppointments = useAdvancedStore((state) => state.healthAppointments);
-  const medications = useAdvancedStore((state) => state.medications);
-  const healthMeasurements = useAdvancedStore((state) => state.healthMeasurements);
-  const addHealthAppointment = useAdvancedStore((state) => state.addHealthAppointment);
-  const updateHealthAppointment = useAdvancedStore((state) => state.updateHealthAppointment);
-  const deleteHealthAppointment = useAdvancedStore((state) => state.deleteHealthAppointment);
-  const addMedication = useAdvancedStore((state) => state.addMedication);
-  const updateMedication = useAdvancedStore((state) => state.updateMedication);
-  const deleteMedication = useAdvancedStore((state) => state.deleteMedication);
-  const toggleMedicationTaken = useAdvancedStore((state) => state.toggleMedicationTaken);
-  const toggleMedicationActive = useAdvancedStore((state) => state.toggleMedicationActive);
-  const addHealthMeasurement = useAdvancedStore((state) => state.addHealthMeasurement);
-  const updateHealthMeasurement = useAdvancedStore((state) => state.updateHealthMeasurement);
-  const deleteHealthMeasurement = useAdvancedStore((state) => state.deleteHealthMeasurement);
+  const healthAppointments = useHealthStore((state) => state.healthAppointments);
+  const medications = useHealthStore((state) => state.medications);
+  const healthMeasurements = useHealthStore((state) => state.healthMeasurements);
+  const addHealthAppointment = useHealthStore((state) => state.addHealthAppointment);
+  const updateHealthAppointment = useHealthStore((state) => state.updateHealthAppointment);
+  const deleteHealthAppointment = useHealthStore((state) => state.deleteHealthAppointment);
+  const addMedication = useHealthStore((state) => state.addMedication);
+  const updateMedication = useHealthStore((state) => state.updateMedication);
+  const deleteMedication = useHealthStore((state) => state.deleteMedication);
+  const toggleMedicationTaken = useHealthStore((state) => state.toggleMedicationTaken);
+  const toggleMedicationActive = useHealthStore((state) => state.toggleMedicationActive);
+  const addHealthMeasurement = useHealthStore((state) => state.addHealthMeasurement);
+  const updateHealthMeasurement = useHealthStore((state) => state.updateHealthMeasurement);
+  const deleteHealthMeasurement = useHealthStore((state) => state.deleteHealthMeasurement);
 
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [appointmentDraft, setAppointmentDraft] = useState<AppointmentDraft>(newAppointmentDraft);

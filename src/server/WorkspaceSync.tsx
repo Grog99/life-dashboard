@@ -46,9 +46,6 @@ function replaceWithEmptyWorkspace() {
     householdName: "Dom",
     householdMembers: [],
     subscriptions: [],
-    healthAppointments: [],
-    medications: [],
-    healthMeasurements: [],
     hideAmounts: false,
   });
 }

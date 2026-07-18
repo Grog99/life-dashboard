@@ -279,6 +279,12 @@
 .sync-indicator--pets {
   bottom: 206px;
 }
+/* Wskaźnik zdrowia (HealthSync) to siódma niezależna instancja — przesunięty nad zwierzęta, żeby
+   wszystkie siedem (workspace/finance/trips/meals/car/pets/health) mogły być widoczne równocześnie
+   bez nakładania się. */
+.sync-indicator--health {
+  bottom: 244px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -317,6 +323,9 @@
   }
   .sync-indicator--pets {
     bottom: calc(282px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--health {
+    bottom: calc(324px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;

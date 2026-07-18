@@ -47,6 +47,7 @@ import {
 } from "../lib/date";
 import { useLifeStore } from "../store/useLifeStore";
 import { useAdvancedStore } from "../store/useAdvancedStore";
+import { useHealthStore } from "../store/useHealthStore";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
 import { useMealsStore } from "../store/useMealsStore";
@@ -104,8 +105,8 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
   const vehicles = useCarStore((state) => state.vehicles);
   const vehicleDeadlines = useCarStore((state) => state.vehicleDeadlines);
   const petVisits = usePetsStore((state) => state.petVisits);
-  const healthAppointments = useAdvancedStore((state) => state.healthAppointments);
-  const medications = useAdvancedStore((state) => state.medications);
+  const healthAppointments = useHealthStore((state) => state.healthAppointments);
+  const medications = useHealthStore((state) => state.medications);
   const hideAmounts = useAdvancedStore((state) => state.hideAmounts);
   const toggleHideAmounts = useAdvancedStore((state) => state.toggleHideAmounts);
 
