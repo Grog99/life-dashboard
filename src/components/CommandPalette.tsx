@@ -24,6 +24,7 @@ import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
 import { useMealsStore } from "../store/useMealsStore";
 import { useCarStore } from "../store/useCarStore";
+import { usePetsStore } from "../store/usePetsStore";
 import { lockBodyScroll } from "../lib/scrollLock";
 import type { ViewId } from "../types";
 
@@ -119,7 +120,7 @@ export function CommandPalette({ open, onClose, onNavigate, onQuickAdd }: Comman
   const subscriptions = useAdvancedStore((state) => state.subscriptions);
   const vehicles = useCarStore((state) => state.vehicles);
   const recipes = useMealsStore((state) => state.recipes);
-  const pets = useAdvancedStore((state) => state.pets);
+  const pets = usePetsStore((state) => state.pets);
   const healthAppointments = useAdvancedStore((state) => state.healthAppointments);
   const medications = useAdvancedStore((state) => state.medications);
   const [query, setQuery] = useState("");

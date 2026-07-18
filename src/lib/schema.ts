@@ -9,6 +9,7 @@ import type {
 import type { Trip, TripItineraryItem, TripBooking, PackingItem } from "../tripsTypes";
 import type { Recipe, MealSlot, ShoppingItem } from "../mealsTypes";
 import type { Vehicle, CarExpense, VehicleDeadline } from "../carTypes";
+import type { Pet, PetExpense, PetVisit } from "../petsTypes";
 
 export const energySchema = z.enum(["low", "medium", "high"]);
 const energy = energySchema;
@@ -376,12 +377,21 @@ export const vehicleDeadlineSchema: z.ZodType<VehicleDeadline> = z.object({
   version: recordVersion,
   updatedAt: timestamp,
 });
+// Zwierzęta (pets/petExpenses/petVisits) nie są już częścią `advancedDataSchema` / dokumentu
+// JSONB workspace — mają własne znormalizowane tabele (server/migrations/010_pets_normalized.sql)
+// i endpoint `/api/v1/pets` (warstwa backend/frontend, patrz docs/plans/zwierzeta-sql.md). Te
+// schematy walidują snapshot GET-a i payloady mutacji POST-owanych do
+// `/api/v1/pets/mutations`.
+// `Pet`/`PetExpense`/`PetVisit` NADAL rozszerzają `sharedMetaSchema` -- jak Auto (w odróżnieniu
+// od Podróży/Meals), Zwierzęta zachowują rozróżnienie prywatne/wspólne, i W ODRÓŻNIENIU od Auta
+// OBA dzieci (`PetExpense`/`PetVisit`) mają WŁASNĄ widoczność (nie dziedziczą jej przez `EXISTS`
+// na rodzicu jak `VehicleDeadline`).
 const fishStockEntrySchema = z.object({
   id: idSchema,
   species: nonEmptyText,
   count: z.number().int().nonnegative(),
 });
-export const petSchema = sharedMetaSchema.extend({
+export const petSchema: z.ZodType<Pet> = sharedMetaSchema.extend({
   id: idSchema,
   name: nonEmptyText,
   kind: z.enum(["rabbit", "dog", "cat", "guinea_pig", "aquarium", "other"]),
@@ -390,8 +400,10 @@ export const petSchema = sharedMetaSchema.extend({
   birthDate: isoDate.optional(),
   fishStock: z.array(fishStockEntrySchema).max(500).optional(),
   notes: z.string().max(5000).optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const petExpenseSchema = sharedMetaSchema.extend({
+export const petExpenseSchema: z.ZodType<PetExpense> = sharedMetaSchema.extend({
   id: idSchema,
   petId: idSchema,
   date: isoDate,
@@ -399,8 +411,10 @@ export const petExpenseSchema = sharedMetaSchema.extend({
   amountMinor: safeMoney.nonnegative(),
   title: nonEmptyText,
   notes: z.string().max(5000).optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
-export const petVisitSchema = sharedMetaSchema.extend({
+export const petVisitSchema: z.ZodType<PetVisit> = sharedMetaSchema.extend({
   id: idSchema,
   petId: idSchema,
   title: nonEmptyText,
@@ -411,6 +425,8 @@ export const petVisitSchema = sharedMetaSchema.extend({
   location: z.string().max(1000).optional(),
   status: z.enum(["scheduled", "completed", "cancelled"]),
   notes: z.string().max(5000).optional(),
+  version: recordVersion,
+  updatedAt: timestamp,
 });
 export const healthAppointmentSchema = sharedMetaSchema.extend({
   id: idSchema,
@@ -452,9 +468,6 @@ export const hideAmountsSchema = z.boolean();
 
 export const advancedDataSchema: z.ZodType<AdvancedData> = z.object({
   subscriptions: z.array(subscriptionSchema),
-  pets: z.array(petSchema),
-  petExpenses: z.array(petExpenseSchema),
-  petVisits: z.array(petVisitSchema),
   healthAppointments: z.array(healthAppointmentSchema),
   medications: z.array(medicationSchema),
   healthMeasurements: z.array(healthMeasurementSchema),

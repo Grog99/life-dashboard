@@ -28,6 +28,7 @@ import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
 import { useMealsStore } from "../store/useMealsStore";
 import { useCarStore } from "../store/useCarStore";
+import { usePetsStore } from "../store/usePetsStore";
 import { apiRequest, serverMode } from "../server/api";
 import { useServerAuth } from "../server/AuthGate";
 import { removeCurrentPushSubscription } from "../server/push";
@@ -50,6 +51,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
   const trips = useTripsStore((state) => state.trips);
   const resetMealsData = useMealsStore((state) => state.resetMealsData);
   const resetCarData = useCarStore((state) => state.resetCarData);
+  const resetPetsData = usePetsStore((state) => state.resetPetsData);
   const householdMembers = useAdvancedStore((state) => state.householdMembers);
   const { snapshot, logout } = useServerAuth();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -181,6 +183,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       await apiRequest("/api/v1/trips/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/meals/reset", { method: "POST", json: {} });
       await apiRequest("/api/v1/car/reset", { method: "POST", json: {} });
+      await apiRequest("/api/v1/pets/reset", { method: "POST", json: {} });
     } catch (error) {
       onToast(
         error instanceof Error
@@ -207,9 +210,6 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
       hideAmounts: false,
       householdMembers: [],
       subscriptions: [],
-      pets: [],
-      petExpenses: [],
-      petVisits: [],
       healthAppointments: [],
       medications: [],
       healthMeasurements: [],
@@ -218,6 +218,7 @@ export function SettingsPage({ onToast }: { onToast: (message: string) => void }
     resetTripsData();
     resetMealsData();
     resetCarData();
+    resetPetsData();
     onToast("Dane aplikacji zostały całkowicie wyczyszczone");
   };
 

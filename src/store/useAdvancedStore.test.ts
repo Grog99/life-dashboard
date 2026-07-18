@@ -102,6 +102,6 @@ describe("advanced health store", () => {
 
     expect(merged.medications).toHaveLength(1);
     expect(merged.medications[0].id).toBe(sample.medications[0].id);
-    expect(merged.pets).toEqual(sample.pets);
+    expect(merged.subscriptions).toEqual(sample.subscriptions);
   });
 });

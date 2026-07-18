@@ -184,17 +184,6 @@ function derivedReminders(data, nowKey) {
       });
     }
   }
-  for (const visit of Array.isArray(advanced.petVisits) ? advanced.petVisits : []) {
-    const dueKey = shiftLocalDateTime(visit?.date, visit?.time, -24 * 60);
-    if (visit?.id && visit.status === "scheduled" && withinDeliveryWindow(dueKey, nowKey, 2)) {
-      reminders.push({
-        id: `pet-visit:${visit.id}`,
-        title: `Wizyta u weterynarza: ${visit.title}`,
-        date: visit.date,
-        time: visit.time,
-      });
-    }
-  }
   for (const medication of Array.isArray(advanced.medications) ? advanced.medications : []) {
     const reminderTime = medication?.reminderTime;
     const today = nowKey.slice(0, 10);
@@ -275,6 +264,37 @@ async function carDeadlineReminders(householdId, nowKey) {
   return reminders;
 }
 
+// Pets (Zwierzęta): pet_visits is a normalized table, not part of the workspace JSONB document (see
+// docs/plans/zwierzeta-sql.md and server/src/pets.mjs) -- this replaces the advanced.petVisits loop
+// that used to live in derivedReminders. Simpler than carDeadlineReminders: no JOIN, because each
+// visit already carries its own visibility/owner_id (unlike vehicle_deadlines, which inherits from
+// its parent vehicle), and the reminder time comes from the row's own `time` column instead of a
+// fixed "09:00". Same targeting rule: null = every household member, owner_id = only that member.
+async function petVisitReminders(householdId, nowKey) {
+  const result = await query(
+    `SELECT id, title, date::text AS date, time, visibility, owner_id
+       FROM pet_visits
+      WHERE household_id = $1 AND status = 'scheduled'`,
+    [householdId],
+  );
+  const reminders = [];
+  for (const row of result.rows) {
+    const dueKey = shiftLocalDateTime(row.date, row.time, -24 * 60);
+    if (withinDeliveryWindow(dueKey, nowKey, 2)) {
+      reminders.push({
+        reminder: {
+          id: `pet-visit:${row.id}`,
+          title: `Wizyta u weterynarza: ${row.title}`,
+          date: row.date,
+          time: row.time,
+        },
+        targetUserId: row.visibility === "private" ? row.owner_id : null,
+      });
+    }
+  }
+  return reminders;
+}
+
 async function deliverDerived(workspace, data, targetUserId = null) {
   const nowKey = localNowKey(workspace.timezone);
   for (const reminder of derivedReminders(data, nowKey)) {
@@ -305,6 +325,7 @@ async function tick() {
       query("DELETE FROM trip_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM meal_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM car_mutations WHERE created_at < now() - interval '30 days'"),
+      query("DELETE FROM pet_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }
@@ -336,6 +357,20 @@ async function tick() {
           await deliverReminder(workspace, reminder, targetUserId);
         } catch (error) {
           console.error("Car deadline reminder failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
+      for (const { reminder, targetUserId } of await petVisitReminders(
+        workspace.household_id,
+        nowKey,
+      )) {
+        try {
+          await deliverReminder(workspace, reminder, targetUserId);
+        } catch (error) {
+          console.error("Pet visit reminder failed", {
             householdId: workspace.household_id,
             reminderId: reminder.id,
             error,

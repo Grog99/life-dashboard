@@ -40,7 +40,14 @@ faktycznie ruszamy jego migrację.
    `implement-layered`), własna tabela idempotency keys per moduł, `version` per rekord,
    dedykowany store + silnik sync po stronie klienta.
 
-## Priorytetyzacja modułów (stan na 16.07.2026)
+## Priorytetyzacja modułów (stan na 17.07.2026)
+
+**Aktualizacja 17.07.2026:** użytkownik zdecydował świadomie odejść od zasady „migrujemy tylko przy
+dowodzie (a)/(b)" (punkt 4 „Zasad kontynuacji" wyżej) — docelowo **wszystkie** moduły mają trafić na
+znormalizowane tabele SQL, niezależnie od tego, czy dziś istnieje konkretny dowód kolizji. Poniższe
+4 moduły nie mają dowodu (a)/(b) i migrują się **wyłącznie** z tego świadomego wyboru, nie z YAGNI —
+ich sekcje uzasadnienia niżej to o tym nota, nie odkryty dowód. Kolejność sekwencyjna (rule #3 —
+te same pliki generyczne) ustalona z użytkownikiem: Zwierzęta → Zdrowie → Subskrypcje → Life.
 
 | # | Moduł | Kolekcje (dziś JSONB) | Dowód w kodzie | Priorytet | Status |
 |---|-------|------------------------|-----------------|-----------|--------|
@@ -48,10 +55,10 @@ faktycznie ruszamy jego migrację.
 | 1 | **Podróże (Trips)** | trips, tripItinerary, tripBookings, packingItems | (a)+(b), patrz niżej | Wysoki | ✅ Zrobione (PR #13) |
 | 2 | **Lista zakupów (Meals)** | recipes, mealSlots, shoppingItems | (b), patrz niżej | Średni | ✅ Zrobione (PR #14) |
 | 3 | **Auto (Car)** | vehicles, carExpenses, vehicleDeadlines | (a), niższa częstotliwość | Niski–średni | ✅ Zrobione (PR #15) |
-| — | Zwierzęta (Pets) | pets, petExpenses, petVisits | brak | — | Zostaje na JSONB |
-| — | Zdrowie (Health) | healthAppointments, medications, healthMeasurements | brak | — | Zostaje na JSONB |
-| — | Subskrypcje | subscriptions | brak | — | Zostaje na JSONB |
-| — | Zadania/Kalendarz/Notatki/Nawyki | tasks, events, reminders, notes, habits (`useLifeStore`) | brak | — | Zostaje na JSONB |
+| 4 | **Zwierzęta (Pets)** | pets, petExpenses, petVisits | brak — świadomy wybór (patrz nota wyżej) | Ustalony przez użytkownika | ✅ Zrobione (PR #16) |
+| 5 | **Zdrowie (Health)** | healthAppointments, medications, healthMeasurements | brak — świadomy wybór; duży udział rekordów `private` | Ustalony przez użytkownika | Zaplanowane po Pets |
+| 6 | **Subskrypcje** | subscriptions | brak — świadomy wybór; pojedyncza płaska kolekcja | Ustalony przez użytkownika | Zaplanowane po Zdrowiu |
+| 7 | **Zadania/Kalendarz/Notatki/Nawyki** | tasks, events, reminders, notes, habits (`useLifeStore`) | brak — świadomy wybór; **inna architektura** (osobny dokument/store niż `advanced`) | Ustalony przez użytkownika | Zaplanowane po Subskrypcjach |
 
 ## Uzasadnienie priorytetów
 
@@ -94,11 +101,15 @@ faktycznie ruszamy jego migrację.
   jednorazowa czynność, nie ciągły strumień zmian jak transakcje czy checklisty. Stąd priorytet
   niżej niż Podróże i lista zakupów, mimo tej samej klasy błędu.
 
-## Moduły pozostające na modelu JSONB (na razie)
+## Moduły bez dowodu (a)/(b) — migrowane mimo to z decyzji użytkownika (od 17.07.2026)
 
-Świadomie **nie** migrujemy poniższych, dopóki nie pojawi się konkretny dowód (a) lub (b) —
-migrowanie ich teraz byłoby budową „generycznej platformy sync na zapas", której oryginalny plan
-Finansów wprost unikał:
+Historycznie (do 16.07.2026) świadomie **nie** migrowaliśmy poniższych, dopóki nie pojawił się
+konkretny dowód (a) lub (b) — migrowanie ich byłoby budową „generycznej platformy sync na zapas",
+której oryginalny plan Finansów wprost unikał. **Od 17.07.2026 użytkownik podjął świadomą decyzję,
+by mimo braku dowodu zmigrować je wszystkie** — zasada YAGNI (punkt 4 „Zasad kontynuacji") jest
+tu jawnie uchylona per wybór użytkownika, nie odkryciem nowego dowodu w kodzie. Ryzyka poniższe
+zostają jako kontekst do uwzględnienia w planach modułów (mniejsza korzyść z normalizacji niż przy
+Finansach/Podróżach nie znaczy, że migracja jest bezpieczniejsza czy tańsza):
 
 - **Zwierzęta** (`pets`, `petExpenses`, `petVisits`) — kolekcje płaskie, bez pola agregującego,
   niska częstotliwość edycji.
@@ -108,11 +119,9 @@ Finansów wprost unikał:
 - **Subskrypcje** — płaskie, rzadkie zmiany (dodanie/anulowanie subskrypcji).
 - **Zadania, Kalendarz, Notatki, Nawyki** (`useLifeStore` — inny dokument niż moduły „advanced") —
   częste zmiany, ale każdy rekord edytowany niezależnie, bez pól agregujących; obecny 3-way merge
-  po `id` już dziś zachowuje niezależne zmiany różnych zadań/wydarzeń bez realnej kolizji.
-
-Jeśli w którymś z powyższych pojawi się konkretny dowód (zgłoszony bug, nowa funkcja wprowadzająca
-pole agregujące) — dopisz go do tabeli priorytetów wyżej z uzasadnieniem, zamiast migrować „na
-wszelki wypadek".
+  po `id` już dziś zachowuje niezależne zmiany różnych zadań/wydarzeń bez realnej kolizji. Ten
+  moduł żyje w innym dokumencie/store (`useLifeStore`, nie `useAdvancedStore`) — plan powinien
+  zweryfikować, czy wzorzec Finansów w ogóle przenosi się wprost, zamiast zakładać to z góry.
 
 ## Jak dodać kolejną migrację
 

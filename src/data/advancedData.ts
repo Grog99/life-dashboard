@@ -6,6 +6,8 @@ const day = (offset = 0) => format(addDays(new Date(), offset), "yyyy-MM-dd");
 // Auto (vehicles/carExpenses/vehicleDeadlines) nie ma już seedu tutaj — żyje w znormalizowanych
 // tabelach SQL, serwer jest źródłem prawdy (domyślny stan offline = pusty), patrz
 // docs/plans/auto-car.md i src/store/useCarStore.ts.
+// Zwierzęta (pets/petExpenses/petVisits) analogicznie nie mają już seedu tutaj — patrz
+// docs/plans/zwierzeta-sql.md i src/store/usePetsStore.ts.
 
 export function createAdvancedData(): AdvancedDataWithHealth {
   return {
@@ -91,101 +93,6 @@ export function createAdvancedData(): AdvancedDataWithHealth {
         color: "#8b6ca5",
         ownerId: "me",
         visibility: "private",
-      },
-    ],
-    pets: [
-      {
-        id: "pet-fistaszek",
-        name: "Fistaszek",
-        kind: "rabbit",
-        color: "#b17a42",
-        species: "Królik miniaturka",
-        birthDate: day(-540),
-        notes: "Lubi marchewkę i suszone zioła.",
-        ownerId: "me",
-        visibility: "household",
-      },
-      {
-        id: "pet-akwarium",
-        name: "Akwarium w salonie",
-        kind: "aquarium",
-        color: "#397763",
-        fishStock: [
-          { id: "fish-neon", species: "Neonek innesa", count: 12 },
-          { id: "fish-corydoras", species: "Kirysek panda", count: 6 },
-        ],
-        notes: "60 l, wymiana wody co 2 tygodnie.",
-        ownerId: "me",
-        visibility: "household",
-      },
-    ],
-    petExpenses: [
-      {
-        id: "pet-expense-food-1",
-        petId: "pet-fistaszek",
-        date: day(-3),
-        type: "food",
-        amountMinor: 4200,
-        title: "Siano i granulat",
-        ownerId: "me",
-        visibility: "household",
-      },
-      {
-        id: "pet-expense-vet-1",
-        petId: "pet-fistaszek",
-        date: day(-40),
-        type: "vet",
-        amountMinor: 15000,
-        title: "Szczepienie",
-        ownerId: "me",
-        visibility: "household",
-      },
-      {
-        id: "pet-expense-accessories-1",
-        petId: "pet-akwarium",
-        date: day(-10),
-        type: "accessories",
-        amountMinor: 8900,
-        title: "Filtr do akwarium",
-        ownerId: "me",
-        visibility: "household",
-      },
-      {
-        id: "pet-expense-grooming-1",
-        petId: "pet-fistaszek",
-        date: day(-15),
-        type: "grooming",
-        amountMinor: 6000,
-        title: "Strzyżenie pazurków",
-        ownerId: "me",
-        visibility: "household",
-      },
-    ],
-    petVisits: [
-      {
-        id: "pet-visit-vet",
-        petId: "pet-fistaszek",
-        title: "Kontrola weterynaryjna",
-        clinician: "dr Piotr Nowak",
-        specialty: "Egzotyki",
-        date: day(6),
-        time: "12:00",
-        location: "Vetlandia, ul. Polna 5",
-        status: "scheduled",
-        notes: "Zabrać książeczkę zdrowia.",
-        ownerId: "me",
-        visibility: "household",
-      },
-      {
-        id: "pet-visit-service",
-        petId: "pet-akwarium",
-        title: "Serwis filtra",
-        clinician: "AquaSerwis",
-        date: day(-20),
-        time: "10:00",
-        status: "completed",
-        ownerId: "me",
-        visibility: "household",
       },
     ],
     healthAppointments: [
