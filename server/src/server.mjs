@@ -41,6 +41,14 @@ import {
   resetCarForUser,
 } from "./car.mjs";
 import {
+  applyPetsMutation,
+  assertPetsMutationShape,
+  MAX_PETS_MUTATIONS_BYTES,
+  MAX_PETS_MUTATIONS_PER_BATCH,
+  readPetsSnapshot,
+  resetPetsForUser,
+} from "./pets.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -865,6 +873,55 @@ app.post("/api/v1/car/mutations", async (request) => {
 app.post("/api/v1/car/reset", async (request) => {
   const session = await requireHousehold(request);
   await transaction((client) => resetCarForUser(client, session.household_id, session.user_id));
+  return { serverAt: new Date().toISOString() };
+});
+
+// Pets module (Zwierzęta): normalized tables, not part of the workspace JSONB document (see
+// docs/plans/zwierzeta-sql.md and server/src/pets.mjs). GET returns a snapshot, mutations go through
+// a single idempotent batch endpoint mapping 1:1 onto the client's offline queue. Like Car/Finance,
+// Pets KEEPS the private/shared distinction -- pets/pet_expenses/pet_visits ALL scope by their own
+// `visibility`/`owner_id` (in contrast to vehicle_deadlines, both children here have their own
+// visibility, so there is no EXISTS-on-parent scoping anywhere in pets.mjs).
+app.get("/api/v1/pets", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readPetsSnapshot(pool, session.household_id, session.user_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/pets/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(400, "Nieprawidłowe żądanie mutacji zwierząt", "INVALID_PETS_MUTATIONS");
+  }
+  if (body.mutations.length > MAX_PETS_MUTATIONS_PER_BATCH) {
+    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "PETS_MUTATIONS_TOO_LARGE");
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_PETS_MUTATIONS_BYTES) {
+    throw httpError(413, "Dane mutacji przekraczają dozwolony rozmiar", "PETS_MUTATIONS_TOO_LARGE");
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see pets.mjs's assertPetsMutationShape.
+  for (const mutation of body.mutations) assertPetsMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order (e.g.
+    // expense.create/visit.create after the pet.create they depend on).
+    const result = await transaction((client) => applyPetsMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): Zwierzęta nie są już częścią
+// dokumentu JSONB, więc nie ma ich czym nadpisać zwykłym PUT /api/v1/workspace -- ten endpoint
+// odtwarza dokładnie ten sam zakres usuwania (wspólne rekordy + WYŁĄCZNIE prywatne rekordy
+// wywołującego, nigdy prywatne rekordy innych domowników), analogicznie do /api/v1/car/reset.
+app.post("/api/v1/pets/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetPetsForUser(client, session.household_id, session.user_id));
   return { serverAt: new Date().toISOString() };
 });
 

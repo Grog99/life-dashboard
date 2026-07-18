@@ -1,7 +1,7 @@
 // Finanse (konta/transakcje/budżety/cele) żyją teraz w znormalizowanych tabelach SQL,
 // nie w tym dokumencie — patrz docs/plans/model-synchronizacji-danych.md i src/financeTypes.ts.
 // `Visibility`/`CurrencyCode`/`SharedMeta` zostają re-eksportowane stąd, bo reszta modułów
-// w tym pliku (Subscription, Vehicle, Pet, Health, ...) nadal z nich korzysta.
+// w tym pliku (Subscription, Health, ...) nadal z nich korzysta.
 import type { Visibility, CurrencyCode, SharedMeta } from "./financeTypes";
 
 export type { Visibility, CurrencyCode, SharedMeta };
@@ -22,6 +22,11 @@ export type { Recipe, MealSlot, ShoppingItem } from "./mealsTypes";
 // plików, które wciąż importują je z `advancedTypes` (jak zrobiono z typami trips/meals).
 export type { Vehicle, CarExpense, VehicleDeadline } from "./carTypes";
 
+// Zwierzęta (pets/petExpenses/petVisits) żyją teraz w znormalizowanych tabelach SQL, nie w tym
+// dokumencie — patrz docs/plans/zwierzeta-sql.md i src/petsTypes.ts. Re-eksportowane stąd dla
+// plików, które wciąż importują je z `advancedTypes` (jak zrobiono z typami car).
+export type { Pet, PetExpense, PetVisit, PetKind, FishStockEntry } from "./petsTypes";
+
 export interface Subscription extends SharedMeta {
   id: string;
   name: string;
@@ -35,50 +40,6 @@ export interface Subscription extends SharedMeta {
   reminderDays: number;
   color: string;
   cancelUrl?: string;
-}
-
-export type PetKind = "rabbit" | "dog" | "cat" | "guinea_pig" | "aquarium" | "other";
-
-export interface FishStockEntry {
-  id: string;
-  species: string; // gatunek ryby, np. "Neonek innesa"
-  count: number; // liczba sztuk
-}
-
-export interface Pet extends SharedMeta {
-  id: string;
-  name: string; // imię, np. "Fistaszek"
-  kind: PetKind; // typ profilu (steruje wariantem pól)
-  color: string; // kolor karty w selektorze (jak Vehicle.color)
-  // Pola zwierzęcia standardowego (kind !== "aquarium"):
-  species?: string; // gatunek/rasa, np. "Królik miniaturka"
-  birthDate?: string; // isoDate — wiek liczony w UI
-  // Pole wariantowe akwarium (kind === "aquarium"):
-  fishStock?: FishStockEntry[]; // obsada: lista {gatunek, liczba}
-  notes?: string;
-}
-
-export interface PetExpense extends SharedMeta {
-  id: string;
-  petId: string;
-  date: string; // isoDate
-  type: "food" | "vet" | "accessories" | "grooming" | "other";
-  amountMinor: number;
-  title: string;
-  notes?: string;
-}
-
-export interface PetVisit extends SharedMeta {
-  id: string;
-  petId: string;
-  title: string; // np. "Szczepienie", "Serwis filtra"
-  clinician: string; // weterynarz / placówka / serwis
-  specialty?: string;
-  date: string; // isoDate
-  time: string; // clockTime — potrzebne dla push -24 h
-  location?: string;
-  status: "scheduled" | "completed" | "cancelled";
-  notes?: string;
 }
 
 export interface HealthAppointment extends SharedMeta {
@@ -125,9 +86,6 @@ export interface HouseholdMember {
 
 export interface AdvancedData {
   subscriptions: Subscription[];
-  pets: Pet[];
-  petExpenses: PetExpense[];
-  petVisits: PetVisit[];
   healthAppointments: HealthAppointment[];
   medications: Medication[];
   healthMeasurements: HealthMeasurement[];
