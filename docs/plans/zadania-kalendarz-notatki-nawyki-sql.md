@@ -906,3 +906,35 @@ Wszystkie otwarte pytania rozstrzygnięte z użytkownikiem 18.07.2026 — sekcja
 - **Detale domyślne**: potwierdzone bez zmian — `recurrence`/`completed_dates` jako kolumny `jsonb`;
   `notified_at` pisane przez workera **bez** bumpu `version`; `MAX_LIFE_MUTATIONS` domyślnie **1000**; nazwy
   tabel **bez** prefiksu `life_`; `worker.mjs` w zakresie tego PR.
+
+## Status po wdrożeniu
+
+Zaimplementowano warstwami (dane → backend → frontend, `implement-layered`) + osobny etap testów.
+Zweryfikowano end-to-end przeciw prawdziwemu Postgresowi (lokalny klaster, nie mocki):
+
+- `npm run build`, `npm test` (213/213), `npm run test:server` — **z lokalnym Postgresem podpiętym**
+  (255/255, w tym wszystkie testy DB-backed w nowym `life.node.mjs`, które w środowisku bez bazy są
+  pomijane) — zielone. `npm run lint` / `npm run format:check` — czyste.
+- Migracja `013` uruchomiona od zera (razem z `001`-`012`) na czystej bazie bez błędów; przetestowana też
+  na spreparowanych danych JSONB (legacy `ownerId='me'`, brak `ownerId`, rekordy prywatne, `recurrence`,
+  `completedDates`, `notifiedAt`, `externalUpdatedAt`) — idempotentna, nie ujawnia rekordów prywatnych.
+- **Luka znaleziona i naprawiona podczas pisania testów (nie odkryta w E2E, ale realny bug produkcyjny)**:
+  kolizja deterministycznego `id` przy `*.create` (materializacja serii, `seriesId#index`) łapała
+  `23505` i od razu odpytywała tę samą (już zepsutą przez Postgresa) transakcję, rzucając `25P02`
+  zamiast udokumentowanego `{status:"conflict", code:"ID_TAKEN"}` — naprawione przez
+  `SAVEPOINT`/`ROLLBACK TO SAVEPOINT` wokół każdej próby insertu w `execTaskCreate`/`execEventCreate`/
+  `execReminderCreate`/`execNoteCreate`/`execHabitCreate`. Przy okazji: `resolveConflictOrError` nigdy nie
+  ustawiał pola `code` przy `status:"conflict"` — dodany opcjonalny `conflictCode`. To dokładnie ten
+  scenariusz, który sekcja „Ryzyka" wskazywała jako krytyczny do pokrycia testem („dwa urządzenia
+  rozwijające to samo okno serii → brak duplikatów") — bez tej poprawki funkcja by nie działała.
+- Pełny cykl ręcznie w przeglądarce (Playwright, prawdziwy backend, świeża baza, migracje `001`→`013`):
+  dodanie/toggle zadania, rozwinięcie formularza powtarzalności (tygodniowo, dni tygodnia, limit),
+  Kalendarz, Notatki, Rytuały, Dzisiaj — desktop i wąski ekran (390px, PWA) — zero błędów konsoli, zero
+  requestów `4xx/5xx` do `/api/`.
+- **Znalezisko poza zakresem tego PR-a (nie naprawione tutaj, powtórka z planu Subskrypcji)**:
+  `useAdvancedStore.ts`'s `merge()` nadal ma fałszywie pozytywny toast „Zapis modułów miał niezgodny
+  format" przy każdym zupełnie czystym `localStorage` — brakuje gałęzi `persistedState === undefined`
+  (wzór już zastosowany w `useLifeRecordsStore.ts` i innych nowych store'ach). Potwierdzone ponownie
+  żywym testem w przeglądarce. Ten sam bug zgłoszono już przy planie Subskrypcji (PR #18) i wciąż nie
+  został naprawiony — `useAdvancedStore` nie jest częścią zakresu żadnego z modułów tej serii.
+- Bez innych luk specyficznych dla Life znalezionych podczas E2E.

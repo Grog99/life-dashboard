@@ -58,7 +58,7 @@ te same pliki generyczne) ustalona z użytkownikiem: Zwierzęta → Zdrowie → 
 | 4 | **Zwierzęta (Pets)** | pets, petExpenses, petVisits | brak — świadomy wybór (patrz nota wyżej) | Ustalony przez użytkownika | ✅ Zrobione (PR #16) |
 | 5 | **Zdrowie (Health)** | healthAppointments, medications, healthMeasurements | brak — świadomy wybór; duży udział rekordów `private` | Ustalony przez użytkownika | ✅ Zrobione (PR #17) |
 | 6 | **Subskrypcje** | subscriptions | brak — świadomy wybór; pojedyncza płaska kolekcja | Ustalony przez użytkownika | ✅ Zrobione (PR #18) |
-| 7 | **Zadania/Kalendarz/Notatki/Nawyki** | tasks, events, reminders, notes, habits (`useLifeStore`) | brak — świadomy wybór; **inna architektura** (osobny dokument/store niż `advanced`) | Ustalony przez użytkownika | Zaplanowane po Subskrypcjach |
+| 7 | **Zadania/Kalendarz/Notatki/Nawyki** | tasks, events, reminders, notes, habits (`useLifeStore`) | brak — świadomy wybór; **inna architektura** (osobny dokument/store niż `advanced`) | Ustalony przez użytkownika | ✅ Zrobione (PR #19) |
 
 ## Uzasadnienie priorytetów
 
