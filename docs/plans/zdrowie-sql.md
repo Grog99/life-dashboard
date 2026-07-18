@@ -656,3 +656,44 @@ genuine otwartych pytań. Kluczowe decyzje, które mogłyby wyglądać na otwart
   z mandatu 1:1).
 - **`visibility` w kluczach edycji wszystkich trzech kolekcji, bez kaskady** (brak dzieci).
   Rozstrzygnięte.
+
+## Status po wdrożeniu
+
+Zaimplementowano warstwami (dane → backend → frontend) przez `implement-layered`, zweryfikowano
+`npm run build`/`npm test`/`npm run test:server` (185/185 testów backendu zielonych na realnym
+Postgresie 16, 0 pominiętych) oraz end-to-end przez Playwright na zbudowanym froncie
+(`VITE_SERVER_MODE=true`) i uruchomionym serwerze: bootstrap, dodanie/edycja wizyty/leku/pomiaru,
+toggle „Oznacz"/„Przyjęte" (prawdziwy toggle liczony lokalnie, zsynchronizowany z serwerem), kafelek
+„Zdrowie" na „Dzisiaj", widok mobilny. Podczas weryfikacji znaleziono i naprawiono dwie luki, których
+warstwowa implementacja nie objęła:
+
+1. **Brakujące dedykowane testy.** Warstwy dane/backend/frontend (sekcje osobne od „Testy" w „Pliki
+   do zmiany") nie objęły `server/test/health.node.mjs` ani `src/store/useHealthStore.test.ts`,
+   mimo że plan i kryteria akceptacji ich wymagały. Dopisano osobno, wzorem `pets.node.mjs`/
+   `usePetsStore.test.ts` — pokrywają walidatory (w tym `isParsableTimestamp`), OCC, idempotencję
+   (w tym retry `medication.update{changes:{lastTakenOn}}` bez podwójnego flipu), scope widoczności
+   w konfliktach, `resetHealthForUser`, edytowalność `visibility`, idempotentne usuwanie.
+2. **Siódma skumulowana instancja `.sync-indicator` blokowała kliknięcia.** Wskaźniki synchronizacji
+   (workspace/finance/trips/meals/car/pets/health) to stos elementów `position: fixed` w prawym dolnym
+   rogu, każdy wyżej niż poprzedni (wzorzec ustalony od Finansów). Z siedmioma instancjami stos sięga
+   na tyle wysoko, że na stronie Zdrowie zasłaniał i **blokował** przycisk „Nowy pomiar" (Playwright
+   nie mógł go kliknąć — element pod spodem przechwytywał zdarzenie wskaźnika, nie odwrotnie).
+   Naprawiono dodaniem `pointer-events: none` do bazowej reguły `.sync-indicator` w
+   `src/styles/server.css` — wskaźniki są czysto informacyjne (`role="status"`, bez `onClick`), więc
+   przepuszczenie kliknięć do treści strony pod spodem jest bezpieczne i nie ogranicza żadnej
+   funkcji. Poprawka dotyczy wszystkich modułów, nie tylko Zdrowia.
+
+**Odkryto też (poza zakresem tego PR, już wcześniej znane):** fałszywe ostrzeżenie „Zapis modułów
+miał niezgodny format — zachowano bezpieczne dane startowe" w `useAdvancedStore.ts` na czystej
+instalacji (`merge(undefined, ...)` na pierwszym uruchomieniu) — to dokładnie luka #3 opisana w
+„Status po wdrożeniu" planu Finansów (`docs/plans/model-synchronizacji-danych.md:383-391`), tam
+świadomie odłożona jako „pre-existing bug niezwiązany z modelem synchronizacji Finansów — wart
+osobnego zgłoszenia, nie naprawiany w tym PR". Nadal nienaprawiona (potwierdzone podczas tej
+weryfikacji); nie dotyczy Zdrowia specyficznie (to generyczny `useAdvancedStore`, dziś już tylko
+Subskrypcje + metadane gospodarstwa) — nie naprawiana w tym PR z tego samego powodu.
+
+**Mniejsza obserwacja kosmetyczna (nie naprawiana w tym PR):** na wąskim ekranie stos siedmiu
+wskaźników synchronizacji wizualnie nakłada się na treść niektórych paneli (np. nagłówek „Leki i
+suplementy"). `pointer-events: none` usuwa blokadę funkcjonalną, ale nie porządek wizualny — pełne
+rozwiązanie (np. jeden zbiorczy wskaźnik zamiast stosu per moduł) wymagałoby zmiany obejmującej
+wszystkie sześć wcześniejszych modułów, poza zakresem migracji Zdrowia.
