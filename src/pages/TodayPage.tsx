@@ -51,6 +51,7 @@ import { useFinanceStore } from "../store/useFinanceStore";
 import { useTripsStore } from "../store/useTripsStore";
 import { useMealsStore } from "../store/useMealsStore";
 import { useCarStore } from "../store/useCarStore";
+import { usePetsStore } from "../store/usePetsStore";
 import { formatMoney } from "../lib/money";
 import { polishPlural } from "../lib/pluralize";
 import type { QuickAddType, ViewId } from "../types";
@@ -102,7 +103,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
   const subscriptions = useAdvancedStore((state) => state.subscriptions);
   const vehicles = useCarStore((state) => state.vehicles);
   const vehicleDeadlines = useCarStore((state) => state.vehicleDeadlines);
-  const petVisits = useAdvancedStore((state) => state.petVisits);
+  const petVisits = usePetsStore((state) => state.petVisits);
   const healthAppointments = useAdvancedStore((state) => state.healthAppointments);
   const medications = useAdvancedStore((state) => state.medications);
   const hideAmounts = useAdvancedStore((state) => state.hideAmounts);

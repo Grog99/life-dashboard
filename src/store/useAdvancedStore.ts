@@ -11,9 +11,6 @@ import {
   householdMemberSchema,
   householdNameSchema,
   medicationSchema,
-  petExpenseSchema,
-  petSchema,
-  petVisitSchema,
   subscriptionSchema,
 } from "../lib/schema";
 import type {
@@ -22,9 +19,6 @@ import type {
   HealthAppointment,
   HealthMeasurement,
   Medication,
-  Pet,
-  PetExpense,
-  PetVisit,
   Subscription,
 } from "../advancedTypes";
 
@@ -58,15 +52,6 @@ interface AdvancedActions {
   addSubscription: (subscription: Omit<Subscription, "id">) => string;
   updateSubscription: (subscriptionId: string, changes: Partial<Subscription>) => void;
   deleteSubscription: (subscriptionId: string) => void;
-  addPet: (pet: Omit<Pet, "id">) => string;
-  updatePet: (petId: string, changes: Partial<Pet>) => void;
-  deletePet: (petId: string) => void;
-  addPetExpense: (expense: Omit<PetExpense, "id">) => string;
-  deletePetExpense: (expenseId: string) => void;
-  addPetVisit: (visit: Omit<PetVisit, "id">) => string;
-  updatePetVisit: (visitId: string, changes: Partial<PetVisit>) => void;
-  deletePetVisit: (visitId: string) => void;
-  togglePetVisitCompleted: (visitId: string) => void;
   addHealthAppointment: (appointment: Omit<HealthAppointment, "id">) => string;
   updateHealthAppointment: (appointmentId: string, changes: Partial<HealthAppointment>) => void;
   deleteHealthAppointment: (appointmentId: string) => void;
@@ -104,51 +89,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         set((state) => ({
           subscriptions: state.subscriptions.filter(
             (subscription) => subscription.id !== subscriptionId,
-          ),
-        })),
-      addPet: (pet) => {
-        const id = makeId();
-        set((state) => ({ pets: [...state.pets, { ...pet, id }] }));
-        return id;
-      },
-      updatePet: (petId, changes) =>
-        set((state) => ({
-          pets: state.pets.map((pet) => (pet.id === petId ? { ...pet, ...changes } : pet)),
-        })),
-      deletePet: (petId) =>
-        set((state) => ({
-          pets: state.pets.filter((pet) => pet.id !== petId),
-          petExpenses: state.petExpenses.filter((expense) => expense.petId !== petId),
-          petVisits: state.petVisits.filter((visit) => visit.petId !== petId),
-        })),
-      addPetExpense: (expense) => {
-        const id = makeId();
-        set((state) => ({ petExpenses: [{ ...expense, id }, ...state.petExpenses] }));
-        return id;
-      },
-      deletePetExpense: (expenseId) =>
-        set((state) => ({
-          petExpenses: state.petExpenses.filter((expense) => expense.id !== expenseId),
-        })),
-      addPetVisit: (visit) => {
-        const id = makeId();
-        set((state) => ({ petVisits: [...state.petVisits, { ...visit, id }] }));
-        return id;
-      },
-      updatePetVisit: (visitId, changes) =>
-        set((state) => ({
-          petVisits: state.petVisits.map((visit) =>
-            visit.id === visitId ? { ...visit, ...changes } : visit,
-          ),
-        })),
-      deletePetVisit: (visitId) =>
-        set((state) => ({ petVisits: state.petVisits.filter((visit) => visit.id !== visitId) })),
-      togglePetVisitCompleted: (visitId) =>
-        set((state) => ({
-          petVisits: state.petVisits.map((visit) =>
-            visit.id === visitId
-              ? { ...visit, status: visit.status === "completed" ? "scheduled" : "completed" }
-              : visit,
           ),
         })),
       addHealthAppointment: (appointment) => {
@@ -223,9 +163,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
       replaceAdvancedData: (data) =>
         set({
           ...data,
-          pets: data.pets ?? [],
-          petExpenses: data.petExpenses ?? [],
-          petVisits: data.petVisits ?? [],
           healthAppointments: data.healthAppointments ?? [],
           medications: data.medications ?? [],
           healthMeasurements: data.healthMeasurements ?? [],
@@ -246,9 +183,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         const state = persistedState as Record<string, unknown>;
 
         const subscriptions = parseArrayField(state.subscriptions, subscriptionSchema);
-        const pets = parseArrayField(state.pets, petSchema);
-        const petExpenses = parseArrayField(state.petExpenses, petExpenseSchema);
-        const petVisits = parseArrayField(state.petVisits, petVisitSchema);
         const healthAppointments = parseArrayField(
           state.healthAppointments,
           healthAppointmentSchema,
@@ -272,9 +206,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
 
         const arrayFields = [
           subscriptions,
-          pets,
-          petExpenses,
-          petVisits,
           healthAppointments,
           medications,
           healthMeasurements,
@@ -295,9 +226,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
         return {
           ...currentState,
           subscriptions: subscriptions.items,
-          pets: pets.items,
-          petExpenses: petExpenses.items,
-          petVisits: petVisits.items,
           healthAppointments: healthAppointments.items,
           medications: medications.items,
           healthMeasurements: healthMeasurements.items,
@@ -308,9 +236,6 @@ export const useAdvancedStore = create<AdvancedStore>()(
       },
       partialize: (state) => ({
         subscriptions: state.subscriptions,
-        pets: state.pets,
-        petExpenses: state.petExpenses,
-        petVisits: state.petVisits,
         healthAppointments: state.healthAppointments,
         medications: state.medications,
         healthMeasurements: state.healthMeasurements,
@@ -326,9 +251,6 @@ export function exportAdvancedData(): AdvancedDataWithHealth {
   const state = useAdvancedStore.getState();
   return {
     subscriptions: state.subscriptions,
-    pets: state.pets,
-    petExpenses: state.petExpenses,
-    petVisits: state.petVisits,
     healthAppointments: state.healthAppointments,
     medications: state.medications,
     healthMeasurements: state.healthMeasurements,

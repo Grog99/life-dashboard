@@ -273,6 +273,12 @@
 .sync-indicator--car {
   bottom: 168px;
 }
+/* Wskaźnik zwierząt (PetsSync) to szósta niezależna instancja — przesunięty nad samochód, żeby
+   wszystkie sześć (workspace/finance/trips/meals/car/pets) mogły być widoczne równocześnie bez
+   nakładania się. */
+.sync-indicator--pets {
+  bottom: 206px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -308,6 +314,9 @@
   }
   .sync-indicator--car {
     bottom: calc(240px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--pets {
+    bottom: calc(282px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;
