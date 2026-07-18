@@ -237,7 +237,10 @@ test("validateTaskCreatePayload rejects invalid fields", () => {
     "tag longer than 50 chars",
   );
   assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ tags: Array.from({ length: 21 }, (_, i) => `t${i}`) })),
+    () =>
+      validateTaskCreatePayload(
+        taskPayload({ tags: Array.from({ length: 21 }, (_, i) => `t${i}`) }),
+      ),
     (error) => error.code === "INVALID_TAGS",
     "more than 20 tags",
   );

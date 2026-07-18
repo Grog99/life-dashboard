@@ -74,10 +74,7 @@ export const taskSchema = z.object({
   description: z.string().max(5000).optional(),
   status: z.enum(["todo", "done"]),
   priority: z.enum(["low", "medium", "high"]),
-  tags: z
-    .array(z.string().trim().max(50))
-    .max(20)
-    .catch([]),
+  tags: z.array(z.string().trim().max(50)).max(20).catch([]),
   isFocus: z.boolean(),
   energy,
   createdAt: timestamp,

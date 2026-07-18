@@ -294,7 +294,8 @@ export function TasksPage({ onQuickAdd, onToast }: TasksPageProps) {
               aria-expanded={mobileFiltersOpen}
               aria-controls="task-filter-panel"
             >
-              <ListFilter size={16} /> {statusFilters.find((item) => item.id === statusFilter)?.label}{" "}
+              <ListFilter size={16} />{" "}
+              {statusFilters.find((item) => item.id === statusFilter)?.label}{" "}
               <ChevronDown size={15} />
             </button>
             <div>

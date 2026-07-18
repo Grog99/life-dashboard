@@ -288,12 +288,16 @@ describe("serie powtarzalne w store", () => {
   });
 
   it("deleteEventSeries kasuje wszystkie wystąpienia serii", () => {
-    const seriesId = useLifeRecordsStore
-      .getState()
-      .addRecurringEvent(
-        { title: "Do usunięcia", date: dateKey(), startTime: "09:00", endTime: "09:30", kind: "personal" },
-        { freq: "daily", interval: 1, anchorDate: dateKey() },
-      );
+    const seriesId = useLifeRecordsStore.getState().addRecurringEvent(
+      {
+        title: "Do usunięcia",
+        date: dateKey(),
+        startTime: "09:00",
+        endTime: "09:30",
+        kind: "personal",
+      },
+      { freq: "daily", interval: 1, anchorDate: dateKey() },
+    );
     useLifeRecordsStore.getState().deleteEventSeries(seriesId);
     expect(
       useLifeRecordsStore.getState().events.filter((event) => event.seriesId === seriesId),
@@ -301,12 +305,16 @@ describe("serie powtarzalne w store", () => {
   });
 
   it("expandRecurringSeries jest no-op, gdy okno jest pełne (bez zbędnego zapisu)", () => {
-    useLifeRecordsStore
-      .getState()
-      .addRecurringEvent(
-        { title: "Pełne okno", date: dateKey(), startTime: "09:00", endTime: "09:30", kind: "personal" },
-        { freq: "daily", interval: 1, anchorDate: dateKey() },
-      );
+    useLifeRecordsStore.getState().addRecurringEvent(
+      {
+        title: "Pełne okno",
+        date: dateKey(),
+        startTime: "09:00",
+        endTime: "09:30",
+        kind: "personal",
+      },
+      { freq: "daily", interval: 1, anchorDate: dateKey() },
+    );
     const before = useLifeRecordsStore.getState().events;
     useLifeRecordsStore.getState().expandRecurringSeries();
     expect(useLifeRecordsStore.getState().events).toBe(before); // ta sama referencja = brak zapisu

@@ -338,7 +338,10 @@ export function QuickAddModal({
               </label>
               <label className="field">
                 <span>Potrzebna energia</span>
-                <select value={energy} onChange={(event) => setEnergy(event.target.value as Energy)}>
+                <select
+                  value={energy}
+                  onChange={(event) => setEnergy(event.target.value as Energy)}
+                >
                   <option value="low">Mała</option>
                   <option value="medium">Średnia</option>
                   <option value="high">Duża</option>
