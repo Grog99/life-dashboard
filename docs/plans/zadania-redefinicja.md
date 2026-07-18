@@ -284,26 +284,28 @@ montują tylko GET/mutations/reset — bez zmian; worker bez zmian).
   `isOverdue`/`formatMinutes` w plikach zadań stają się martwe — usunąć lokalnie, ale nie kasować
   współdzielonych helperów używanych przez inne moduły.
 
-## Pytania do doprecyzowania
+## Decyzje domknięte (dawne pytania)
 
-- [ ] „Dzisiaj" (`TodayPage`): potwierdzić, że zadania trafiają na dziś WYŁĄCZNIE przez `isFocus`
-  (ręczny wybór), a nie żaden nowy mechanizm „na dziś". Czy „Dzisiejszy postęp"/pierścień ma liczyć
-  ukończone spośród `isFocus`, czy w ogóle znika (bo bez dat nie ma „zadań dnia")?
-- [ ] Migracja `category`→tag: mapować 1:1 KAŻDĄ kategorię (w tym domyślną „Ogólne"/„Prywatne"), czy
-  pomijać wartości domyślne, żeby nie zaśmiecać tagów? Czy stare 5 kategorii ma zostać
-  znormalizowane (np. lowercase) przy zamianie na tag?
-- [ ] Sort w grupie „bez grupowania" (i wewnątrz sekcji): po czym po `isFocus`? Data utworzenia
-  (najnowsze/najstarsze), alfabetycznie po tytule, czy po `priority`?
-- [ ] Limit „3 priorytety dnia" (`isFocus`): zostaje jako twardy limit 3 (teraz liczony globalnie,
-  nie per-dzień), czy znosimy/zmieniamy liczbę skoro nie ma już „dnia"?
-- [ ] Tagi wspólne dla gospodarstwa czy per użytkownik? Rekomendacja: tagi to zwykły string na
-  rekordzie (dziedziczą `visibility` zadania) — brak globalnej listy tagów. Czy potrzebna wspólna
-  „paleta" istniejących tagów do podpowiedzi przy wpisywaniu (autouzupełnianie z już użytych)?
-- [ ] Czy zostaje wymiar „energia" (`energy`) i jej filtr w `TasksPage`? Decyzje usuwają tylko
-  date/time/estimatedMinutes — energia formalnie zostaje, ale ergonomicznie jest podobna do „ile
-  czasu" i można ją rozważyć do usunięcia.
-- [ ] Migracja: DROP COLUMN (czysty model, nieodwracalne) czy tylko wyzerowanie kolumn na NULL
-  (niżej-ryzykowne, zostawia martwe pola)? Domyślnie plan zakłada DROP.
-- [ ] Format wpisywania tagów w UI: input z separatorem (przecinek/enter zamienia na chip), czy
-  prosty tekst dzielony po przecinku? Limit liczby tagów i długości pojedynczego taga (rekomendacja:
-  do 20 tagów, do 50 znaków — jak cap w `recipes.tags`).
+Wszystkie otwarte pytania rozstrzygnięte z użytkownikiem — przyjęte rekomendacje. Referencje
+„(patrz Pytania)" powyżej odnoszą się do tej listy.
+
+- **„Dzisiaj" (`TodayPage`):** zadania trafiają na dziś WYŁĄCZNIE przez `isFocus` (ręczny wybór),
+  bez nowego mechanizmu „na dziś". Pierścień „dzisiejszy postęp" ZOSTAJE, ale liczy ukończone
+  spośród zadań `isFocus` (nie po dacie).
+- **Migracja `category`→tag:** mapowanie 1:1 KAŻDEJ niepustej kategorii na pojedynczy tag, z
+  zachowaniem oryginalnej pisowni (np. „Dom" → tag „Dom"). Bez lowercase, bez pomijania wartości.
+  Pusta/NULL kategoria → brak tagu (`tags = []`).
+- **Sort wewnątrz sekcji i w „bez grupowania":** najpierw `isFocus`, potem `priority` malejąco
+  (high→medium→low), potem `createdAt` malejąco (najnowsze wyżej).
+- **Limit priorytetów (`isFocus`):** ZOSTAJE twardy limit 3 (liczony globalnie po
+  `isFocus && status!=='done'`). Etykieta zmienia się z „priorytety dnia" na „priorytety" /
+  „w skupieniu".
+- **Tagi — zasięg:** zwykły string na rekordzie, dziedziczą `visibility` zadania; brak encji tagu
+  ani globalnej listy. **Autouzupełnianie: TAK** — podpowiadamy tagi już użyte w widocznych
+  zadaniach (redukcja literówek; łączenie „dom"/„Dom" pozostaje po stronie użytkownika).
+- **Energia (`energy`):** ZOSTAJE jako wymiar zadania wraz z filtrem energii w `TasksPage`
+  (niezależny od usuniętego „ile czasu").
+- **Migracja kolumn:** `DROP COLUMN` (czysty model). Utrata `date`/`time` zadań zamierzona i
+  zaakceptowana.
+- **Input tagów:** chipy — przecinek/Enter zamienia tekst na tag; limit 20 tagów × 50 znaków (wzór
+  `recipes.tags`); podpowiedzi z już użytych tagów (np. `<datalist>`).
