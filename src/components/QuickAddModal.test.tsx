@@ -2,13 +2,21 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuickAddModal } from "./QuickAddModal";
-import { createSampleData } from "../data/sampleData";
-import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 
 describe("QuickAddModal", () => {
   beforeEach(() => {
     localStorage.clear();
-    useLifeStore.setState({ ...createSampleData(), tasks: [] });
+    useLifeRecordsStore.setState({
+      tasks: [],
+      events: [],
+      reminders: [],
+      notes: [],
+      habits: [],
+      pendingMutations: [],
+      serverAt: null,
+      hydrated: true,
+    });
   });
 
   afterEach(() => cleanup());
@@ -21,7 +29,7 @@ describe("QuickAddModal", () => {
     await user.click(screen.getByRole("checkbox", { name: /Zadanie priorytetowe/i }));
     await user.click(screen.getByRole("button", { name: "Dodaj zadanie" }));
 
-    const created = useLifeStore
+    const created = useLifeRecordsStore
       .getState()
       .tasks.find((task) => task.title === "Przygotować raport");
     expect(created?.isFocus).toBe(true);
@@ -34,7 +42,7 @@ describe("QuickAddModal", () => {
     await user.type(screen.getByLabelText("Co chcesz zapisać?"), "Umyć okna");
     await user.click(screen.getByRole("button", { name: "Dodaj zadanie" }));
 
-    const created = useLifeStore.getState().tasks.find((task) => task.title === "Umyć okna");
+    const created = useLifeRecordsStore.getState().tasks.find((task) => task.title === "Umyć okna");
     expect(created?.isFocus).toBe(false);
   });
 

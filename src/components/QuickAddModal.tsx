@@ -16,7 +16,7 @@ import { dateKey, formatShortDate } from "../lib/date";
 import { alignWeeklyAnchor, nextOccurrences } from "../lib/recurrence";
 import { RecurrenceFields, useRecurrenceForm } from "./RecurrenceFields";
 import { parseSmartCapture } from "../lib/smartCapture";
-import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useServerAuth } from "../server/AuthGate";
 import type { Visibility } from "../advancedTypes";
 import type { Energy, EventKind, NoteColor, Priority, QuickAddType, Recurrence } from "../types";
@@ -41,12 +41,12 @@ export function QuickAddModal({
   initialType = "task",
   onAdded,
 }: QuickAddModalProps) {
-  const addTask = useLifeStore((state) => state.addTask);
-  const addEvent = useLifeStore((state) => state.addEvent);
-  const addReminder = useLifeStore((state) => state.addReminder);
-  const addNote = useLifeStore((state) => state.addNote);
-  const addRecurringTask = useLifeStore((state) => state.addRecurringTask);
-  const addRecurringEvent = useLifeStore((state) => state.addRecurringEvent);
+  const addTask = useLifeRecordsStore((state) => state.addTask);
+  const addEvent = useLifeRecordsStore((state) => state.addEvent);
+  const addReminder = useLifeRecordsStore((state) => state.addReminder);
+  const addNote = useLifeRecordsStore((state) => state.addNote);
+  const addRecurringTask = useLifeRecordsStore((state) => state.addRecurringTask);
+  const addRecurringEvent = useLifeRecordsStore((state) => state.addRecurringEvent);
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
 

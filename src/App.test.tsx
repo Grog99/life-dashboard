@@ -4,15 +4,43 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "./App";
 import { createSampleData } from "./data/sampleData";
 import { useLifeStore } from "./store/useLifeStore";
+import { useLifeRecordsStore } from "./store/useLifeRecordsStore";
 import { createAdvancedData } from "./data/advancedData";
 import { useAdvancedStore } from "./store/useAdvancedStore";
 import { useTripsStore } from "./store/useTripsStore";
+
+const now = new Date().toISOString();
 
 describe("App", () => {
   beforeEach(() => {
     localStorage.clear();
     window.history.replaceState(null, "", "/");
     useLifeStore.setState(createSampleData());
+    useLifeRecordsStore.setState({
+      tasks: [
+        {
+          id: "task-focus",
+          title: "Dokończyć prezentację projektu",
+          status: "todo",
+          priority: "high",
+          category: "Praca",
+          isFocus: true,
+          energy: "high",
+          ownerId: "me",
+          visibility: "private",
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      events: [],
+      reminders: [],
+      notes: [],
+      habits: [],
+      pendingMutations: [],
+      serverAt: null,
+      hydrated: true,
+    });
     useAdvancedStore.setState(createAdvancedData());
     // Podróże nie są już seedowane w createAdvancedData() (docs/plans/podroze-trips.md -- domyślny
     // stan offline jest pusty, serwer jest źródłem prawdy). Dorzuć jedną podróż, żeby test nawigacji
@@ -41,8 +69,8 @@ describe("App", () => {
   });
 
   it("ukrywa sekcję „Najważniejsze dzisiaj”, gdy nie ma priorytetów na dziś", () => {
-    useLifeStore.setState({
-      tasks: useLifeStore.getState().tasks.map((task) => ({ ...task, isFocus: false })),
+    useLifeRecordsStore.setState({
+      tasks: useLifeRecordsStore.getState().tasks.map((task) => ({ ...task, isFocus: false })),
     });
     render(<App />);
     expect(screen.queryByRole("heading", { name: /Najważniejsze dzisiaj/i })).toBeNull();

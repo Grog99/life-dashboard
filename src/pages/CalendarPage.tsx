@@ -19,6 +19,7 @@ import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { dateKey, formatDayName, formatShortDate, relativeDay, weekDays } from "../lib/date";
 import { RecurrenceFields, useRecurrenceForm } from "../components/RecurrenceFields";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useLifeStore } from "../store/useLifeStore";
 import { useServerAuth } from "../server/AuthGate";
 import type { Visibility } from "../advancedTypes";
@@ -31,18 +32,18 @@ interface CalendarPageProps {
 }
 
 export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
-  const events = useLifeStore((state) => state.events);
-  const tasks = useLifeStore((state) => state.tasks);
+  const events = useLifeRecordsStore((state) => state.events);
+  const tasks = useLifeRecordsStore((state) => state.tasks);
   const preferences = useLifeStore((state) => state.preferences);
-  const updateEvent = useLifeStore((state) => state.updateEvent);
-  const deleteEvent = useLifeStore((state) => state.deleteEvent);
-  const addEvent = useLifeStore((state) => state.addEvent);
-  const updateEventSeries = useLifeStore((state) => state.updateEventSeries);
-  const deleteEventSeries = useLifeStore((state) => state.deleteEventSeries);
-  const updateTask = useLifeStore((state) => state.updateTask);
-  const deleteTask = useLifeStore((state) => state.deleteTask);
-  const updateSeries = useLifeStore((state) => state.updateSeries);
-  const deleteSeries = useLifeStore((state) => state.deleteSeries);
+  const updateEvent = useLifeRecordsStore((state) => state.updateEvent);
+  const deleteEvent = useLifeRecordsStore((state) => state.deleteEvent);
+  const addEvent = useLifeRecordsStore((state) => state.addEvent);
+  const updateEventSeries = useLifeRecordsStore((state) => state.updateEventSeries);
+  const deleteEventSeries = useLifeRecordsStore((state) => state.deleteEventSeries);
+  const updateTask = useLifeRecordsStore((state) => state.updateTask);
+  const deleteTask = useLifeRecordsStore((state) => state.deleteTask);
+  const updateSeries = useLifeRecordsStore((state) => state.updateSeries);
+  const deleteSeries = useLifeRecordsStore((state) => state.deleteSeries);
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
   const [googleSyncing, setGoogleSyncing] = useState(false);
@@ -90,7 +91,7 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
       let updated = 0;
       let removed = 0;
       result.events.forEach((item) => {
-        const existing = useLifeStore
+        const existing = useLifeRecordsStore
           .getState()
           .events.find(
             (event) => event.source === "google" && event.externalId === item.externalId,

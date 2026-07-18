@@ -106,21 +106,6 @@ async function deliverReminder(workspace, reminder, targetUserId = null) {
   });
 }
 
-function dueReminders(reminders, nowKey) {
-  if (!Array.isArray(reminders)) return [];
-  return reminders.filter(
-    (reminder) =>
-      typeof reminder?.id === "string" &&
-      reminder.id.length > 0 &&
-      reminder.id.length <= 200 &&
-      !reminder.done &&
-      !reminder.notifiedAt &&
-      /^\d{4}-\d{2}-\d{2}$/.test(reminder.date ?? "") &&
-      /^\d{2}:\d{2}$/.test(reminder.time ?? "") &&
-      `${reminder.date} ${reminder.time}` <= nowKey,
-  );
-}
-
 function shiftLocalDateTime(date, time, minutes) {
   const parsed = new Date(`${date}T${time}:00Z`);
   if (Number.isNaN(parsed.getTime())) return null;
@@ -132,28 +117,6 @@ function withinDeliveryWindow(dueKey, nowKey, days = 7) {
   if (!dueKey || dueKey > nowKey) return false;
   const oldest = shiftLocalDateTime(nowKey.slice(0, 10), nowKey.slice(11, 16), -days * 24 * 60);
   return Boolean(oldest && dueKey >= oldest);
-}
-
-// Subskrypcje (subscriptions) are no longer part of `data.advanced` -- they moved to the
-// normalized `subscriptions` table (server/migrations/012_subscriptions_normalized.sql,
-// docs/plans/subskrypcje-sql.md "Worker"). See subscriptionReminders below, which replaces the
-// loop that used to live here. `derivedReminders` now only handles `life.events`, which stays in
-// the JSONB document.
-function derivedReminders(data, nowKey) {
-  const life = data?.life ?? {};
-  const reminders = [];
-  for (const event of Array.isArray(life.events) ? life.events : []) {
-    const dueKey = shiftLocalDateTime(event?.date, event?.startTime, -30);
-    if (event?.id && withinDeliveryWindow(dueKey, nowKey, 1)) {
-      reminders.push({
-        id: `event:${event.id}`,
-        title: `Za 30 min: ${event.title}`,
-        date: event.date,
-        time: event.startTime,
-      });
-    }
-  }
-  return reminders;
 }
 
 // Trips (Podróże) are no longer part of the workspace JSONB document (server/migrations/
@@ -347,19 +310,69 @@ async function subscriptionReminders(householdId, nowKey) {
   return reminders;
 }
 
-async function deliverDerived(workspace, data, targetUserId = null) {
-  const nowKey = localNowKey(workspace.timezone);
-  for (const reminder of derivedReminders(data, nowKey)) {
-    try {
-      await deliverReminder(workspace, reminder, targetUserId);
-    } catch (error) {
-      console.error("Derived reminder failed", {
-        householdId: workspace.household_id,
-        reminderId: reminder.id,
-        error,
+// Life (events): `events` is a normalized table, not part of the workspace JSONB document (see
+// docs/plans/zadania-kalendarz-notatki-nawyki-sql.md and server/src/life.mjs) -- this replaces the
+// old `derivedReminders`/`deliverDerived` loop that used to read `life.events` from the JSONB
+// document. Same shape as petVisitReminders/healthAppointmentReminders: no JOIN, each row already
+// carries its own visibility/owner_id. Same "Za 30 min: <title>" push, 30 minutes before
+// `date`+`start_time`, SAME 1-day delivery window (not the default 7) and SAME `event:` id prefix
+// as before the migration -- both must stay 1:1 to avoid regressing
+// docs/plans/zadania-wydarzenia-powtarzalne.md's dedup guarantees. Deterministic occurrence ids
+// (`event:seriesId#index`) give each series occurrence its own dedup key in
+// `notification_deliveries`, same as before.
+async function eventReminders(householdId, nowKey) {
+  const result = await query(
+    `SELECT id, title, date::text AS date, start_time, visibility, owner_id
+       FROM events
+      WHERE household_id = $1`,
+    [householdId],
+  );
+  const reminders = [];
+  for (const row of result.rows) {
+    const dueKey = shiftLocalDateTime(row.date, row.start_time, -30);
+    if (withinDeliveryWindow(dueKey, nowKey, 1)) {
+      reminders.push({
+        reminder: {
+          id: `event:${row.id}`,
+          title: `Za 30 min: ${row.title}`,
+          date: row.date,
+          time: row.start_time,
+        },
+        targetUserId: row.visibility === "private" ? row.owner_id : null,
       });
     }
   }
+  return reminders;
+}
+
+// Life (reminders): `reminders` is a normalized table, not part of the workspace JSONB document
+// (see docs/plans/zadania-kalendarz-notatki-nawyki-sql.md and server/src/life.mjs) -- this
+// replaces the old `dueReminders` loop that used to read `life.reminders` from the JSONB document
+// (both the shared `workspace_states` loop AND the now-removed private `user_workspace_states`
+// loop, unified here because reminders carry their own `visibility`/`owner_id`). Filter mirrors
+// `dueReminders` 1:1: not done, not yet notified, due now-or-earlier. `id` carries NO PREFIX
+// (parity with the pre-migration behaviour -- prefixing it would break the
+// `notification_deliveries` dedup key). After a SUCCESSFUL delivery the caller writes back
+// `notified_at` directly on the row (see tick() below), WITHOUT bumping `version` (docs/plans/
+// …"Projekt pól specjalnych": `notified_at` is worker-derived, not part of the user's OCC'd
+// edit set).
+async function manualReminders(householdId, nowKey) {
+  const result = await query(
+    `SELECT id, title, date::text AS date, time, visibility, owner_id
+       FROM reminders
+      WHERE household_id = $1 AND done = false AND notified_at IS NULL`,
+    [householdId],
+  );
+  const reminders = [];
+  for (const row of result.rows) {
+    if (/^\d{2}:\d{2}$/.test(row.time ?? "") && `${row.date} ${row.time}` <= nowKey) {
+      reminders.push({
+        reminder: { id: row.id, title: row.title, date: row.date, time: row.time },
+        targetUserId: row.visibility === "private" ? row.owner_id : null,
+      });
+    }
+  }
+  return reminders;
 }
 
 async function tick() {
@@ -380,6 +393,7 @@ async function tick() {
       query("DELETE FROM pet_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM health_mutations WHERE created_at < now() - interval '30 days'"),
       query("DELETE FROM subscription_mutations WHERE created_at < now() - interval '30 days'"),
+      query("DELETE FROM life_mutations WHERE created_at < now() - interval '30 days'"),
     ]);
     lastMaintenanceAt = Date.now();
   }
@@ -390,7 +404,6 @@ async function tick() {
   );
   for (const workspace of workspaces.rows) {
     try {
-      await deliverDerived(workspace, workspace.data);
       const nowKey = localNowKey(workspace.timezone);
       for (const reminder of await tripReminders(workspace.household_id, nowKey)) {
         try {
@@ -473,71 +486,50 @@ async function tick() {
           });
         }
       }
-      const due = dueReminders(workspace.data?.life?.reminders, nowKey);
-      if (!due.length) continue;
-      const completedIds = [];
-      for (const reminder of due) {
+      for (const { reminder, targetUserId } of await eventReminders(
+        workspace.household_id,
+        nowKey,
+      )) {
         try {
-          if (await deliverReminder(workspace, reminder)) completedIds.push(reminder.id);
+          await deliverReminder(workspace, reminder, targetUserId);
         } catch (error) {
-          console.error("Reminder delivery failed", {
+          console.error("Event reminder failed", {
             householdId: workspace.household_id,
             reminderId: reminder.id,
             error,
           });
         }
       }
-      if (!completedIds.length) continue;
-      const nextData = structuredClone(workspace.data);
-      nextData.life.reminders = nextData.life.reminders.map((reminder) =>
-        completedIds.includes(reminder.id)
-          ? { ...reminder, notifiedAt: new Date().toISOString() }
-          : reminder,
-      );
-      const updated = await query(
-        `UPDATE workspace_states SET data = $1::jsonb, revision = revision + 1, updated_at = now()
-          WHERE household_id = $2 AND revision = $3`,
-        [JSON.stringify(nextData), workspace.household_id, workspace.revision],
-      );
-      if (!updated.rowCount)
-        console.warn(
-          "Workspace changed while marking reminders; retrying next tick",
-          workspace.household_id,
-        );
+      // Manual reminders (Life): unlike the other reminder loops above, a successful delivery
+      // writes back `notified_at` directly on the row -- idempotent (`WHERE notified_at IS NULL`)
+      // and WITHOUT bumping `version` (docs/plans/…"Projekt pól specjalnych": the client also
+      // edits this column via `reminder.update`, and the column is worker-derived, not part of
+      // the OCC'd edit set). Targets private owners the same way every other per-row reminder
+      // loop above does -- this single loop now covers BOTH shared and private manual reminders,
+      // replacing the removed `user_workspace_states` private loop.
+      for (const { reminder, targetUserId } of await manualReminders(
+        workspace.household_id,
+        nowKey,
+      )) {
+        try {
+          const delivered = await deliverReminder(workspace, reminder, targetUserId);
+          if (delivered) {
+            await query(
+              `UPDATE reminders SET notified_at = now()
+                WHERE id = $1 AND household_id = $2 AND notified_at IS NULL`,
+              [reminder.id, workspace.household_id],
+            );
+          }
+        } catch (error) {
+          console.error("Manual reminder failed", {
+            householdId: workspace.household_id,
+            reminderId: reminder.id,
+            error,
+          });
+        }
+      }
     } catch (error) {
       console.error("Reminder workspace failed", { householdId: workspace.household_id, error });
-    }
-  }
-  const privateWorkspaces = await query(
-    `SELECT uws.household_id, uws.user_id, uws.data, h.timezone
-       FROM user_workspace_states uws JOIN households h ON h.id = uws.household_id`,
-  );
-  for (const workspace of privateWorkspaces.rows) {
-    try {
-      await deliverDerived(workspace, workspace.data, workspace.user_id);
-      const nowKey = localNowKey(workspace.timezone);
-      const due = dueReminders(workspace.data?.life?.reminders, nowKey);
-      for (const reminder of due) {
-        try {
-          await deliverReminder(workspace, reminder, workspace.user_id);
-        } catch (error) {
-          console.error("Private reminder delivery failed", {
-            householdId: workspace.household_id,
-            userId: workspace.user_id,
-            reminderId: reminder.id,
-            error,
-          });
-        }
-      }
-      // Intentionally not persisting notifiedAt to user_workspace_states here: that table has
-      // no revision column, so writing back risks clobbering a concurrent user edit. Delivery
-      // dedup is already guaranteed by the notification_deliveries unique constraint.
-    } catch (error) {
-      console.error("Private workspace failed", {
-        householdId: workspace.household_id,
-        userId: workspace.user_id,
-        error,
-      });
     }
   }
 }

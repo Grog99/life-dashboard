@@ -35,79 +35,44 @@ test("private life preferences and advanced hideAmounts are stored per user", ()
   assert.equal(sharedData.advanced.hideAmounts, undefined);
 });
 
-test("private life records are split per user while legacy records stay shared", () => {
+// The two tests that used to live here ("private life records are split per user while legacy
+// records stay shared" / "merge combines shared and private life collections and enforces ownerId
+// from session") exercised LIFE_COLLECTIONS splitting/merging for tasks/events/reminders/notes/
+// habits. Life was the last module carrying entries in LIFE_COLLECTIONS -- it is now `[]`
+// (server/migrations/013_life_normalized.sql, docs/plans/zadania-kalendarz-notatki-nawyki-sql.md)
+// and splitWorkspaceData/mergeWorkspaceData no longer split or merge those fields at all (any
+// `life.tasks`/etc a legacy client still sends passes straight from shared input to shared output,
+// unfiltered -- there is no longer a per-user notion for it in this document). Same precedent as
+// the subscriptions-specific assertions dropped from "private life preferences and advanced
+// hideAmounts are stored per user" above when subscriptions left META_COLLECTIONS.
+test("workspace document no longer splits or merges life collections (moved to /api/v1/life)", () => {
   const source = {
     schemaVersion: 2,
     life: {
       tasks: [
         { id: "private-task", ownerId: "me", visibility: "private", title: "Sekret" },
         { id: "shared-task", ownerId: "me", visibility: "household", title: "Zakupy" },
-        { id: "legacy-task", title: "Stare zadanie" },
       ],
-      events: [],
-      reminders: [{ id: "private-reminder", ownerId: "me", visibility: "private" }],
-      notes: [],
-      habits: [],
     },
     advanced: {},
   };
-
   const { sharedData, privateData } = splitWorkspaceData(source, "user-1");
   assert.deepEqual(
     sharedData.life.tasks.map((item) => item.id),
-    ["shared-task", "legacy-task"],
+    ["private-task", "shared-task"],
+    "unfiltered pass-through -- splitWorkspaceData no longer knows about task visibility",
   );
-  assert.deepEqual(
-    privateData.life.tasks.map((item) => item.id),
-    ["private-task"],
-  );
-  assert.equal(privateData.life.tasks[0].ownerId, "user-1");
-  assert.equal(
-    sharedData.life.tasks[1].ownerId,
-    undefined,
-    "legacy record without ownerId is left untouched, not attributed to anyone",
-  );
-  assert.deepEqual(
-    privateData.life.reminders.map((item) => item.id),
-    ["private-reminder"],
-  );
-  assert.deepEqual(sharedData.life.reminders, []);
-});
+  assert.equal(privateData.life.tasks, undefined);
 
-test("merge combines shared and private life collections and enforces ownerId from session", () => {
   const merged = mergeWorkspaceData(
-    {
-      life: {
-        tasks: [
-          { id: "shared-task", visibility: "household", title: "Zakupy" },
-          { id: "legacy-task", title: "Stare zadanie" },
-        ],
-      },
-    },
-    {
-      life: {
-        tasks: [
-          { id: "private-task", ownerId: "someone-else", visibility: "private", title: "Sekret" },
-        ],
-      },
-    },
+    { life: { tasks: [{ id: "shared-task", visibility: "household" }] } },
+    { life: { tasks: [{ id: "private-task", visibility: "private" }] } },
     { userId: "user-2", userName: "Ola", householdName: "Dom", members: [] },
   );
   assert.deepEqual(
     merged.life.tasks.map((item) => item.id),
-    ["shared-task", "legacy-task", "private-task"],
-  );
-  const privateTask = merged.life.tasks.find((item) => item.id === "private-task");
-  assert.equal(
-    privateTask.ownerId,
-    "user-2",
-    "server must assign ownerId from session, never trust the client value",
-  );
-  const legacyTask = merged.life.tasks.find((item) => item.id === "legacy-task");
-  assert.equal(
-    legacyTask.ownerId,
-    undefined,
-    "legacy shared record is not retroactively attributed to anyone",
+    ["shared-task"],
+    "mergeWorkspaceData only carries the shared side through -- private input is ignored",
   );
 });
 

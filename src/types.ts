@@ -47,6 +47,7 @@ export interface Task {
   isFocus: boolean;
   energy: Energy;
   createdAt: string;
+  version: number;
   updatedAt: string;
   completedAt?: string;
   ownerId?: string;
@@ -70,6 +71,7 @@ export interface CalendarEvent {
   source?: "manual" | "google";
   externalId?: string;
   externalUpdatedAt?: string;
+  version: number;
   updatedAt: string;
   ownerId?: string;
   visibility?: Visibility;
@@ -85,6 +87,7 @@ export interface Reminder {
   time: string;
   done: boolean;
   notifiedAt?: string;
+  version: number;
   updatedAt: string;
   ownerId?: string;
   visibility?: Visibility;
@@ -99,6 +102,7 @@ export interface Note {
   color: NoteColor;
   pinned: boolean;
   createdAt: string;
+  version: number;
   updatedAt: string;
   ownerId?: string;
   visibility?: Visibility;
@@ -110,6 +114,7 @@ export interface Habit {
   icon: "water" | "walk" | "read" | "stretch" | "meditate";
   targetLabel: string;
   completedDates: string[];
+  version: number;
   updatedAt: string;
   ownerId?: string;
   visibility?: Visibility;
@@ -122,16 +127,29 @@ export interface Preferences {
   weekStartsOnMonday: boolean;
 }
 
+// `LifeData` niesie dziś WYŁĄCZNIE 4 pola osobiste (`scratchpad`/`intention`/`energy`/
+// `preferences`) — nadal synchronizowane przez dokument JSONB workspace/`WorkspaceSync`. Pięć
+// kolekcji Life (`tasks`/`events`/`reminders`/`notes`/`habits`) ma własne znormalizowane tabele
+// SQL (server/migrations/013_life_normalized.sql) i żyje w `LifeRecordsData` niżej — patrz
+// docs/plans/zadania-kalendarz-notatki-nawyki-sql.md ("KLUCZOWE: co ZOSTAJE w JSONB, a co
+// odchodzi").
 export interface LifeData {
+  scratchpad: string;
+  intention: string;
+  energy: Energy;
+  preferences: Preferences;
+}
+
+// Snapshot znormalizowanych kolekcji Life (`GET /api/v1/life`) — każdy rekord niesie `version`
+// (optymistyczna współbieżność per rekord, bez pola agregującego, bez wyjątku — jak Zdrowie/
+// Subskrypcje). Wspólny typ dla frontendu (`useLifeRecordsStore`) — backend (`server/src/life.mjs`)
+// nie importuje z `src/` i odzwierciedla ten kształt ręcznie.
+export interface LifeRecordsData {
   tasks: Task[];
   events: CalendarEvent[];
   reminders: Reminder[];
   notes: Note[];
   habits: Habit[];
-  scratchpad: string;
-  intention: string;
-  energy: Energy;
-  preferences: Preferences;
 }
 
 export type QuickAddType = "task" | "event" | "reminder" | "note";

@@ -8,6 +8,7 @@ import {
   advancedDataSchema,
   eventSchema,
   recurrenceSchema,
+  reminderSchema,
   taskSchema,
 } from "./schema";
 
@@ -16,10 +17,20 @@ describe("lifeDataSchema", () => {
     expect(lifeDataSchema.safeParse(createSampleData()).success).toBe(true);
   });
 
+  // Przypomnienia mają teraz własną znormalizowaną tabelę SQL (server/migrations/013_life_normalized.sql)
+  // i nie są już częścią `lifeDataSchema` (patrz "KLUCZOWE: co ZOSTAJE w JSONB, a co odchodzi") —
+  // walidacja semantyczna daty/godziny przechodzi bezpośrednio przez `reminderSchema`.
   it("odrzuca semantycznie błędną datę i godzinę", () => {
-    const data = createSampleData();
-    data.reminders[0] = { ...data.reminders[0], date: "2026-99-99", time: "29:99" };
-    expect(lifeDataSchema.safeParse(data).success).toBe(false);
+    const reminder = {
+      id: "r1",
+      title: "Przypomnienie",
+      date: "2026-99-99",
+      time: "29:99",
+      done: false,
+      version: 1,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    expect(reminderSchema.safeParse(reminder).success).toBe(false);
   });
 
   it("waliduje wersjonowaną kopię danych", () => {
@@ -65,6 +76,7 @@ describe("recurrence (powtarzalność serii)", () => {
     isFocus: false,
     energy: "low" as const,
     createdAt: timestamp,
+    version: 1,
     updatedAt: timestamp,
   };
   const baseEvent = {
@@ -74,6 +86,7 @@ describe("recurrence (powtarzalność serii)", () => {
     startTime: "09:00",
     endTime: "10:00",
     kind: "personal" as const,
+    version: 1,
     updatedAt: timestamp,
   };
 

@@ -65,6 +65,14 @@ import {
   resetSubscriptionsForUser,
 } from "./subscriptions.mjs";
 import {
+  applyLifeMutation,
+  assertLifeMutationShape,
+  MAX_LIFE_MUTATIONS_BYTES,
+  MAX_LIFE_MUTATIONS_PER_BATCH,
+  readLifeSnapshot,
+  resetLifeForUser,
+} from "./life.mjs";
+import {
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -1054,6 +1062,57 @@ app.post("/api/v1/subscriptions/reset", async (request) => {
   await transaction((client) =>
     resetSubscriptionsForUser(client, session.household_id, session.user_id),
   );
+  return { serverAt: new Date().toISOString() };
+});
+
+// Life module (Zadania/Kalendarz/Przypomnienia/Notatki/Nawyki): five normalized tables, not part
+// of the workspace JSONB document (see docs/plans/zadania-kalendarz-notatki-nawyki-sql.md and
+// server/src/life.mjs). GET returns a snapshot, mutations go through a single idempotent batch
+// endpoint mapping 1:1 onto the client's offline queue. Like Health, all five tables are
+// completely independent/flat (no EXISTS-on-parent scoping, no visibility cascade) -- the
+// personal scalar fields (scratchpad/intention/energy/preferences) stay on the JSONB document via
+// PUT/GET /api/v1/workspace, unaffected by this endpoint.
+app.get("/api/v1/life", async (request) => {
+  const session = await requireHousehold(request);
+  const snapshot = await readLifeSnapshot(pool, session.household_id, session.user_id);
+  return { ...snapshot, serverAt: new Date().toISOString() };
+});
+
+app.post("/api/v1/life/mutations", async (request) => {
+  const session = await requireHousehold(request);
+  const body = request.body ?? {};
+  if (!Array.isArray(body.mutations)) {
+    throw httpError(400, "Nieprawidłowe żądanie mutacji Puls", "INVALID_LIFE_MUTATIONS");
+  }
+  if (body.mutations.length > MAX_LIFE_MUTATIONS_PER_BATCH) {
+    throw httpError(413, "Zbyt wiele mutacji w jednym żądaniu", "LIFE_MUTATIONS_TOO_LARGE");
+  }
+  const serializedSize = Buffer.byteLength(JSON.stringify(body.mutations), "utf8");
+  if (serializedSize > MAX_LIFE_MUTATIONS_BYTES) {
+    throw httpError(413, "Dane mutacji przekraczają dozwolony rozmiar", "LIFE_MUTATIONS_TOO_LARGE");
+  }
+  // Validate the whole batch's shape up front (before any DB work) so one malformed entry can't
+  // partially poison sibling mutations' bookkeeping -- see life.mjs's assertLifeMutationShape.
+  for (const mutation of body.mutations) assertLifeMutationShape(mutation);
+  const results = [];
+  for (const mutation of body.mutations) {
+    const ctx = { householdId: session.household_id, userId: session.user_id };
+    // Sequential by design: mutations must apply in the client's offline-queue order (series
+    // materialization sends many *.create at once; toggles compute state from the previous
+    // mutation).
+    const result = await transaction((client) => applyLifeMutation(client, ctx, mutation));
+    results.push(result);
+  }
+  return { results, serverAt: new Date().toISOString() };
+});
+
+// Wspiera "Wyczyść dane aplikacji" (SettingsPage.tsx danger zone): Life nie jest już częścią
+// dokumentu JSONB, więc nie ma go czym nadpisać zwykłym PUT /api/v1/workspace -- ten endpoint
+// odtwarza dokładnie ten sam zakres usuwania (wspólne rekordy + WYŁĄCZNIE prywatne rekordy
+// wywołującego, nigdy prywatne rekordy innych domowników), analogicznie do /api/v1/health/reset.
+app.post("/api/v1/life/reset", async (request) => {
+  const session = await requireHousehold(request);
+  await transaction((client) => resetLifeForUser(client, session.household_id, session.user_id));
   return { serverAt: new Date().toISOString() };
 });
 

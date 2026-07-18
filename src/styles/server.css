@@ -296,6 +296,12 @@
 .sync-indicator--subscriptions {
   bottom: 282px;
 }
+/* Wskaźnik Life (LifeRecordsSync) to dziewiąta niezależna instancja — przesunięty nad
+   subskrypcje, żeby wszystkie dziewięć (workspace/finance/trips/meals/car/pets/health/
+   subscriptions/life) mogły być widoczne równocześnie bez nakładania się. */
+.sync-indicator--life {
+  bottom: 320px;
+}
 @media (max-width: 760px) {
   .auth-shell {
     display: block;
@@ -340,6 +346,9 @@
   }
   .sync-indicator--subscriptions {
     bottom: calc(366px + env(safe-area-inset-bottom));
+  }
+  .sync-indicator--life {
+    bottom: calc(408px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;

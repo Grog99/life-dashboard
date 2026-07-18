@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
 import { formatShortDate, dateKey } from "../lib/date";
 import { polishPlural } from "../lib/pluralize";
-import { useLifeStore } from "../store/useLifeStore";
+import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import type { Note, NoteColor } from "../types";
 
 interface NotesPageProps {
@@ -24,10 +24,10 @@ interface NotesPageProps {
 }
 
 export function NotesPage({ onQuickAdd, onToast }: NotesPageProps) {
-  const notes = useLifeStore((state) => state.notes);
-  const updateNote = useLifeStore((state) => state.updateNote);
-  const deleteNote = useLifeStore((state) => state.deleteNote);
-  const addTask = useLifeStore((state) => state.addTask);
+  const notes = useLifeRecordsStore((state) => state.notes);
+  const updateNote = useLifeRecordsStore((state) => state.updateNote);
+  const deleteNote = useLifeRecordsStore((state) => state.deleteNote);
+  const addTask = useLifeRecordsStore((state) => state.addTask);
   const [query, setQuery] = useState("");
   const [onlyPinned, setOnlyPinned] = useState(false);
 

@@ -1,14 +1,24 @@
 // Auto (vehicles/carExpenses/vehicleDeadlines), Pets (pets/petExpenses/petVisits), Zdrowie
-// (healthAppointments/medications/healthMeasurements) and Subskrypcje (subscriptions) are no
-// longer part of the workspace JSONB document (server/migrations/009_car_normalized.sql,
-// server/migrations/010_pets_normalized.sql, server/migrations/011_health_normalized.sql,
-// server/migrations/012_subscriptions_normalized.sql, docs/plans/auto-car.md,
-// docs/plans/zwierzeta-sql.md, docs/plans/zdrowie-sql.md, docs/plans/subskrypcje-sql.md) -- they
-// have their own normalized tables and endpoints (/api/v1/car, server/src/car.mjs; /api/v1/pets,
-// server/src/pets.mjs; /api/v1/health, server/src/health.mjs; /api/v1/subscriptions,
-// server/src/subscriptions.mjs). Removed from META_COLLECTIONS/CHILD_RELATIONS/
-// ADVANCED_COLLECTIONS below, which automatically excludes them from
+// (healthAppointments/medications/healthMeasurements), Subskrypcje (subscriptions) and Life
+// (tasks/events/reminders/notes/habits) are no longer part of the workspace JSONB document
+// (server/migrations/009_car_normalized.sql, server/migrations/010_pets_normalized.sql,
+// server/migrations/011_health_normalized.sql, server/migrations/012_subscriptions_normalized.sql,
+// server/migrations/013_life_normalized.sql, docs/plans/auto-car.md, docs/plans/zwierzeta-sql.md,
+// docs/plans/zdrowie-sql.md, docs/plans/subskrypcje-sql.md,
+// docs/plans/zadania-kalendarz-notatki-nawyki-sql.md) -- they have their own normalized tables and
+// endpoints (/api/v1/car, server/src/car.mjs; /api/v1/pets, server/src/pets.mjs; /api/v1/health,
+// server/src/health.mjs; /api/v1/subscriptions, server/src/subscriptions.mjs; /api/v1/life,
+// server/src/life.mjs). Removed from META_COLLECTIONS/CHILD_RELATIONS/ADVANCED_COLLECTIONS/
+// LIFE_COLLECTIONS below, which automatically excludes them from
 // splitWorkspaceData/mergeWorkspaceData and workspaceDocumentIsValid.
+//
+// Life is the ONLY one of these five whose JSONB document key (`life`) does NOT disappear
+// entirely: `PERSONAL_LIFE_KEYS` (scratchpad/intention/energy/preferences) stays in `life` and is
+// still synced through this generic workspace document/PUT/GET /api/v1/workspace -- only the five
+// *collections* under `life` moved to SQL (docs/plans/zadania-kalendarz-notatki-nawyki-sql.md
+// "KLUCZOWE: co ZOSTAJE w JSONB, a co odchodzi"). Do NOT remove the workspace document or
+// WorkspaceSync on the strength of "every module migrated" -- the personal scalars and `advanced`
+// (household metadata) still live here.
 //
 // Subskrypcje was the last entry in META_COLLECTIONS -- it is now an empty array. splitWorkspaceData/
 // mergeWorkspaceData iterate it via `for…of`, which degrades to a no-op loop on an empty array, so
@@ -22,7 +32,13 @@ const META_COLLECTIONS = [];
 const CHILD_RELATIONS = {};
 
 const PERSONAL_LIFE_KEYS = ["scratchpad", "intention", "energy", "preferences"];
-const LIFE_COLLECTIONS = ["tasks", "events", "reminders", "notes", "habits"];
+// Life was the last module with entries here -- LIFE_COLLECTIONS is now an empty array.
+// splitWorkspaceData/mergeWorkspaceData iterate it via `for…of`, which degrades to a no-op loop on
+// an empty array (same safety argument as META_COLLECTIONS/CHILD_RELATIONS above), and
+// workspaceDocumentIsValid's `for (const key of LIFE_COLLECTIONS)` loop is likewise skipped
+// entirely -- the document is still considered valid as long as `life.preferences` is an object
+// (unchanged final check).
+const LIFE_COLLECTIONS = [];
 // `householdMembers` is the only remaining entry -- it is household metadata (set from context in
 // mergeWorkspaceData, stripped from sharedAdvanced in splitWorkspaceData), not a user collection,
 // so it keeps flowing through this list even though there is no user-owned collection left
