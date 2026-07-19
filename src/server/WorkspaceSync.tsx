@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Cloud, CloudOff, Database, LoaderCircle, Upload } from "lucide-react";
+import { Database, LoaderCircle, Upload } from "lucide-react";
+import { useReportSyncStatus } from "../hooks/useReportSyncStatus";
 import { exportAdvancedData, useAdvancedStore } from "../store/useAdvancedStore";
 import { exportData, useLifeStore } from "../store/useLifeStore";
 import type { AdvancedData } from "../advancedTypes";
@@ -76,6 +77,9 @@ export function WorkspaceSync({
   const [syncState, setSyncState] = useState<"synced" | "saving" | "offline" | "conflict">(
     "saving",
   );
+  // Raportujemy stan do wspólnego wskaźnika (SyncIndicator) zamiast renderować własny. Wywołanie
+  // MUSI być bezwarunkowe (reguły hooków), przed wczesnymi return dla ładowania/karty migracji.
+  useReportSyncStatus("workspace", syncState);
   const revision = useRef(0);
   const baseData = useRef<WorkspaceData>({});
   const applyingRemote = useRef(false);
@@ -412,27 +416,7 @@ export function WorkspaceSync({
 
   if (!ready) return <AuthSyncLoading />;
 
-  return (
-    <>
-      {children}
-      <div className={`sync-indicator sync-indicator--${syncState}`} role="status">
-        {syncState === "saving" ? (
-          <LoaderCircle size={13} className="spin" />
-        ) : syncState === "offline" ? (
-          <CloudOff size={13} />
-        ) : (
-          <Cloud size={13} />
-        )}
-        {syncState === "saving"
-          ? "Zapisuję"
-          : syncState === "offline"
-            ? "Zmiany czekają na sieć"
-            : syncState === "conflict"
-              ? "Scalam zmiany"
-              : "Zsynchronizowano"}
-      </div>
-    </>
-  );
+  return <>{children}</>;
 }
 
 function AuthSyncLoading() {

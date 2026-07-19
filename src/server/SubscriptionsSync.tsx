@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import { Cloud, CloudOff, LoaderCircle } from "lucide-react";
 import { useSubscriptionsSync } from "../hooks/useSubscriptionsSync";
-import "../styles/server.css";
+import { useReportSyncStatus } from "../hooks/useReportSyncStatus";
 
 // Montowany wewnątrz HealthSync w src/server/AuthGate.tsx — patrz docs/plans/subskrypcje-sql.md
 // ("Montaż"). Provider jest NIEBLOKUJĄCY: renderuje dzieci od razu (Subskrypcje to jedna
 // podstrona, nie blokujemy całej apki na jej hydratację) — SubscriptionsPage czyta gotowość
 // bezpośrednio ze stanu useSubscriptionsStore (pusta tablica, dopóki hydratacja nie dotrze).
+// Stan sync raportujemy do wspólnego wskaźnika (SyncIndicator) zamiast renderować własny — patrz
+// docs/plans/sync-jedno-powiadomienie.md.
 export function SubscriptionsSync({
   children,
   onSessionExpired,
@@ -15,27 +16,7 @@ export function SubscriptionsSync({
   onSessionExpired: () => void;
 }) {
   const { syncState } = useSubscriptionsSync(onSessionExpired);
+  useReportSyncStatus("subscriptions", syncState);
 
-  return (
-    <>
-      {children}
-      <div
-        className={`sync-indicator sync-indicator--subscriptions sync-indicator--${syncState}`}
-        role="status"
-      >
-        {syncState === "saving" ? (
-          <LoaderCircle size={13} className="spin" />
-        ) : syncState === "offline" ? (
-          <CloudOff size={13} />
-        ) : (
-          <Cloud size={13} />
-        )}
-        {syncState === "saving"
-          ? "Zapisuję subskrypcje"
-          : syncState === "offline"
-            ? "Subskrypcje czekają na sieć"
-            : "Subskrypcje zsynchronizowane"}
-      </div>
-    </>
-  );
+  return <>{children}</>;
 }
