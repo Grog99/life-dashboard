@@ -202,7 +202,7 @@ function taskPayload(overrides = {}) {
     title: "Zrobić zakupy",
     status: "todo",
     priority: "medium",
-    category: "dom",
+    tags: ["dom"],
     isFocus: false,
     energy: "medium",
     visibility: "household",
@@ -232,20 +232,22 @@ test("validateTaskCreatePayload rejects invalid fields", () => {
     (error) => error.code === "INVALID_PRIORITY",
   );
   assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ date: "not-a-date" })),
-    (error) => error.code === "INVALID_DATE",
+    () => validateTaskCreatePayload(taskPayload({ tags: ["x".repeat(51)] })),
+    (error) => error.code === "INVALID_TAGS",
+    "tag longer than 50 chars",
   );
   assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ time: "9am" })),
-    (error) => error.code === "INVALID_TIME",
+    () =>
+      validateTaskCreatePayload(
+        taskPayload({ tags: Array.from({ length: 21 }, (_, i) => `t${i}`) }),
+      ),
+    (error) => error.code === "INVALID_TAGS",
+    "more than 20 tags",
   );
   assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ estimatedMinutes: -5 })),
-    (error) => error.code === "INVALID_ESTIMATED_MINUTES",
-  );
-  assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ category: "" })),
-    (error) => error.code === "INVALID_CATEGORY",
+    () => validateTaskCreatePayload(taskPayload({ tags: "dom" })),
+    (error) => error.code === "INVALID_TAGS",
+    "tags must be an array",
   );
   assert.throws(
     () => validateTaskCreatePayload(taskPayload({ isFocus: "yes" })),
@@ -265,63 +267,36 @@ test("validateTaskCreatePayload rejects invalid fields", () => {
   );
 });
 
-test("validateTaskCreatePayload's series fields must appear ALL TOGETHER or NOT AT ALL", () => {
-  // None -- a plain one-off task -- is fine.
-  const oneOff = validateTaskCreatePayload(taskPayload());
-  assert.equal(oneOff.seriesId, null);
-  assert.equal(oneOff.seriesIndex, null);
-  assert.equal(oneOff.recurrence, null);
+test("validateTaskCreatePayload defaults tags to [] and accepts a free-form tag list", () => {
+  const noTags = validateTaskCreatePayload(taskPayload({ tags: undefined }));
+  assert.deepEqual(noTags.tags, []);
 
-  // All three -- a series occurrence -- is fine.
-  const occurrence = validateTaskCreatePayload(
-    taskPayload({
-      seriesId: "series-1",
-      seriesIndex: 0,
-      recurrence: recurrencePayload(),
-    }),
-  );
-  assert.equal(occurrence.seriesId, "series-1");
-  assert.equal(occurrence.seriesIndex, 0);
-  assert.deepEqual(occurrence.recurrence.freq, "weekly");
-
-  // Partial combos are all rejected.
-  assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ seriesId: "series-1" })),
-    (error) => error.code === "INVALID_SERIES_FIELDS",
-    "seriesId alone",
-  );
-  assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ seriesIndex: 0 })),
-    (error) => error.code === "INVALID_SERIES_FIELDS",
-    "seriesIndex alone",
-  );
-  assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ recurrence: recurrencePayload() })),
-    (error) => error.code === "INVALID_SERIES_FIELDS",
-    "recurrence alone",
-  );
-  assert.throws(
-    () => validateTaskCreatePayload(taskPayload({ seriesId: "series-1", seriesIndex: 0 })),
-    (error) => error.code === "INVALID_SERIES_FIELDS",
-    "seriesId + seriesIndex, missing recurrence",
-  );
-  assert.throws(
-    () =>
-      validateTaskCreatePayload(
-        taskPayload({ seriesId: "series-1", recurrence: recurrencePayload() }),
-      ),
-    (error) => error.code === "INVALID_SERIES_FIELDS",
-    "seriesId + recurrence, missing seriesIndex",
-  );
+  const tagged = validateTaskCreatePayload(taskPayload({ tags: ["Dom", "pilne"] }));
+  assert.deepEqual(tagged.tags, ["Dom", "pilne"]);
 });
 
 test(
-  "validateTaskUpdatePayload only allows TASK_UPDATE_KEYS, including visibility, and does NOT " +
-    "enforce the series all-or-nothing group check (independently editable on update)",
+  "validateTaskUpdatePayload only allows TASK_UPDATE_KEYS (no date/time/category/series/recurrence), " +
+    "including visibility and tags as an absolute-set replacement",
   () => {
     assert.throws(
       () => validateTaskUpdatePayload({ id: "task-1", changes: { ownerId: "other" } }, 1),
       (error) => error.code === "INVALID_CHANGES",
+    );
+    assert.throws(
+      () => validateTaskUpdatePayload({ id: "task-1", changes: { date: "2026-07-20" } }, 1),
+      (error) => error.code === "INVALID_CHANGES",
+      "date is no longer an editable field on tasks",
+    );
+    assert.throws(
+      () => validateTaskUpdatePayload({ id: "task-1", changes: { category: "dom" } }, 1),
+      (error) => error.code === "INVALID_CHANGES",
+      "category is no longer an editable field on tasks",
+    );
+    assert.throws(
+      () => validateTaskUpdatePayload({ id: "task-1", changes: { seriesId: "series-1" } }, 1),
+      (error) => error.code === "INVALID_CHANGES",
+      "tasks no longer carry series fields",
     );
     const { changes, baseVersion } = validateTaskUpdatePayload(
       { id: "task-1", changes: { title: " Nowy tytuł ", visibility: "private" } },
@@ -331,20 +306,17 @@ test(
     assert.equal(changes.visibility, "private");
     assert.equal(baseVersion, 2);
 
-    // updateSeries may rewrite recurrence alone, without seriesId/seriesIndex present.
-    const recurrenceOnly = validateTaskUpdatePayload(
-      { id: "task-1", changes: { recurrence: recurrencePayload({ interval: 2 }) } },
+    // tags is an absolute set (like habits.completedDates): the client recomputes and sends the
+    // whole array, this validator just persists it 1:1.
+    const tagsUpdate = validateTaskUpdatePayload(
+      { id: "task-1", changes: { tags: ["dom", "pilne"] } },
       3,
     );
-    assert.equal(recurrenceOnly.changes.recurrence.interval, 2);
-
-    // Clearing recurrence to null (detaching an occurrence from its series) is allowed alone too.
-    const clearRecurrence = validateTaskUpdatePayload(
-      { id: "task-1", changes: { seriesId: null, seriesIndex: null, recurrence: null } },
-      4,
+    assert.deepEqual(tagsUpdate.changes.tags, ["dom", "pilne"]);
+    assert.throws(
+      () => validateTaskUpdatePayload({ id: "task-1", changes: { tags: "dom" } }, 1),
+      (error) => error.code === "INVALID_TAGS",
     );
-    assert.equal(clearRecurrence.changes.seriesId, null);
-    assert.equal(clearRecurrence.changes.recurrence, null);
   },
 );
 
@@ -683,24 +655,37 @@ test("row->DTO mappers convert snake_case/Date/jsonb columns to the frontend sha
     description: null,
     status: "todo",
     priority: "medium",
-    date: "2026-07-20",
-    time: null,
-    estimated_minutes: null,
-    category: "dom",
+    tags: ["dom"],
     is_focus: false,
     energy: "medium",
     completed_at: null,
-    series_id: null,
-    series_index: null,
-    recurrence: null,
     version: 1,
     created_at: new Date("2026-07-01T10:00:00.000Z"),
     updated_at: new Date("2026-07-01T10:00:00.000Z"),
   });
-  assert.equal(task.date, "2026-07-20");
+  assert.deepEqual(task.tags, ["dom"]);
   assert.equal(task.description, undefined);
-  assert.equal(task.seriesId, undefined);
   assert.equal(task.updatedAt, "2026-07-01T10:00:00.000Z");
+  assert.deepEqual(
+    taskRowToDto({
+      id: "task-2",
+      owner_id: "user-1",
+      visibility: "household",
+      title: "Bez tagów",
+      description: null,
+      status: "todo",
+      priority: "low",
+      tags: null,
+      is_focus: false,
+      energy: "medium",
+      completed_at: null,
+      version: 1,
+      created_at: new Date("2026-07-01T10:00:00.000Z"),
+      updated_at: new Date("2026-07-01T10:00:00.000Z"),
+    }).tags,
+    [],
+    "tags defaults to [] when the column isn't an array",
+  );
 
   const event = eventRowToDto({
     id: "event-1",
@@ -888,7 +873,7 @@ function dbTaskPayload(overrides = {}) {
     title: "Zrobić zakupy",
     status: "todo",
     priority: "medium",
-    category: "dom",
+    tags: ["dom"],
     isFocus: false,
     energy: "medium",
     visibility: "household",
@@ -1168,14 +1153,14 @@ dbTest(
 );
 
 dbTest(
-  "a *.create whose deterministic id (seriesId#seriesIndex) collides with an existing row returns " +
-    "conflict/ID_TAKEN with the existing record and currentVersion -- the series-materialization " +
-    "collision case, not a real error",
+  "task.create whose id collides with an existing row returns conflict/ID_TAKEN with the " +
+    "existing record and currentVersion, not a real error (tasks have no series concept anymore " +
+    "-- this is a plain id collision, e.g. two devices creating offline with the same client id)",
   async () => {
     await withRollback(async (client) => {
       const { householdId, userId } = await createHouseholdAndUser(client, "owner");
       const ctx = { householdId, userId };
-      const occurrenceId = "series-1#0";
+      const occurrenceId = randomUUID();
 
       const first = await applyLifeMutation(client, ctx, {
         idempotencyKey: randomUUID(),
@@ -1183,25 +1168,19 @@ dbTest(
         payload: dbTaskPayload({
           id: occurrenceId,
           title: "Poniedziałkowy przegląd",
-          seriesId: "series-1",
-          seriesIndex: 0,
-          recurrence: recurrencePayload(),
         }),
       });
       assert.equal(first.status, "applied");
 
-      // A second device materializing the SAME logical occurrence computes the same id and
-      // attempts to create it again (perhaps with slightly different local field values --
-      // the point is the id collision, not the payload equality).
+      // A second device, unaware of the first, attempts to create a task with the same id
+      // (perhaps with slightly different local field values -- the point is the id collision,
+      // not the payload equality).
       const second = await applyLifeMutation(client, ctx, {
         idempotencyKey: randomUUID(),
         op: "task.create",
         payload: dbTaskPayload({
           id: occurrenceId,
           title: "Poniedziałkowy przegląd (inne urządzenie)",
-          seriesId: "series-1",
-          seriesIndex: 0,
-          recurrence: recurrencePayload(),
         }),
       });
       assert.equal(second.status, "conflict");

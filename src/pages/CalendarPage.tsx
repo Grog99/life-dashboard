@@ -17,13 +17,13 @@ import { addWeeks, format, isSameDay, parseISO } from "date-fns";
 import { pl } from "date-fns/locale";
 import { EmptyState } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
-import { dateKey, formatDayName, formatShortDate, relativeDay, weekDays } from "../lib/date";
+import { dateKey, formatDayName, relativeDay, weekDays } from "../lib/date";
 import { RecurrenceFields, useRecurrenceForm } from "../components/RecurrenceFields";
 import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import { useLifeStore } from "../store/useLifeStore";
 import { useServerAuth } from "../server/AuthGate";
 import type { Visibility } from "../advancedTypes";
-import type { CalendarEvent, Energy, EventKind, Priority, Task } from "../types";
+import type { CalendarEvent, EventKind } from "../types";
 import { apiRequest, serverMode } from "../server/api";
 
 interface CalendarPageProps {
@@ -31,26 +31,23 @@ interface CalendarPageProps {
   onToast: (message: string) => void;
 }
 
+// Kalendarz pokazuje WYŁĄCZNIE wydarzenia -- zadania nie mają już `date`/`time`
+// (docs/plans/zadania-redefinicja.md "CalendarPage"), więc nie mogą się tu pojawić ani w siatce
+// tygodnia, ani w agendzie dnia. Edycja zadań przeniosła się w całości do `TasksPage`.
 export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
   const events = useLifeRecordsStore((state) => state.events);
-  const tasks = useLifeRecordsStore((state) => state.tasks);
   const preferences = useLifeStore((state) => state.preferences);
   const updateEvent = useLifeRecordsStore((state) => state.updateEvent);
   const deleteEvent = useLifeRecordsStore((state) => state.deleteEvent);
   const addEvent = useLifeRecordsStore((state) => state.addEvent);
   const updateEventSeries = useLifeRecordsStore((state) => state.updateEventSeries);
   const deleteEventSeries = useLifeRecordsStore((state) => state.deleteEventSeries);
-  const updateTask = useLifeRecordsStore((state) => state.updateTask);
-  const deleteTask = useLifeRecordsStore((state) => state.deleteTask);
-  const updateSeries = useLifeRecordsStore((state) => state.updateSeries);
-  const deleteSeries = useLifeRecordsStore((state) => state.deleteSeries);
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
   const [googleSyncing, setGoogleSyncing] = useState(false);
   const [anchor, setAnchor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(dateKey());
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const weekOverviewRef = useRef<HTMLDivElement>(null);
   const days = useMemo(
     () => weekDays(anchor, preferences.weekStartsOnMonday),
@@ -139,9 +136,6 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
   const selectedEvents = events
     .filter((event) => event.date === selectedDate)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  const selectedTasks = tasks
-    .filter((task) => task.date === selectedDate && task.status === "todo" && task.time)
-    .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
 
   return (
     <div className="calendar-page page-enter">
@@ -200,10 +194,9 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
         <div className="week-overview" ref={weekOverviewRef}>
           {days.map((day) => {
             const dayKey = dateKey(day);
-            const dayEvents = events.filter((event) => event.date === dayKey);
-            const dayTasks = tasks.filter(
-              (task) => task.date === dayKey && task.status === "todo" && task.time,
-            );
+            const dayEvents = events
+              .filter((event) => event.date === dayKey)
+              .sort((a, b) => a.startTime.localeCompare(b.startTime));
             const selected = dayKey === selectedDate;
             const today = isSameDay(day, new Date());
             return (
@@ -222,50 +215,30 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                   {today && <small>dziś</small>}
                 </button>
                 <div className="week-day__events">
-                  {[
-                    ...dayEvents,
-                    ...dayTasks.map((task) => ({
-                      id: task.id,
-                      title: task.title,
-                      date: task.date!,
-                      startTime: task.time!,
-                      endTime: "",
-                      kind: "task" as const,
-                      seriesId: task.seriesId,
-                    })),
-                  ]
-                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                    .map((item) => (
-                      <button
-                        type="button"
-                        key={`${item.kind}-${item.id}`}
-                        className={`week-event week-event--${item.kind}`}
-                        aria-label={`${item.startTime} ${item.title}, ${item.kind === "meeting" ? "spotkanie" : item.kind === "focus" ? "blok skupienia" : item.kind === "task" ? "zadanie" : "prywatne"}${item.seriesId ? ", powtarzalne" : ""}`}
-                        onClick={() => {
-                          setSelectedDate(dayKey);
-                          if (item.kind === "task") {
-                            const task = dayTasks.find((entry) => entry.id === item.id);
-                            if (task) setEditingTask(task);
-                          } else {
-                            setEditingEvent(item as CalendarEvent);
-                          }
-                        }}
-                      >
-                        <time>{item.startTime}</time>
-                        <strong>{item.title}</strong>
-                        {item.seriesId && (
-                          <Repeat size={11} className="series-icon" aria-hidden="true" />
-                        )}
-                        {"visibility" in item && item.visibility === "private" && (
-                          <span className="private-badge">
-                            <Lock size={10} /> Prywatne
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  {!dayEvents.length && !dayTasks.length && (
-                    <span className="week-day__empty">—</span>
-                  )}
+                  {dayEvents.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={`week-event week-event--${item.kind}`}
+                      aria-label={`${item.startTime} ${item.title}, ${item.kind === "meeting" ? "spotkanie" : item.kind === "focus" ? "blok skupienia" : "prywatne"}${item.seriesId ? ", powtarzalne" : ""}`}
+                      onClick={() => {
+                        setSelectedDate(dayKey);
+                        setEditingEvent(item);
+                      }}
+                    >
+                      <time>{item.startTime}</time>
+                      <strong>{item.title}</strong>
+                      {item.seriesId && (
+                        <Repeat size={11} className="series-icon" aria-hidden="true" />
+                      )}
+                      {item.visibility === "private" && (
+                        <span className="private-badge">
+                          <Lock size={10} /> Prywatne
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  {!dayEvents.length && <span className="week-day__empty">—</span>}
                 </div>
               </div>
             );
@@ -323,25 +296,7 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
                 <ChevronRight size={17} />
               </button>
             ))}
-            {selectedTasks.map((task) => (
-              <div className="agenda-event agenda-event--task" key={task.id}>
-                <span className="agenda-event__time">{task.time}</span>
-                <span className="agenda-event__line" />
-                <span className="agenda-event__content">
-                  <strong>{task.title}</strong>
-                  {task.seriesId && (
-                    <Repeat
-                      size={12}
-                      className="series-icon"
-                      role="img"
-                      aria-label="Zadanie powtarzalne"
-                    />
-                  )}
-                  <small>Zadanie · {task.category}</small>
-                </span>
-              </div>
-            ))}
-            {!selectedEvents.length && !selectedTasks.length && (
+            {!selectedEvents.length && (
               <EmptyState
                 icon={CalendarDays}
                 title="Dzień bez planu"
@@ -396,35 +351,6 @@ export function CalendarPage({ onQuickAdd, onToast }: CalendarPageProps) {
           onToast("Cała seria wydarzeń usunięta");
         }}
         onToast={onToast}
-      />
-
-      <TaskEditModal
-        task={editingTask}
-        onClose={() => setEditingTask(null)}
-        onSave={(changes) => {
-          if (!editingTask) return;
-          updateTask(editingTask.id, changes);
-          setEditingTask(null);
-          onToast("Zmiany w zadaniu zapisane");
-        }}
-        onDelete={() => {
-          if (!editingTask) return;
-          deleteTask(editingTask.id);
-          setEditingTask(null);
-          onToast("Zadanie usunięte");
-        }}
-        onSaveSeries={(changes) => {
-          if (!editingTask?.seriesId) return;
-          updateSeries(editingTask.seriesId, changes);
-          setEditingTask(null);
-          onToast("Zmiany zapisane dla całej serii");
-        }}
-        onDeleteSeries={() => {
-          if (!editingTask?.seriesId) return;
-          deleteSeries(editingTask.seriesId);
-          setEditingTask(null);
-          onToast("Cała seria zadań usunięta");
-        }}
       />
     </div>
   );
@@ -627,197 +553,6 @@ function EventEditModal({
               Zapisz
             </button>
             {event?.seriesId && (
-              <button className="button button--soft" type="button" onClick={submitSeries}>
-                <Repeat size={14} /> Zapisz dla całej serii
-              </button>
-            )}
-          </div>
-        </footer>
-      </form>
-    </Modal>
-  );
-}
-
-interface TaskEditModalProps {
-  task: Task | null;
-  onClose: () => void;
-  onSave: (changes: Partial<Task>) => void;
-  onDelete: () => void;
-  onSaveSeries: (changes: Partial<Task>) => void;
-  onDeleteSeries: () => void;
-}
-
-function TaskEditModal({
-  task,
-  onClose,
-  onSave,
-  onDelete,
-  onSaveSeries,
-  onDeleteSeries,
-}: TaskEditModalProps) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [category, setCategory] = useState("Prywatne");
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [energy, setEnergy] = useState<Energy>("medium");
-  const [estimatedMinutes, setEstimatedMinutes] = useState("30");
-  const repeat = useRecurrenceForm(task?.recurrence);
-
-  useEffect(() => {
-    if (!task) return;
-    setTitle(task.title);
-    setDescription(task.description ?? "");
-    setDate(task.date ?? "");
-    setTime(task.time ?? "");
-    setCategory(task.category);
-    setPriority(task.priority);
-    setEnergy(task.energy);
-    setEstimatedMinutes(String(task.estimatedMinutes ?? 30));
-    repeat.reset(task.recurrence);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task]);
-
-  const buildChanges = (): Partial<Task> => ({
-    title: title.trim(),
-    description: description.trim() || undefined,
-    date: date || undefined,
-    time: time || undefined,
-    category,
-    priority,
-    energy,
-    estimatedMinutes: Number(estimatedMinutes) || undefined,
-  });
-
-  const submit = (submitEvent: FormEvent) => {
-    submitEvent.preventDefault();
-    onSave(buildChanges());
-  };
-
-  const submitSeries = () => {
-    if (!task?.recurrence) return;
-    if (!title.trim()) return; // przycisk poza formularzem — pilnujemy wymaganej nazwy sami
-    // anchorDate serii zachowany, anchorTime z aktualnego pola „Godzina" (fix z code review).
-    onSaveSeries({
-      ...buildChanges(),
-      recurrence: repeat.build(task.recurrence.anchorDate, time || undefined),
-    });
-  };
-
-  return (
-    <Modal
-      open={Boolean(task)}
-      onClose={onClose}
-      title="Szczegóły zadania"
-      eyebrow={task?.date ? `Termin: ${formatShortDate(task.date)}` : "Bez terminu"}
-    >
-      <form className="edit-form" onSubmit={submit}>
-        {task?.seriesId && (
-          <p className="series-edit-note">
-            <Repeat size={13} role="img" aria-label="Zadanie powtarzalne" /> To zadanie jest częścią
-            serii. „Zapisz zmiany” dotyczy tylko tego wystąpienia — użyj „Zapisz dla całej serii”,
-            aby zmienić przyszłe wystąpienia.
-          </p>
-        )}
-        <label className="field field--prominent">
-          <span>Nazwa</span>
-          <input
-            autoFocus
-            required
-            value={title}
-            onChange={(input) => setTitle(input.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>Notatka</span>
-          <textarea
-            value={description}
-            onChange={(input) => setDescription(input.target.value)}
-            placeholder="Opcjonalny kontekst…"
-          />
-        </label>
-        <div className="form-grid form-grid--2">
-          <label className="field">
-            <span>Data</span>
-            <input type="date" value={date} onChange={(input) => setDate(input.target.value)} />
-          </label>
-          <label className="field">
-            <span>Godzina</span>
-            <input type="time" value={time} onChange={(input) => setTime(input.target.value)} />
-          </label>
-          <label className="field">
-            <span>Obszar</span>
-            <select value={category} onChange={(input) => setCategory(input.target.value)}>
-              <option>Praca</option>
-              <option>Prywatne</option>
-              <option>Dom</option>
-              <option>Zdrowie</option>
-              <option>Finanse</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Ważność</span>
-            <select
-              value={priority}
-              onChange={(input) => setPriority(input.target.value as Priority)}
-            >
-              <option value="high">Ważne</option>
-              <option value="medium">Normalne</option>
-              <option value="low">Może poczekać</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Czas</span>
-            <select
-              value={estimatedMinutes}
-              onChange={(input) => setEstimatedMinutes(input.target.value)}
-            >
-              <option value="10">10 minut</option>
-              <option value="15">15 minut</option>
-              <option value="30">30 minut</option>
-              <option value="60">1 godzina</option>
-              <option value="90">1,5 godziny</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Energia</span>
-            <select value={energy} onChange={(input) => setEnergy(input.target.value as Energy)}>
-              <option value="low">Mała</option>
-              <option value="medium">Średnia</option>
-              <option value="high">Duża</option>
-            </select>
-          </label>
-        </div>
-
-        {task?.seriesId && <RecurrenceFields form={repeat} />}
-
-        <footer className="modal-actions modal-actions--spread">
-          <div>
-            <button className="button button--danger-ghost" type="button" onClick={onDelete}>
-              <Trash2 size={15} /> Usuń
-            </button>
-            {task?.seriesId && (
-              <button
-                className="button button--danger-ghost"
-                type="button"
-                onClick={() => {
-                  if (window.confirm("Usunąć całą serię zadań, wraz z przyszłymi wystąpieniami?"))
-                    onDeleteSeries();
-                }}
-              >
-                <Trash2 size={15} /> Usuń serię
-              </button>
-            )}
-          </div>
-          <div>
-            <button className="button button--ghost" type="button" onClick={onClose}>
-              Anuluj
-            </button>
-            <button className="button button--primary" type="submit">
-              Zapisz zmiany
-            </button>
-            {task?.seriesId && (
               <button className="button button--soft" type="button" onClick={submitSeries}>
                 <Repeat size={14} /> Zapisz dla całej serii
               </button>

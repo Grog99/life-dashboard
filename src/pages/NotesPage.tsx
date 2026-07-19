@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
-import { formatShortDate, dateKey } from "../lib/date";
+import { formatShortDate } from "../lib/date";
 import { polishPlural } from "../lib/pluralize";
 import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import type { Note, NoteColor } from "../types";
@@ -61,8 +61,7 @@ export function NotesPage({ onQuickAdd, onToast }: NotesPageProps) {
     addTask({
       title,
       priority: "medium",
-      date: dateKey(),
-      category: "Prywatne",
+      tags: [],
       isFocus: false,
       energy: "medium",
     });

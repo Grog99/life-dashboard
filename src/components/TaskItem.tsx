@@ -1,16 +1,5 @@
-import {
-  CalendarClock,
-  Check,
-  Clock3,
-  Lock,
-  MoreHorizontal,
-  Repeat,
-  Sparkles,
-  Star,
-  Trash2,
-} from "lucide-react";
+import { Check, Lock, MoreHorizontal, Sparkles, Star, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { formatMinutes, isOverdue, relativeDay } from "../lib/date";
 import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
 import type { Task } from "../types";
 
@@ -44,9 +33,7 @@ export function TaskItem({
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleTask = useLifeRecordsStore((state) => state.toggleTask);
   const toggleFocus = useLifeRecordsStore((state) => state.toggleFocus);
-  const moveTaskToTomorrow = useLifeRecordsStore((state) => state.moveTaskToTomorrow);
   const deleteTask = useLifeRecordsStore((state) => state.deleteTask);
-  const overdue = isOverdue(task.date, task.status);
 
   const handleFocus = () => {
     if (!toggleFocus(task.id)) onFocusLimit?.();
@@ -115,9 +102,6 @@ export function TaskItem({
               <Star size={11} fill="currentColor" /> Priorytet
             </span>
           )}
-          {task.seriesId && (
-            <Repeat size={13} className="series-icon" role="img" aria-label="Zadanie powtarzalne" />
-          )}
         </div>
         {!compact && task.description && <p>{task.description}</p>}
         <div className="task-meta">
@@ -126,20 +110,13 @@ export function TaskItem({
               <Lock size={12} /> Prywatne
             </span>
           )}
-          <span
-            className={`category-tag category-tag--${task.category.toLowerCase().replaceAll(" ", "-")}`}
-          >
-            {task.category}
-          </span>
-          {task.date && (
-            <span className={overdue ? "meta-overdue" : ""}>
-              <CalendarClock size={13} /> {overdue ? "Zaległe" : relativeDay(task.date)}
-              {task.time ? `, ${task.time}` : ""}
-            </span>
-          )}
-          {task.estimatedMinutes && (
-            <span>
-              <Clock3 size={13} /> {formatMinutes(task.estimatedMinutes)}
+          {task.tags.length > 0 && (
+            <span className="task-tags">
+              {task.tags.map((tag) => (
+                <span className="tag-chip" key={tag}>
+                  {tag}
+                </span>
+              ))}
             </span>
           )}
           {task.priority === "high" && (
@@ -165,15 +142,6 @@ export function TaskItem({
             <div className="context-menu">
               <button type="button" onClick={handleFocus}>
                 <Star size={15} /> {task.isFocus ? "Usuń z priorytetów" : "Dodaj do priorytetów"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  moveTaskToTomorrow(task.id);
-                  setMenuOpen(false);
-                }}
-              >
-                <CalendarClock size={15} /> Przenieś na jutro
               </button>
               <button className="danger" type="button" onClick={handleDelete}>
                 <Trash2 size={15} /> Usuń

@@ -6,11 +6,13 @@
 // optymistyczną współbieżnością per rekord, kolumna `version`). Wzór 1:1 z
 // src/store/useHealthStore.ts (STRICTLY PROSTSZY moduł: bez pola agregującego, bez relacji
 // rodzic/dziecko, pięć CAŁKOWICIE NIEZALEŻNYCH kolekcji płaskich), z jedną istotną różnicą: Life
-// niesie też logikę powtarzalności (`addRecurringTask`/`addRecurringEvent`/`updateSeries`/
-// `updateEventSeries`/`deleteSeries`/`deleteEventSeries`/`expandRecurringSeries`) przeniesioną 1:1
-// z poprzedniego `src/store/useLifeStore.ts` — materializacja okna zostaje czystą, testowalną
-// logiką w `src/lib/recurrence.ts` (Wariant A, bez zmian), a ten store tylko dokleja do niej
-// kolejkowanie mutacji zamiast bezpośredniego zapisu dokumentu JSONB.
+// niesie też logikę powtarzalności WYŁĄCZNIE dla wydarzeń (`addRecurringEvent`/
+// `updateEventSeries`/`deleteEventSeries`/`expandRecurringSeries`) przeniesioną 1:1 z poprzedniego
+// `src/store/useLifeStore.ts` — materializacja okna zostaje czystą, testowalną logiką w
+// `src/lib/recurrence.ts` (Wariant A, bez zmian), a ten store tylko dokleja do niej kolejkowanie
+// mutacji zamiast bezpośredniego zapisu dokumentu JSONB. Zadania straciły powtarzalność
+// (docs/plans/zadania-redefinicja.md) — `addRecurringTask`/`updateSeries`/`deleteSeries` NIE
+// istnieją już dla `tasks`, tylko dla `events`.
 //
 // Ten plik trzyma WYŁĄCZNIE stan i akcje domenowe (optymistyczne mutacje lokalne + kolejka
 // `pendingMutations`). Nie wie nic o sieci — silnik synchronizacji (src/hooks/useLifeRecordsSync.ts,
@@ -19,7 +21,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { z } from "zod";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import { generateId as makeId } from "../lib/id";
 import { quarantineRawValue, reportStorageWarning, safeLocalStorage } from "../lib/safeStorage";
 import { eventSchema, habitSchema, noteSchema, reminderSchema, taskSchema } from "../lib/schema";
@@ -79,17 +81,11 @@ const TASK_UPDATE_KEYS = [
   "description",
   "status",
   "priority",
-  "date",
-  "time",
-  "estimatedMinutes",
-  "category",
+  "tags",
   "isFocus",
   "energy",
   "completedAt",
   "visibility",
-  "seriesId",
-  "seriesIndex",
-  "recurrence",
 ] as const;
 
 const EVENT_UPDATE_KEYS = [
@@ -137,17 +133,11 @@ function taskCreatePayload(task: Task): Record<string, unknown> {
     description: task.description,
     status: task.status,
     priority: task.priority,
-    date: task.date,
-    time: task.time,
-    estimatedMinutes: task.estimatedMinutes,
-    category: task.category,
+    tags: task.tags,
     isFocus: task.isFocus,
     energy: task.energy,
     completedAt: task.completedAt,
     visibility: task.visibility,
-    seriesId: task.seriesId,
-    seriesIndex: task.seriesIndex,
-    recurrence: task.recurrence,
   };
 }
 
@@ -327,13 +317,6 @@ interface LifeRecordsActions {
   toggleTask: (taskId: string) => void;
   toggleFocus: (taskId: string) => boolean;
   deleteTask: (taskId: string) => void;
-  moveTaskToTomorrow: (taskId: string) => void;
-  addRecurringTask: (
-    task: Omit<Task, "id" | "createdAt" | "updatedAt" | "status" | "version">,
-    recurrence: Recurrence,
-  ) => string;
-  updateSeries: (seriesId: string, changes: Partial<Task>) => void;
-  deleteSeries: (seriesId: string) => void;
   addEvent: (event: Omit<CalendarEvent, "id" | "updatedAt" | "version">) => string;
   updateEvent: (eventId: string, changes: Partial<CalendarEvent>) => void;
   deleteEvent: (eventId: string) => void;
@@ -465,17 +448,14 @@ export const useLifeRecordsStore = create<LifeRecordsStore>()(
       // Liczy nowy stan (status/isFocus/completedAt) LOKALNIE z bieżącego rekordu i wysyła
       // task.update z policzoną deltą — serwer nie liczy toggle'a, tylko zapisuje przysłane
       // wartości (wzór togglePetVisitCompleted / toggleMedicationActive).
+      // Limit 3 priorytetów liczony GLOBALNIE po `isFocus && status!=='done'` -- bez grupowania
+      // po dacie (zadania nie mają już `date`), patrz docs/plans/zadania-redefinicja.md.
       toggleTask: (taskId) => {
         const existing = get().tasks.find((task) => task.id === taskId);
         if (!existing) return;
         const done = existing.status !== "done";
-        const focusDay = existing.date ?? format(new Date(), "yyyy-MM-dd");
         const focusCount = get().tasks.filter(
-          (item) =>
-            item.id !== taskId &&
-            item.isFocus &&
-            item.status !== "done" &&
-            (item.date ?? format(new Date(), "yyyy-MM-dd")) === focusDay,
+          (item) => item.id !== taskId && item.isFocus && item.status !== "done",
         ).length;
         const nextIsFocus = !done && existing.isFocus && focusCount >= 3 ? false : existing.isFocus;
         const nextCompletedAt = done ? new Date().toISOString() : undefined;
@@ -510,12 +490,8 @@ export const useLifeRecordsStore = create<LifeRecordsStore>()(
       toggleFocus: (taskId) => {
         const task = get().tasks.find((item) => item.id === taskId);
         if (!task) return false;
-        const focusDay = task.date ?? format(new Date(), "yyyy-MM-dd");
         const focusCount = get().tasks.filter(
-          (item) =>
-            item.isFocus &&
-            item.status !== "done" &&
-            (item.date ?? format(new Date(), "yyyy-MM-dd")) === focusDay,
+          (item) => item.isFocus && item.status !== "done",
         ).length;
         if (!task.isFocus && focusCount >= 3) return false;
         const nextIsFocus = !task.isFocus;
@@ -543,154 +519,6 @@ export const useLifeRecordsStore = create<LifeRecordsStore>()(
             { idempotencyKey: makeId(), op: "task.delete", payload: { id: taskId } },
           ],
         })),
-
-      moveTaskToTomorrow: (taskId) => {
-        const existing = get().tasks.find((task) => task.id === taskId);
-        if (!existing) return;
-        const nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
-        const updatedAt = new Date().toISOString();
-        set((state) => ({
-          tasks: upsertById(state.tasks, { ...existing, date: nextDate, updatedAt }),
-          pendingMutations: [
-            ...state.pendingMutations,
-            {
-              idempotencyKey: makeId(),
-              op: "task.update",
-              payload: { id: taskId, changes: { date: nextDate } },
-              baseVersion: existing.version,
-            },
-          ],
-        }));
-      },
-
-      addRecurringTask: (task, recurrence) => {
-        const seriesId = makeId();
-        const timestamp = new Date().toISOString();
-        const windowCount =
-          recurrence.count !== undefined
-            ? Math.min(SERIES_WINDOW, recurrence.count)
-            : SERIES_WINDOW;
-        const occurrences: Task[] = [];
-        const mutations: PendingLifeMutation[] = [];
-        for (let index = 0; index < windowCount; index += 1) {
-          const occurrence = occurrenceDate(recurrence, index);
-          const record: Task = {
-            ...task,
-            id: `${seriesId}#${index}`,
-            status: "todo",
-            date: occurrence.date,
-            time: occurrence.time ?? task.time,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            version: 1,
-            visibility: task.visibility ?? "private",
-            ownerId: task.ownerId ?? "me",
-            seriesId,
-            seriesIndex: index,
-            recurrence,
-          };
-          occurrences.push(record);
-          mutations.push({
-            idempotencyKey: makeId(),
-            op: "task.create",
-            payload: taskCreatePayload(record),
-          });
-        }
-        set((state) => ({
-          tasks: [...occurrences, ...state.tasks],
-          pendingMutations: [...state.pendingMutations, ...mutations],
-        }));
-        return seriesId;
-      },
-
-      // Edytuje przyszłe/dzisiejsze wystąpienia serii (przeszłe/ukończone pozostają nietknięte,
-      // poza propagacją widoczności). Każde zmienione/utworzone/usunięte wystąpienie dostaje
-      // WŁASNĄ mutację z jego `baseVersion` — 1:1 przeniesione z poprzedniego useLifeStore.ts,
-      // jedyna różnica to kolejkowanie mutacji obok lokalnej zmiany stanu.
-      updateSeries: (seriesId, changes) => {
-        const today = dateKey();
-        const now = new Date().toISOString();
-        const state = get();
-        const nextRecurrence = changes.recurrence;
-        const limit = nextRecurrence?.count;
-        const mutations: PendingLifeMutation[] = [];
-        const updated = state.tasks.map((task) => {
-          if (task.seriesId !== seriesId) return task;
-          if (task.date && task.date < today) {
-            if (changes.visibility && changes.visibility !== task.visibility) {
-              mutations.push({
-                idempotencyKey: makeId(),
-                op: "task.update",
-                payload: { id: task.id, changes: { visibility: changes.visibility } },
-                baseVersion: task.version,
-              });
-              return { ...task, visibility: changes.visibility, updatedAt: now };
-            }
-            return task;
-          }
-          const merged: Task = { ...task, ...changes, updatedAt: now };
-          if (nextRecurrence && task.seriesIndex !== undefined) {
-            const occurrence = occurrenceDate(nextRecurrence, task.seriesIndex);
-            merged.date = occurrence.date;
-            merged.time = occurrence.time ?? task.time;
-          }
-          const mutationChanges = pickChanges(
-            { ...changes, date: merged.date, time: merged.time } as Record<string, unknown>,
-            TASK_UPDATE_KEYS,
-          );
-          mutations.push({
-            idempotencyKey: makeId(),
-            op: "task.update",
-            payload: { id: task.id, changes: mutationChanges },
-            baseVersion: task.version,
-          });
-          return merged;
-        });
-        const trimmed =
-          limit === undefined
-            ? updated
-            : updated.filter((task) => {
-                if (task.seriesId !== seriesId) return true;
-                if (task.date && task.date < today) return true;
-                if ((task.seriesIndex ?? 0) < limit) return true;
-                mutations.push({
-                  idempotencyKey: makeId(),
-                  op: "task.delete",
-                  payload: { id: task.id },
-                });
-                return false;
-              });
-        const expanded = expandSeries(trimmed, today);
-        if (expanded !== trimmed) {
-          const trimmedIds = new Set(trimmed.map((task) => task.id));
-          for (const task of expanded) {
-            if (!trimmedIds.has(task.id)) {
-              mutations.push({
-                idempotencyKey: makeId(),
-                op: "task.create",
-                payload: taskCreatePayload(task),
-              });
-            }
-          }
-        }
-        set({ tasks: expanded, pendingMutations: [...state.pendingMutations, ...mutations] });
-      },
-
-      deleteSeries: (seriesId) => {
-        const state = get();
-        const toDelete = state.tasks.filter((task) => task.seriesId === seriesId);
-        set({
-          tasks: state.tasks.filter((task) => task.seriesId !== seriesId),
-          pendingMutations: [
-            ...state.pendingMutations,
-            ...toDelete.map((task) => ({
-              idempotencyKey: makeId(),
-              op: "task.delete" as const,
-              payload: { id: task.id },
-            })),
-          ],
-        });
-      },
 
       addEvent: (event) => {
         const eventId = makeId();
@@ -880,41 +708,27 @@ export const useLifeRecordsStore = create<LifeRecordsStore>()(
         });
       },
 
-      // Dosuwa okno przyszłych wystąpień serii (wołane przy montażu appki i powrocie do niej).
-      // No-op (bez `set`), gdy okna są już pełne — unika zbędnych zapisów/synchronizacji.
+      // Dosuwa okno przyszłych wystąpień serii WYDARZEŃ (wołane przy montażu appki i powrocie do
+      // niej). Zadania nie mają już powtarzalności (docs/plans/zadania-redefinicja.md) — tylko
+      // gałąź `events` zostaje. No-op (bez `set`), gdy okno jest już pełne — unika zbędnych
+      // zapisów/synchronizacji.
       expandRecurringSeries: () => {
         const state = get();
         const today = dateKey();
-        const tasksExpanded = expandSeries(state.tasks, today);
         const eventsExpanded = expandSeries(state.events, today);
-        if (tasksExpanded === state.tasks && eventsExpanded === state.events) return;
+        if (eventsExpanded === state.events) return;
         const mutations: PendingLifeMutation[] = [];
-        if (tasksExpanded !== state.tasks) {
-          const existingIds = new Set(state.tasks.map((task) => task.id));
-          for (const task of tasksExpanded) {
-            if (!existingIds.has(task.id)) {
-              mutations.push({
-                idempotencyKey: makeId(),
-                op: "task.create",
-                payload: taskCreatePayload(task),
-              });
-            }
-          }
-        }
-        if (eventsExpanded !== state.events) {
-          const existingIds = new Set(state.events.map((event) => event.id));
-          for (const event of eventsExpanded) {
-            if (!existingIds.has(event.id)) {
-              mutations.push({
-                idempotencyKey: makeId(),
-                op: "event.create",
-                payload: eventCreatePayload(event),
-              });
-            }
+        const existingIds = new Set(state.events.map((event) => event.id));
+        for (const event of eventsExpanded) {
+          if (!existingIds.has(event.id)) {
+            mutations.push({
+              idempotencyKey: makeId(),
+              op: "event.create",
+              payload: eventCreatePayload(event),
+            });
           }
         }
         set({
-          tasks: tasksExpanded,
           events: eventsExpanded,
           pendingMutations: [...state.pendingMutations, ...mutations],
         });

@@ -20,8 +20,9 @@ export type TaskStatus = "todo" | "done";
 export type Theme = "light" | "dark" | "system";
 export type Energy = "low" | "medium" | "high";
 
-// Powtarzalność zadań/wydarzeń (patrz docs/plans/zadania-wydarzenia-powtarzalne.md).
-// Wariant A: reguła jest replikowana na każdym zmaterializowanym wystąpieniu
+// Powtarzalność wydarzeń (patrz docs/plans/zadania-wydarzenia-powtarzalne.md;
+// docs/plans/zadania-redefinicja.md odpiął powtarzalność od zadań -- zostaje wyłącznie dla
+// `CalendarEvent`). Wariant A: reguła jest replikowana na każdym zmaterializowanym wystąpieniu
 // (self-describing), obok stabilnego `seriesId` i porządkowego `seriesIndex`.
 export type RecurrenceFreq = "daily" | "weekly" | "monthly";
 
@@ -31,7 +32,7 @@ export interface Recurrence {
   weekdays?: number[]; // TYLKO dla freq="weekly"; ISO 1=pon … 7=niedz, posortowane, unikalne, min. 1
   count?: number; // limit liczby wystąpień (>= 1), liczony od kotwicy; brak = bezterminowo
   anchorDate: string; // "yyyy-MM-dd" — data wystąpienia seriesIndex=0 (start serii)
-  anchorTime?: string; // "HH:mm" — dla eventów startTime kotwicy; task może nie mieć godziny
+  anchorTime?: string; // "HH:mm" — godzina startu wystąpienia serii
 }
 
 export interface Task {
@@ -40,10 +41,7 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   priority: Priority;
-  date?: string;
-  time?: string;
-  estimatedMinutes?: number;
-  category: string;
+  tags: string[];
   isFocus: boolean;
   energy: Energy;
   createdAt: string;
@@ -52,9 +50,6 @@ export interface Task {
   completedAt?: string;
   ownerId?: string;
   visibility?: Visibility;
-  seriesId?: string;
-  seriesIndex?: number;
-  recurrence?: Recurrence;
 }
 
 export type EventKind = "meeting" | "focus" | "personal";

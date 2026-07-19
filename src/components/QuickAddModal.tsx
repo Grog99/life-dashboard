@@ -2,16 +2,16 @@ import {
   BellRing,
   CalendarPlus,
   CheckSquare2,
-  Clock3,
   Lightbulb,
   NotebookPen,
   Repeat,
   Sparkles,
   Star,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { addHours, format, getISODay, parseISO } from "date-fns";
 import { Modal } from "./Modal";
+import { TagsInput } from "./TagsInput";
 import { dateKey, formatShortDate } from "../lib/date";
 import { alignWeeklyAnchor, nextOccurrences } from "../lib/recurrence";
 import { RecurrenceFields, useRecurrenceForm } from "./RecurrenceFields";
@@ -45,25 +45,29 @@ export function QuickAddModal({
   const addEvent = useLifeRecordsStore((state) => state.addEvent);
   const addReminder = useLifeRecordsStore((state) => state.addReminder);
   const addNote = useLifeRecordsStore((state) => state.addNote);
-  const addRecurringTask = useLifeRecordsStore((state) => state.addRecurringTask);
   const addRecurringEvent = useLifeRecordsStore((state) => state.addRecurringEvent);
+  const existingTasks = useLifeRecordsStore((state) => state.tasks);
   const { snapshot } = useServerAuth();
   const currentOwnerId = snapshot?.user.id ?? "me";
+
+  const existingTags = useMemo(() => {
+    const unique = new Set<string>();
+    existingTasks.forEach((task) => task.tags.forEach((tag) => unique.add(tag)));
+    return Array.from(unique).sort((a, b) => a.localeCompare(b, "pl"));
+  }, [existingTasks]);
 
   const [type, setType] = useState<QuickAddType>(initialType);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(dateKey());
   const [time, setTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
-  const [category, setCategory] = useState("Prywatne");
+  const [tags, setTags] = useState<string[]>([]);
   const [priority, setPriority] = useState<Priority>("medium");
   const [energy, setEnergy] = useState<Energy>("medium");
-  const [duration, setDuration] = useState("30");
   const [kind, setKind] = useState<EventKind>("personal");
   const [location, setLocation] = useState("");
   const [noteColor, setNoteColor] = useState<NoteColor>("cream");
   const [visibility, setVisibility] = useState<Visibility>("private");
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [isFocus, setIsFocus] = useState(false);
   const [dateEditedManually, setDateEditedManually] = useState(false);
   const [timeEditedManually, setTimeEditedManually] = useState(false);
@@ -78,15 +82,13 @@ export function QuickAddModal({
     setDate(dateKey(nextHour));
     setTime(format(nextHour, "HH:00"));
     setEndTime(format(addHours(new Date(), 2), "HH:00"));
-    setCategory("Prywatne");
+    setTags([]);
     setPriority("medium");
     setEnergy("medium");
-    setDuration("30");
     setKind("personal");
     setLocation("");
     setNoteColor("cream");
     setVisibility("private");
-    setDetailsOpen(false);
     setIsFocus(false);
     setDateEditedManually(false);
     setTimeEditedManually(false);
@@ -95,8 +97,11 @@ export function QuickAddModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `repeat` (z useRecurrenceForm) jest nowym obiektem co render; efekt ma resetować formularz tylko przy otwarciu/zmianie typu, nie przy każdym renderze.
   }, [initialType, open]);
 
+  // Smart capture uzupełnia datę/godzinę TYLKO dla wydarzeń/przypomnień -- zadania nie mają już
+  // terminu (docs/plans/zadania-redefinicja.md), więc `parsed.date`/`parsed.time` są dla nich
+  // ignorowane (używamy tylko `parsed.title` przy zapisie, patrz `submit`).
   useEffect(() => {
-    if (!open || type === "note") return;
+    if (!open || (type !== "event" && type !== "reminder")) return;
     const parsed = parseSmartCapture(title);
     if (parsed.date && !dateEditedManually) setDate(parsed.date);
     if (parsed.time && !timeEditedManually) setTime(parsed.time);
@@ -119,9 +124,7 @@ export function QuickAddModal({
   };
 
   const repeatPreview =
-    repeatEnabled && (type === "task" || type === "event")
-      ? nextOccurrences(buildRecurrence(date || dateKey()), 4)
-      : [];
+    repeatEnabled && type === "event" ? nextOccurrences(buildRecurrence(date || dateKey()), 4) : [];
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -130,42 +133,16 @@ export function QuickAddModal({
     const parsed = parseSmartCapture(title);
 
     if (type === "task") {
-      const hasDate = detailsOpen || Boolean(parsed.date);
-      const hasTime = detailsOpen || Boolean(parsed.time);
-      if (repeatEnabled) {
-        const recurrence = buildRecurrence(
-          (hasDate && date) || dateKey(),
-          hasTime && time ? time : undefined,
-        );
-        addRecurringTask(
-          {
-            title: parsed.title,
-            priority,
-            category,
-            isFocus,
-            energy,
-            estimatedMinutes: detailsOpen ? Number(duration) || undefined : undefined,
-            visibility,
-            ownerId: currentOwnerId,
-          },
-          recurrence,
-        );
-        onAdded?.("Seria zadań utworzona");
-      } else {
-        addTask({
-          title: parsed.title,
-          priority,
-          date: hasDate && date ? date : undefined,
-          time: hasTime && time ? time : undefined,
-          estimatedMinutes: detailsOpen ? Number(duration) || undefined : undefined,
-          category,
-          isFocus,
-          energy,
-          visibility,
-          ownerId: currentOwnerId,
-        });
-        onAdded?.("Zadanie trafiło na listę");
-      }
+      addTask({
+        title: parsed.title,
+        priority,
+        tags,
+        isFocus,
+        energy,
+        visibility,
+        ownerId: currentOwnerId,
+      });
+      onAdded?.("Zadanie trafiło na listę");
     } else if (type === "event") {
       if (!date || !time || !endTime || endTime <= time) {
         onAdded?.("Sprawdź datę i kolejność godzin wydarzenia");
@@ -250,7 +227,7 @@ export function QuickAddModal({
             onChange={(event) => setTitle(event.target.value)}
             placeholder={
               type === "task"
-                ? "Np. Zadzwonić do dentysty jutro o 14:00"
+                ? "Np. Zadzwonić do dentysty"
                 : type === "event"
                   ? "Np. Spotkanie z Kasią"
                   : type === "reminder"
@@ -260,7 +237,7 @@ export function QuickAddModal({
           />
         </label>
 
-        {type !== "note" && (
+        {(type === "event" || type === "reminder") && (
           <div className="smart-hint">
             <Sparkles size={14} />
             Rozumiem frazy „dzisiaj”, „jutro” i godziny, np. „o 16:30”.
@@ -337,79 +314,44 @@ export function QuickAddModal({
                 <small>Trafi do sekcji „Najważniejsze dzisiaj".</small>
               </span>
             </label>
-            <button
-              className="details-toggle"
-              type="button"
-              onClick={() => setDetailsOpen((value) => !value)}
-            >
-              <Clock3 size={15} /> {detailsOpen ? "Mniej opcji" : "Dodaj termin i szczegóły"}
-            </button>
-            {detailsOpen && (
-              <div className="form-grid form-grid--2 quick-add-details">
-                <label className="field">
-                  <span>Termin</span>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(event) => handleDateChange(event.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>Godzina</span>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(event) => handleTimeChange(event.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>Obszar</span>
-                  <select value={category} onChange={(event) => setCategory(event.target.value)}>
-                    <option>Praca</option>
-                    <option>Prywatne</option>
-                    <option>Dom</option>
-                    <option>Zdrowie</option>
-                    <option>Finanse</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Ważność</span>
-                  <select
-                    value={priority}
-                    onChange={(event) => setPriority(event.target.value as Priority)}
-                  >
-                    <option value="high">Ważne</option>
-                    <option value="medium">Normalne</option>
-                    <option value="low">Może poczekać</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Ile czasu?</span>
-                  <select value={duration} onChange={(event) => setDuration(event.target.value)}>
-                    <option value="10">10 minut</option>
-                    <option value="15">15 minut</option>
-                    <option value="30">30 minut</option>
-                    <option value="60">1 godzina</option>
-                    <option value="90">1,5 godziny</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Potrzebna energia</span>
-                  <select
-                    value={energy}
-                    onChange={(event) => setEnergy(event.target.value as Energy)}
-                  >
-                    <option value="low">Mała</option>
-                    <option value="medium">Średnia</option>
-                    <option value="high">Duża</option>
-                  </select>
-                </label>
-              </div>
-            )}
+            <label className="field">
+              <span>Tagi</span>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                suggestions={existingTags}
+                placeholder="Np. dom, praca, zdrowie…"
+                aria-label="Tagi zadania"
+              />
+            </label>
+            <div className="form-grid form-grid--2">
+              <label className="field">
+                <span>Ważność</span>
+                <select
+                  value={priority}
+                  onChange={(event) => setPriority(event.target.value as Priority)}
+                >
+                  <option value="high">Ważne</option>
+                  <option value="medium">Normalne</option>
+                  <option value="low">Może poczekać</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Potrzebna energia</span>
+                <select
+                  value={energy}
+                  onChange={(event) => setEnergy(event.target.value as Energy)}
+                >
+                  <option value="low">Mała</option>
+                  <option value="medium">Średnia</option>
+                  <option value="high">Duża</option>
+                </select>
+              </label>
+            </div>
           </>
         )}
 
-        {(type === "task" || type === "event") && (
+        {type === "event" && (
           <>
             <label className="check-field">
               <input
@@ -418,12 +360,9 @@ export function QuickAddModal({
                 onChange={(event) => {
                   const checked = event.target.checked;
                   setRepeatEnabled(checked);
-                  if (checked) {
-                    if (type === "task") setDetailsOpen(true);
-                    if (repeat.weekdays.length === 0) {
-                      const anchor = date || dateKey();
-                      repeat.setWeekdays([getISODay(parseISO(anchor))]);
-                    }
+                  if (checked && repeat.weekdays.length === 0) {
+                    const anchor = date || dateKey();
+                    repeat.setWeekdays([getISODay(parseISO(anchor))]);
                   }
                 }}
               />
@@ -484,9 +423,7 @@ export function QuickAddModal({
             </button>
             <button className="button button--primary" type="submit">
               {type === "task"
-                ? repeatEnabled
-                  ? "Utwórz serię zadań"
-                  : "Dodaj zadanie"
+                ? "Dodaj zadanie"
                 : type === "event"
                   ? repeatEnabled
                     ? "Utwórz serię wydarzeń"

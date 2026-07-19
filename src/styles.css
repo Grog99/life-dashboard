@@ -1787,28 +1787,86 @@ kbd {
   align-items: center;
   gap: 4px;
 }
-.category-tag {
+.task-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 3px 6px;
   color: var(--brand);
   font-weight: 750;
   background: var(--brand-pale);
   border-radius: 5px;
 }
-.category-tag--praca {
-  color: var(--blue);
-  background: var(--blue-light);
-}
-.category-tag--zdrowie {
-  color: var(--brand);
-  background: var(--brand-light);
-}
-.category-tag--finanse {
-  color: var(--purple);
-  background: var(--purple-light);
-}
-.meta-overdue,
 .priority-high {
   color: var(--danger) !important;
+}
+
+/* Wejście na tagi (TagsInput) -- chipy + pole tekstowe w jednym kontenerze, reużywa wyglądu
+   `.tag-chip` z read-only widoku TaskItem (docs/plans/zadania-redefinicja.md "Input tagów"). */
+.tags-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.tag-chip--removable button {
+  display: grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border-radius: 50%;
+}
+.tag-chip--removable button:hover {
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+.tags-input__field {
+  flex: 1;
+  min-width: 90px;
+  padding: 4px 2px;
+  background: transparent;
+  border: 0;
+}
+.tags-input__field:focus {
+  outline: none;
+}
+
+/* Sekcje grupowania na liście zadań (wg ważności / wg tagu) — TasksPage. */
+.task-section + .task-section {
+  margin-top: 14px;
+}
+.task-section__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.task-section__label span {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 5px;
+  color: var(--muted);
+  font-size: 10px;
+  background: var(--surface-soft);
+  border-radius: 6px;
 }
 .task-actions {
   position: relative;
@@ -2401,7 +2459,7 @@ kbd {
 /* Tasks */
 .task-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -2457,7 +2515,9 @@ kbd {
   top: 85px;
   display: flex;
   flex-direction: column;
+  max-height: calc(100vh - 105px);
   padding: 11px;
+  overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 15px;
@@ -3822,7 +3882,7 @@ kbd {
     grid-column: 1 / -1;
   }
   .task-stats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
   .calendar-lower-grid {
     grid-template-columns: 1fr;
@@ -4128,6 +4188,8 @@ kbd {
     z-index: 25;
     display: none;
     width: min(250px, 86vw);
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
     box-shadow: var(--shadow-float);
   }
   .task-filters--open {

@@ -70,7 +70,7 @@ type AgendaItem = {
   title: string;
   time: string;
   endTime?: string;
-  kind: "meeting" | "focus" | "personal" | "task";
+  kind: "meeting" | "focus" | "personal";
   meta?: string;
   visibility?: "private" | "household";
 };
@@ -138,15 +138,12 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
   const today = dateKey(now);
   const tomorrow = dateKey(addDays(now, 1));
   const tomorrowEventsCount = events.filter((event) => event.date === tomorrow).length;
-  const tomorrowTasksCount = tasks.filter(
-    (task) => task.date === tomorrow && task.status === "todo",
-  ).length;
-  const focusTasks = tasks.filter(
-    (task) => task.isFocus && task.status === "todo" && (!task.date || task.date === today),
-  );
-  const todayTasks = tasks.filter((task) => task.date === today);
-  const todayOpenTasks = todayTasks.filter((task) => task.status === "todo");
-  const todayDoneTasks = todayTasks.filter((task) => task.status === "done");
+  // Zadania trafiają "na dziś" WYŁĄCZNIE przez `isFocus` (ręczny wybór), odpięte od daty --
+  // zadania nie mają już `date` (docs/plans/zadania-redefinicja.md "Dzisiaj"). Pierścień
+  // "dzisiejszego postępu" liczy ukończone spośród `isFocus`, nie po dacie.
+  const focusTasks = tasks.filter((task) => task.isFocus && task.status === "todo");
+  const focusDoneTasks = tasks.filter((task) => task.isFocus && task.status === "done");
+  const totalFocus = focusTasks.length + focusDoneTasks.length;
   const todayEvents = events
     .filter((event) => event.date === today)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -154,32 +151,24 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
     .filter((reminder) => !reminder.done)
     .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
 
-  const agenda = useMemo<AgendaItem[]>(() => {
-    const eventItems: AgendaItem[] = todayEvents.map((event) => ({
-      id: event.id,
-      title: event.title,
-      time: event.startTime,
-      endTime: event.endTime,
-      kind: event.kind,
-      meta: event.location,
-      visibility: event.visibility,
-    }));
-    const taskItems: AgendaItem[] = todayOpenTasks
-      .filter((task) => task.time)
-      .map((task) => ({
-        id: task.id,
-        title: task.title,
-        time: task.time!,
-        kind: "task",
-        meta: task.category,
-        visibility: task.visibility,
-      }));
-    return [...eventItems, ...taskItems].sort((a, b) => a.time.localeCompare(b.time));
-  }, [todayEvents, todayOpenTasks]);
+  // Agenda pokazuje WYŁĄCZNIE wydarzenia -- zadania nie mają już godziny, więc nie mogą już
+  // pojawić się na osi czasu dnia (docs/plans/zadania-redefinicja.md "CalendarPage"/"TodayPage").
+  const agenda = useMemo<AgendaItem[]>(
+    () =>
+      todayEvents.map((event) => ({
+        id: event.id,
+        title: event.title,
+        time: event.startTime,
+        endTime: event.endTime,
+        kind: event.kind,
+        meta: event.location,
+        visibility: event.visibility,
+      })),
+    [todayEvents],
+  );
 
   const nextItem = agenda.find((item) => toDateTime(today, item.endTime ?? item.time) >= now);
-  const totalToday = todayTasks.length;
-  const progress = totalToday ? Math.round((todayDoneTasks.length / totalToday) * 100) : 0;
+  const progress = totalFocus ? Math.round((focusDoneTasks.length / totalFocus) * 100) : 0;
   const displayName = name.trim() ? `, ${name.trim()}` : "";
   const monthPrefix = today.slice(0, 7);
   const budgetCurrency = financeBudgets[0]?.currency ?? "PLN";
@@ -233,8 +222,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
     addTask({
       title,
       priority: "medium",
-      date: today,
-      category: "Prywatne",
+      tags: [],
       isFocus: false,
       energy: "medium",
     });
@@ -257,9 +245,9 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
             {displayName} <span aria-hidden="true">👋</span>
           </h1>
           <p>
-            {todayOpenTasks.length === 0
+            {focusTasks.length === 0
               ? "Plan na dziś domknięty. Dobra robota — reszta dnia należy do Ciebie."
-              : `Masz dziś ${todayOpenTasks.length} ${todayOpenTasks.length === 1 ? "rzecz" : todayOpenTasks.length < 5 ? "rzeczy" : "rzeczy"} do zrobienia${todayEvents.length ? ` i ${todayEvents.length} ${polishPlural(todayEvents.length, "wydarzenie", "wydarzenia", "wydarzeń")}` : ""}. Zacznij od tego, co naprawdę ważne.`}
+              : `Masz dziś ${focusTasks.length} ${focusTasks.length === 1 ? "priorytet" : focusTasks.length < 5 ? "priorytety" : "priorytetów"} do zrobienia${todayEvents.length ? ` i ${todayEvents.length} ${polishPlural(todayEvents.length, "wydarzenie", "wydarzenia", "wydarzeń")}` : ""}. Zacznij od tego, co naprawdę ważne.`}
           </p>
           <label className="intention-field">
             <Lightbulb size={15} />
@@ -290,7 +278,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
           <div>
             <span>Dzisiejszy postęp</span>
             <strong>
-              {todayDoneTasks.length} z {totalToday || 0} zadań
+              {focusDoneTasks.length} z {totalFocus || 0} priorytetów
             </strong>
           </div>
         </div>
@@ -416,9 +404,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
                             ? "Spotkanie"
                             : item.kind === "focus"
                               ? "Skupienie"
-                              : item.kind === "task"
-                                ? "Zadanie"
-                                : "Prywatne"}
+                              : "Prywatne"}
                         </span>
                       </div>
                     </div>
@@ -787,8 +773,7 @@ export function TodayPage({ onQuickAdd, onNavigate, onToast }: TodayPageProps) {
             </div>
             <p>
               {tomorrowEventsCount}{" "}
-              {polishPlural(tomorrowEventsCount, "wydarzenie", "wydarzenia", "wydarzeń")} ·{" "}
-              {tomorrowTasksCount} {polishPlural(tomorrowTasksCount, "zadanie", "zadania", "zadań")}
+              {polishPlural(tomorrowEventsCount, "wydarzenie", "wydarzenia", "wydarzeń")}
             </p>
             <button
               type="button"
