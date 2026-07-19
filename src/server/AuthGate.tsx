@@ -18,6 +18,7 @@ import { PetsSync } from "./PetsSync";
 import { HealthSync } from "./HealthSync";
 import { SubscriptionsSync } from "./SubscriptionsSync";
 import { LifeRecordsSync } from "./LifeRecordsSync";
+import { SyncIndicator } from "../components/SyncIndicator";
 import { removeCurrentPushSubscription } from "./push";
 import { useLifeStore } from "../store/useLifeStore";
 import { useLifeRecordsStore } from "../store/useLifeRecordsStore";
@@ -406,6 +407,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </TripsSync>
         </FinanceSync>
       </WorkspaceSync>
+      {/* Jeden zbiorczy wskaźnik synchronizacji dla wszystkich modułów — zawsze renderowany,
+          niezależnie od gate'u `ready` w WorkspaceSync. Patrz docs/plans/sync-jedno-powiadomienie.md. */}
+      <SyncIndicator />
     </AuthContext.Provider>
   );
 }

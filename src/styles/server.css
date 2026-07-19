@@ -246,61 +246,27 @@
   border-radius: 8px;
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(10px);
-  /* role="status", czysto informacyjny (bez onClick) -- z siedmioma skumulowanymi instancjami
-     (workspace/finance/trips/meals/car/pets/health) stos zasięga wystarczająco wysoko, by na
-     niektórych stronach (np. Zdrowie -> "Nowy pomiar") przesłaniać klikalne elementy pod spodem.
-     pointer-events: none przepuszcza kliknięcia do treści strony, zachowując widoczność wskaźnika. */
+  /* role="status", czysto informacyjny (bez onClick). Jeden zbiorczy wskaźnik dla wszystkich
+     modułów (SyncIndicator) — pointer-events: none przepuszcza kliknięcia do treści strony pod
+     spodem, zachowując widoczność wskaźnika. */
   pointer-events: none;
+  animation: sync-indicator-in 160ms ease-out;
+}
+@keyframes sync-indicator-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .sync-indicator--offline {
   color: var(--amber);
 }
 .sync-indicator--conflict {
   color: var(--blue);
-}
-/* Wskaźnik finansów (FinanceSync) jest osobną instancją od tego workspace'u (WorkspaceSync) —
-   przesunięty nad niego, żeby oba mogły być widoczne równocześnie bez nakładania się. */
-.sync-indicator--finance {
-  bottom: 54px;
-}
-/* Wskaźnik podróży (TripsSync) to trzecia niezależna instancja — przesunięty nad finanse, żeby
-   wszystkie trzy (workspace/finance/trips) mogły być widoczne równocześnie bez nakładania się. */
-.sync-indicator--trips {
-  bottom: 92px;
-}
-/* Wskaźnik posiłków (MealsSync) to czwarta niezależna instancja — przesunięty nad podróże, żeby
-   wszystkie cztery (workspace/finance/trips/meals) mogły być widoczne równocześnie bez nakładania się. */
-.sync-indicator--meals {
-  bottom: 130px;
-}
-/* Wskaźnik samochodu (CarSync) to piąta niezależna instancja — przesunięty nad posiłki, żeby
-   wszystkie pięć (workspace/finance/trips/meals/car) mogły być widoczne równocześnie bez nakładania się. */
-.sync-indicator--car {
-  bottom: 168px;
-}
-/* Wskaźnik zwierząt (PetsSync) to szósta niezależna instancja — przesunięty nad samochód, żeby
-   wszystkie sześć (workspace/finance/trips/meals/car/pets) mogły być widoczne równocześnie bez
-   nakładania się. */
-.sync-indicator--pets {
-  bottom: 206px;
-}
-/* Wskaźnik zdrowia (HealthSync) to siódma niezależna instancja — przesunięty nad zwierzęta, żeby
-   wszystkie siedem (workspace/finance/trips/meals/car/pets/health) mogły być widoczne równocześnie
-   bez nakładania się. */
-.sync-indicator--health {
-  bottom: 244px;
-}
-/* Wskaźnik subskrypcji (SubscriptionsSync) to ósma niezależna instancja — przesunięty nad zdrowie,
-   żeby wszystkie osiem (workspace/finance/trips/meals/car/pets/health/subscriptions) mogły być
-   widoczne równocześnie bez nakładania się. */
-.sync-indicator--subscriptions {
-  bottom: 282px;
-}
-/* Wskaźnik Life (LifeRecordsSync) to dziewiąta niezależna instancja — przesunięty nad
-   subskrypcje, żeby wszystkie dziewięć (workspace/finance/trips/meals/car/pets/health/
-   subscriptions/life) mogły być widoczne równocześnie bez nakładania się. */
-.sync-indicator--life {
-  bottom: 320px;
 }
 @media (max-width: 760px) {
   .auth-shell {
@@ -325,30 +291,6 @@
     right: auto;
     left: 10px;
     bottom: calc(72px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--finance {
-    bottom: calc(114px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--trips {
-    bottom: calc(156px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--meals {
-    bottom: calc(198px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--car {
-    bottom: calc(240px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--pets {
-    bottom: calc(282px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--health {
-    bottom: calc(324px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--subscriptions {
-    bottom: calc(366px + env(safe-area-inset-bottom));
-  }
-  .sync-indicator--life {
-    bottom: calc(408px + env(safe-area-inset-bottom));
   }
   .migration-card {
     padding: 26px 18px;
