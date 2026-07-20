@@ -23,12 +23,19 @@ export function PetSummaryCards({
   hideAmounts,
 }: PetSummaryCardsProps) {
   return (
-    <section className="module-stat-grid module-stat-grid--three" aria-label="Podsumowanie zwierzęcia">
+    <section
+      className="module-stat-grid module-stat-grid--three"
+      aria-label="Podsumowanie zwierzęcia"
+    >
       <StatCard
         accent
         icon={isAquarium ? Fish : PawPrint}
         label={isAquarium ? "Obsada akwarium" : "Wiek"}
-        value={isAquarium ? `${fishStockCount(selectedPet.fishStock)} ryb` : petAgeLabel(selectedPet.birthDate)}
+        value={
+          isAquarium
+            ? `${fishStockCount(selectedPet.fishStock)} ryb`
+            : petAgeLabel(selectedPet.birthDate)
+        }
         sub={
           isAquarium
             ? `${(selectedPet.fishStock ?? []).length} gatunków`

@@ -27,7 +27,10 @@ export function CsvImportDropzone({
     <div className="finance-import-start">
       <label className="field">
         <span>Rachunek docelowy</span>
-        <select value={importAccountId} onChange={(event) => setImportAccountId(event.target.value)}>
+        <select
+          value={importAccountId}
+          onChange={(event) => setImportAccountId(event.target.value)}
+        >
           <option value="" disabled>
             Wybierz rachunek
           </option>

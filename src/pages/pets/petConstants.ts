@@ -1,13 +1,12 @@
-import {
-  Bone,
-  ReceiptText,
-  Scissors,
-  ShoppingBag,
-  Syringe,
-  type LucideIcon,
-} from "lucide-react";
+import { Bone, ReceiptText, Scissors, ShoppingBag, Syringe, type LucideIcon } from "lucide-react";
 import { differenceInYears, parseISO } from "date-fns";
-import type { FishStockEntry, PetExpense, PetKind, PetVisit, Visibility } from "../../advancedTypes";
+import type {
+  FishStockEntry,
+  PetExpense,
+  PetKind,
+  PetVisit,
+  Visibility,
+} from "../../advancedTypes";
 import { dateKey } from "../../lib/date";
 
 export type ExpenseFilter = "all" | PetExpense["type"];

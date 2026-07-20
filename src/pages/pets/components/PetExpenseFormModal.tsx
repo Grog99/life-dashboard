@@ -21,7 +21,12 @@ export function PetExpenseFormModal({
   onSubmit,
 }: PetExpenseFormModalProps) {
   return (
-    <Modal open={open} onClose={onClose} title="Dodaj wydatek" eyebrow={selectedPet?.name ?? "Zwierzęta"}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Dodaj wydatek"
+      eyebrow={selectedPet?.name ?? "Zwierzęta"}
+    >
       <form className="form-grid" onSubmit={onSubmit}>
         <div className="form-grid form-grid--2">
           <label className="field">
@@ -31,7 +36,8 @@ export function PetExpenseFormModal({
               onChange={(event) => {
                 const type = event.target.value as PetExpense["type"];
                 setDraft((prev) => {
-                  const isGenericTitle = !prev.title.trim() || prev.title === expenseLabels[prev.type];
+                  const isGenericTitle =
+                    !prev.title.trim() || prev.title === expenseLabels[prev.type];
                   return {
                     ...prev,
                     type,
@@ -81,7 +87,9 @@ export function PetExpenseFormModal({
           <span>Widoczność</span>
           <select
             value={draft.visibility}
-            onChange={(event) => setDraft({ ...draft, visibility: event.target.value as Visibility })}
+            onChange={(event) =>
+              setDraft({ ...draft, visibility: event.target.value as Visibility })
+            }
           >
             <option value="household">Domownicy</option>
             <option value="private">Tylko ja</option>

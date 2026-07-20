@@ -13,7 +13,13 @@ interface NewItineraryModalProps {
   onCreate: (item: Omit<TripItineraryItem, "id" | "updatedAt" | "version">) => void;
 }
 
-export function NewItineraryModal({ open, onClose, trip, initialDate, onCreate }: NewItineraryModalProps) {
+export function NewItineraryModal({
+  open,
+  onClose,
+  trip,
+  initialDate,
+  onCreate,
+}: NewItineraryModalProps) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);

@@ -87,9 +87,7 @@ export function GoalFormModal({
           <span>Widoczność</span>
           <select
             value={form.visibility}
-            onChange={(event) =>
-              setForm({ ...form, visibility: event.target.value as Visibility })
-            }
+            onChange={(event) => setForm({ ...form, visibility: event.target.value as Visibility })}
           >
             <option value="private">Tylko ja</option>
             <option value="household">Domownicy</option>

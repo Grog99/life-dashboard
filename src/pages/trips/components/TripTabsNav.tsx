@@ -8,7 +8,13 @@ interface TripTabsNavProps {
   packingCount: number;
 }
 
-export function TripTabsNav({ view, onChange, bookingsCount, packedCount, packingCount }: TripTabsNavProps) {
+export function TripTabsNav({
+  view,
+  onChange,
+  bookingsCount,
+  packedCount,
+  packingCount,
+}: TripTabsNavProps) {
   return (
     <nav className="trips-tabs" aria-label="Sekcje podróży" role="tablist">
       {tripViews.map((item) => {

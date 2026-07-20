@@ -68,7 +68,11 @@ export function PetExpensesPanel({
               Pielęgnacja
             </button>
           </div>
-          <button className="button button--soft button--small" type="button" onClick={onAddExpense}>
+          <button
+            className="button button--soft button--small"
+            type="button"
+            onClick={onAddExpense}
+          >
             <Plus size={15} /> Dodaj koszt
           </button>
         </div>

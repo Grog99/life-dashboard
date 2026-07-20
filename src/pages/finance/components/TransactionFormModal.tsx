@@ -77,7 +77,9 @@ export function TransactionFormModal({
               required
               type="date"
               value={form.bookedOn}
-              onChange={(event) => setForm((current) => ({ ...current, bookedOn: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, bookedOn: event.target.value }))
+              }
             />
           </label>
         </div>
@@ -90,7 +92,9 @@ export function TransactionFormModal({
               inputMode="decimal"
               placeholder="0,00"
               value={form.amount}
-              onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, amount: event.target.value }))
+              }
             />
             <span>{accountById.get(form.accountId)?.currency ?? primaryCurrency}</span>
           </div>
@@ -103,7 +107,9 @@ export function TransactionFormModal({
               maxLength={80}
               placeholder="np. Zakupy spożywcze"
               value={form.title}
-              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, title: event.target.value }))
+              }
             />
           </label>
           <label className="field">
@@ -112,7 +118,9 @@ export function TransactionFormModal({
               maxLength={80}
               placeholder="np. Carrefour"
               value={form.merchant}
-              onChange={(event) => setForm((current) => ({ ...current, merchant: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, merchant: event.target.value }))
+              }
             />
           </label>
         </div>
@@ -123,7 +131,9 @@ export function TransactionFormModal({
               list="finance-category-options"
               maxLength={50}
               value={form.category}
-              onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, category: event.target.value }))
+              }
             />
             <datalist id="finance-category-options">
               {categories.map((category) => (

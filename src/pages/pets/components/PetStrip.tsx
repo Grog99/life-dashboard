@@ -30,7 +30,9 @@ export function PetStrip({ pets, selectedPetId, onSelect, onAddPet }: PetStripPr
               <strong>{pet.name}</strong>
               <span>{kindLabels[pet.kind]}</span>
               <small>
-                {pet.kind === "aquarium" ? `${fishStockCount(pet.fishStock)} ryb` : petAgeLabel(pet.birthDate)}
+                {pet.kind === "aquarium"
+                  ? `${fishStockCount(pet.fishStock)} ryb`
+                  : petAgeLabel(pet.birthDate)}
               </small>
             </div>
           </button>

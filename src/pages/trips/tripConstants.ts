@@ -73,7 +73,8 @@ export const tripViews: Array<{ id: TripView; label: string; icon: LucideIcon }>
   { id: "packing", label: "Pakowanie", icon: Luggage },
 ];
 
-export const capitalize = (value: string) => value.charAt(0).toLocaleUpperCase("pl") + value.slice(1);
+export const capitalize = (value: string) =>
+  value.charAt(0).toLocaleUpperCase("pl") + value.slice(1);
 
 export function safeDate(value: string): Date | null {
   const parsed = parseISO(value);

@@ -11,7 +11,13 @@ interface AccountFormModalProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
 
-export function AccountFormModal({ open, onClose, form, setForm, onSubmit }: AccountFormModalProps) {
+export function AccountFormModal({
+  open,
+  onClose,
+  form,
+  setForm,
+  onSubmit,
+}: AccountFormModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="Nowy rachunek" eyebrow="Finanse" size="small">
       <form className="finance-form" onSubmit={onSubmit}>
@@ -66,7 +72,9 @@ export function AccountFormModal({ open, onClose, form, setForm, onSubmit }: Acc
               inputMode="decimal"
               placeholder="0,00"
               value={form.balance}
-              onChange={(event) => setForm((current) => ({ ...current, balance: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, balance: event.target.value }))
+              }
             />
             <span>{form.currency}</span>
           </div>
@@ -90,7 +98,9 @@ export function AccountFormModal({ open, onClose, form, setForm, onSubmit }: Acc
               <input
                 type="color"
                 value={form.color}
-                onChange={(event) => setForm((current) => ({ ...current, color: event.target.value }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, color: event.target.value }))
+                }
               />
               <span>{form.color.toUpperCase()}</span>
             </div>

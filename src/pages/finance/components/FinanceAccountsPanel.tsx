@@ -63,7 +63,9 @@ export function FinanceAccountsPanel({
                   <strong>{account.name}</strong>
                 </span>
                 <span className="finance-account-card__balance">
-                  <strong>{formatMoney(account.balanceMinor, account.currency, hideAmounts)}</strong>
+                  <strong>
+                    {formatMoney(account.balanceMinor, account.currency, hideAmounts)}
+                  </strong>
                   <small>
                     {account.visibility === "household" ? (
                       <Users size={12} />
@@ -86,7 +88,11 @@ export function FinanceAccountsPanel({
             <strong>Dodaj pierwszy rachunek</strong>
             <span>Może to być konto, gotówka albo karta.</span>
           </div>
-          <button className="button button--soft button--small" type="button" onClick={onAddAccount}>
+          <button
+            className="button button--soft button--small"
+            type="button"
+            onClick={onAddAccount}
+          >
             Dodaj rachunek
           </button>
         </div>

@@ -54,7 +54,9 @@ export function PetProfileCard({ selectedPet, isAquarium, onEdit, onRemove }: Pe
           <div>
             <Cake size={16} />
             <span>Data urodzenia</span>
-            <strong>{selectedPet.birthDate ? formatShortDate(selectedPet.birthDate) : "Nieznana"}</strong>
+            <strong>
+              {selectedPet.birthDate ? formatShortDate(selectedPet.birthDate) : "Nieznana"}
+            </strong>
           </div>
           <div>
             <PawPrint size={16} />

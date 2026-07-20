@@ -55,7 +55,11 @@ export function TripHero({ trip, duration, untilStart, onStatusChange, onEdit }:
       </div>
       <div className="trips-hero__countdown">
         <span>
-          {trip.status === "active" ? "Podróż trwa" : untilStart > 0 ? "Do wyjazdu" : "Plan podróży"}
+          {trip.status === "active"
+            ? "Podróż trwa"
+            : untilStart > 0
+              ? "Do wyjazdu"
+              : "Plan podróży"}
         </span>
         <strong>
           {trip.status === "active" ? duration : untilStart > 0 ? untilStart : `${trip.progress}%`}

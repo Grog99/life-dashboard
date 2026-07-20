@@ -71,7 +71,10 @@ export function TripPackingView({
         </label>
         <label>
           <span className="sr-only">Osoba</span>
-          <select value={packingAssignee} onChange={(event) => setPackingAssignee(event.target.value)}>
+          <select
+            value={packingAssignee}
+            onChange={(event) => setPackingAssignee(event.target.value)}
+          >
             <option value="">Bez przypisania</option>
             {travelers.map((traveler) => (
               <option value={traveler} key={traveler}>
@@ -103,7 +106,9 @@ export function TripPackingView({
               <div>
                 {items.map((item) => (
                   <button
-                    className={item.packed ? "trips-pack-item trips-pack-item--done" : "trips-pack-item"}
+                    className={
+                      item.packed ? "trips-pack-item trips-pack-item--done" : "trips-pack-item"
+                    }
                     type="button"
                     key={item.id}
                     onClick={() => onToggle(item.id)}

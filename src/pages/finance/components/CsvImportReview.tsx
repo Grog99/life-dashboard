@@ -56,7 +56,11 @@ export function CsvImportReview({
             {csvEncoding ?? "UTF-8"}
           </span>
         </div>
-        <button className="button button--ghost button--small" type="button" onClick={onResetCsvImport}>
+        <button
+          className="button button--ghost button--small"
+          type="button"
+          onClick={onResetCsvImport}
+        >
           Zmień plik
         </button>
       </div>
@@ -123,7 +127,9 @@ export function CsvImportReview({
             <span>Kontrahent</span>
             <select
               value={csvMapping.merchantColumn ?? ""}
-              onChange={(event) => onUpdateMapping("merchantColumn", event.target.value || undefined)}
+              onChange={(event) =>
+                onUpdateMapping("merchantColumn", event.target.value || undefined)
+              }
             >
               <option value="">Użyj tytułu</option>
               {csvPreview.headers.map((header) => (
@@ -135,7 +141,9 @@ export function CsvImportReview({
             <span>Kategoria</span>
             <select
               value={csvMapping.categoryColumn ?? ""}
-              onChange={(event) => onUpdateMapping("categoryColumn", event.target.value || undefined)}
+              onChange={(event) =>
+                onUpdateMapping("categoryColumn", event.target.value || undefined)
+              }
             >
               <option value="">Do przypisania</option>
               {csvPreview.headers.map((header) => (

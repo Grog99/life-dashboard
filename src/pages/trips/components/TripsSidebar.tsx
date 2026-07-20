@@ -10,7 +10,13 @@ interface TripsSidebarProps {
   onAdd: () => void;
 }
 
-export function TripsSidebar({ sortedTrips, activeTripId, activeCount, onSwitch, onAdd }: TripsSidebarProps) {
+export function TripsSidebar({
+  sortedTrips,
+  activeTripId,
+  activeCount,
+  onSwitch,
+  onAdd,
+}: TripsSidebarProps) {
   return (
     <aside className="panel trips-list" aria-label="Twoje podróże">
       <header>

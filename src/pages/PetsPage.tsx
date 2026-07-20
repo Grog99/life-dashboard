@@ -94,7 +94,9 @@ export function PetsPage({ onToast }: PetsPageProps) {
   const monthlyCost = selectedExpenses
     .filter((expense) => expense.date.startsWith(monthPrefix))
     .reduce((sum, expense) => sum + expense.amountMinor, 0);
-  const monthCount = selectedExpenses.filter((expense) => expense.date.startsWith(monthPrefix)).length;
+  const monthCount = selectedExpenses.filter((expense) =>
+    expense.date.startsWith(monthPrefix),
+  ).length;
 
   const openPetCreate = () => {
     setEditingPet(null);
@@ -285,9 +287,15 @@ export function PetsPage({ onToast }: PetsPageProps) {
         <div>
           <span className="page-eyebrow">Zwierzęta pod jednym dachem</span>
           <h1>Zwierzęta</h1>
-          <p>Profile, wydatki i wizyty u weterynarza — jedno miejsce zamiast rozproszonych notatek.</p>
+          <p>
+            Profile, wydatki i wizyty u weterynarza — jedno miejsce zamiast rozproszonych notatek.
+          </p>
         </div>
-        <button className="button button--primary" type="button" onClick={() => openExpenseCreate("food")}>
+        <button
+          className="button button--primary"
+          type="button"
+          onClick={() => openExpenseCreate("food")}
+        >
           <Plus size={17} /> Dodaj wydatek
         </button>
       </header>

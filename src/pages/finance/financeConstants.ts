@@ -97,7 +97,8 @@ export const formatDate = (date: string, compact = false) => {
   }).format(parsed);
 };
 
-export const capitalize = (value: string) => value.charAt(0).toLocaleUpperCase("pl") + value.slice(1);
+export const capitalize = (value: string) =>
+  value.charAt(0).toLocaleUpperCase("pl") + value.slice(1);
 
 export const normalizeCategoryName = (value: string) => value.trim().toLocaleLowerCase("pl");
 

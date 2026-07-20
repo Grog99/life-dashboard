@@ -13,7 +13,13 @@ interface NewBookingModalProps {
   onCreate: (booking: Omit<TripBooking, "id" | "updatedAt" | "version">) => void;
 }
 
-export function NewBookingModal({ open, onClose, trip, itinerary, onCreate }: NewBookingModalProps) {
+export function NewBookingModal({
+  open,
+  onClose,
+  trip,
+  itinerary,
+  onCreate,
+}: NewBookingModalProps) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);

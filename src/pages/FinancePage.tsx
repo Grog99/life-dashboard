@@ -1,11 +1,4 @@
-import {
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-  type FormEvent,
-} from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from "react";
 import { Eye, EyeOff, Plus, Upload } from "lucide-react";
 import type { FinanceBudget, FinanceTransaction, SavingsGoal } from "../financeTypes";
 import {
@@ -225,7 +218,10 @@ export function FinancePage({ onToast }: FinancePageProps) {
   }, [financeTransactions, mappedCsvTransactions]);
   const csvDuplicateCount = csvRowsWithStatus.filter((row) => row.duplicate).length;
   const csvNewCount = csvRowsWithStatus.length - csvDuplicateCount;
-  const csvInvalidCount = Math.max(0, (csvPreview?.rows.length ?? 0) - mappedCsvTransactions.length);
+  const csvInvalidCount = Math.max(
+    0,
+    (csvPreview?.rows.length ?? 0) - mappedCsvTransactions.length,
+  );
 
   const openTransactionModal = () => {
     const preferredAccount =

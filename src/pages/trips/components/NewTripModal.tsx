@@ -52,7 +52,13 @@ export function NewTripModal({ open, onClose, onCreate }: NewTripModalProps) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Nowa podróż" eyebrow="Zacznij od kierunku" size="large">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Nowa podróż"
+      eyebrow="Zacznij od kierunku"
+      size="large"
+    >
       <form className="trips-modal-form" onSubmit={submit}>
         <div className="form-grid form-grid--2">
           <label className="field field--prominent">

@@ -102,7 +102,9 @@ export function TripBudgetView({
             </article>
           ))}
           {!budgetBreakdown.length && (
-            <div className="trips-budget-empty">Koszty pojawią się tutaj po dodaniu ich do planu.</div>
+            <div className="trips-budget-empty">
+              Koszty pojawią się tutaj po dodaniu ich do planu.
+            </div>
           )}
         </div>
       </section>

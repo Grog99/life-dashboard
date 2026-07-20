@@ -157,7 +157,9 @@ export function FinanceTransactionsPanel({
                         </span>
                       </td>
                       <td>
-                        <strong className={incoming ? "finance-amount is-positive" : "finance-amount"}>
+                        <strong
+                          className={incoming ? "finance-amount is-positive" : "finance-amount"}
+                        >
                           {formatMoney(transaction.amountMinor, transaction.currency, hideAmounts)}
                         </strong>
                       </td>
@@ -195,7 +197,11 @@ export function FinanceTransactionsPanel({
           <Search size={22} />
           <strong>Nie znaleziono transakcji</strong>
           <span>Zmień filtry albo dodaj nową operację.</span>
-          <button className="button button--soft button--small" type="button" onClick={onAddTransaction}>
+          <button
+            className="button button--soft button--small"
+            type="button"
+            onClick={onAddTransaction}
+          >
             <Plus size={15} /> Dodaj transakcję
           </button>
         </div>

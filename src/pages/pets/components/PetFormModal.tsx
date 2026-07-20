@@ -100,7 +100,11 @@ export function PetFormModal({
                 </button>
               </div>
             ))}
-            <button type="button" className="button button--soft button--small" onClick={addFishRow}>
+            <button
+              type="button"
+              className="button button--soft button--small"
+              onClick={addFishRow}
+            >
               <Plus size={14} /> Dodaj gatunek
             </button>
           </div>
@@ -137,7 +141,9 @@ export function PetFormModal({
           <span>Widoczność</span>
           <select
             value={draft.visibility}
-            onChange={(event) => setDraft({ ...draft, visibility: event.target.value as Visibility })}
+            onChange={(event) =>
+              setDraft({ ...draft, visibility: event.target.value as Visibility })
+            }
           >
             <option value="household">Domownicy</option>
             <option value="private">Tylko ja</option>

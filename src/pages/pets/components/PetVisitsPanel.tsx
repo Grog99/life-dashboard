@@ -10,7 +10,13 @@ interface PetVisitsPanelProps {
   onAdd: () => void;
 }
 
-export function PetVisitsPanel({ selectedVisits, onToggle, onEdit, onRemove, onAdd }: PetVisitsPanelProps) {
+export function PetVisitsPanel({
+  selectedVisits,
+  onToggle,
+  onEdit,
+  onRemove,
+  onAdd,
+}: PetVisitsPanelProps) {
   return (
     <section className="panel module-panel deadlines-panel">
       <header className="module-panel__header">
@@ -34,7 +40,9 @@ export function PetVisitsPanel({ selectedVisits, onToggle, onEdit, onRemove, onA
               type="button"
               onClick={() => onToggle(visit.id)}
               aria-label={
-                visit.status === "completed" ? `Przywróć ${visit.title}` : `Oznacz odbytą ${visit.title}`
+                visit.status === "completed"
+                  ? `Przywróć ${visit.title}`
+                  : `Oznacz odbytą ${visit.title}`
               }
               aria-pressed={visit.status === "completed"}
             >

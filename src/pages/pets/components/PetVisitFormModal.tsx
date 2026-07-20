@@ -108,7 +108,9 @@ export function PetVisitFormModal({
             <span>Widoczność</span>
             <select
               value={draft.visibility}
-              onChange={(event) => setDraft({ ...draft, visibility: event.target.value as Visibility })}
+              onChange={(event) =>
+                setDraft({ ...draft, visibility: event.target.value as Visibility })
+              }
             >
               <option value="household">Domownicy</option>
               <option value="private">Tylko ja</option>
